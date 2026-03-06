@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>HR SYSTEM - 시스템 아키텍처 문서</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif; font-size: 11pt; line-height: 1.7; color: #222; }
+
+  .cover { page-break-after: always; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center; }
+  .cover h1 { font-size: 32pt; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 16pt; color: #334155; margin-bottom: 10px; }
+  .cover .desc { font-size: 12pt; color: #64748b; margin-bottom: 40px; }
+  .cover .info { font-size: 10pt; color: #94a3b8; line-height: 2; }
+  .cover .bar { width: 80px; height: 4px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 2px; margin-bottom: 30px; }
+
+  .toc { page-break-after: always; }
+  .toc h2 { font-size: 18pt; border-bottom: 3px solid #0f172a; padding-bottom: 8px; margin-bottom: 20px; }
+  .toc ul { list-style: none; }
+  .toc > ul > li { padding: 7px 0; border-bottom: 1px dotted #cbd5e1; font-weight: 600; }
+  .toc > ul > li > ul > li { padding: 4px 0 4px 20px; border-bottom: none; font-weight: 400; font-size: 10pt; }
+
+  h2 { font-size: 16pt; color: #0f172a; border-bottom: 2px solid #3b82f6; padding-bottom: 6px; margin: 30px 0 15px; }
+  h3 { font-size: 13pt; color: #1e293b; margin: 20px 0 10px; border-left: 4px solid #3b82f6; padding-left: 10px; }
+  h4 { font-size: 11pt; color: #334155; margin: 14px 0 6px; }
+  p { margin: 6px 0; text-align: justify; }
+  ul, ol { margin: 6px 0 6px 20px; }
+  li { margin: 3px 0; }
+
+  .page-break { page-break-before: always; }
+
+  .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 12px 0; }
+  .box.blue { background: #eff6ff; border-color: #bfdbfe; }
+  .box.green { background: #f0fdf4; border-color: #bbf7d0; }
+  .box.purple { background: #faf5ff; border-color: #e9d5ff; }
+  .box strong { display: block; margin-bottom: 4px; color: #0f172a; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; }
+  th { background: #0f172a; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  pre { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-size: 10pt; line-height: 1.5; overflow-x: auto; margin: 12px 0; }
+
+  .diagram { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 12px 0; text-align: center; font-family: monospace; font-size: 10pt; line-height: 1.6; white-space: pre; }
+
+  .metric { display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 16px; margin: 4px; text-align: center; min-width: 100px; }
+  .metric .num { font-size: 18pt; font-weight: 800; color: #3b82f6; }
+  .metric .label { font-size: 9pt; color: #64748b; }
+
+  .footer { text-align: center; color: #94a3b8; font-size: 9pt; margin-top: 40px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="bar"></div>
+  <h1>HR SYSTEM</h1>
+  <div class="subtitle">시스템 아키텍처 문서</div>
+  <div class="desc">문제정의 · 솔루션 설계 · 기술 아키텍처 · 운영 거버넌스</div>
+  <div class="info">
+    Version 2.0<br>
+    2026년 3월<br>
+    <br>
+    Confidential — 대외비
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h2>목차</h2>
+  <ul>
+    <li>1. Executive Summary</li>
+    <li>2. 문제 정의
+      <ul>
+        <li>2.1 시장 현황 및 Pain Point</li>
+        <li>2.2 타겟 고객</li>
+      </ul>
+    </li>
+    <li>3. 솔루션 개요
+      <ul>
+        <li>3.1 핵심 가치 제안</li>
+        <li>3.2 제품 범위</li>
+        <li>3.3 차별화 요소</li>
+      </ul>
+    </li>
+    <li>4. 시스템 아키텍처
+      <ul>
+        <li>4.1 전체 아키텍처</li>
+        <li>4.2 기술 스택</li>
+        <li>4.3 데이터 아키텍처</li>
+        <li>4.4 보안 아키텍처</li>
+      </ul>
+    </li>
+    <li>5. 기능 아키텍처
+      <ul>
+        <li>5.1 기능 맵</li>
+        <li>5.2 결재 플로우</li>
+        <li>5.3 권한 체계</li>
+      </ul>
+    </li>
+    <li>6. 배포 아키텍처
+      <ul>
+        <li>6.1 로컬 배포 모델</li>
+        <li>6.2 확장 배포 모델</li>
+      </ul>
+    </li>
+    <li>7. 운영 및 거버넌스
+      <ul>
+        <li>7.1 데이터 관리</li>
+        <li>7.2 백업 및 복구</li>
+        <li>7.3 업데이트 정책</li>
+        <li>7.4 기술 지원 체계</li>
+      </ul>
+    </li>
+    <li>8. 로드맵</li>
+  </ul>
+</div>
+
+<!-- 1. Executive Summary -->
+<h2>1. Executive Summary</h2>
+
+<p><strong>HR SYSTEM</strong>은 중소기업(10~200명)을 위한 온프레미스 인사관리 솔루션입니다. 별도의 서버 인프라나 클라우드 구독 없이, 사내 PC 한 대에 설치만으로 전사 인사관리 시스템을 구축할 수 있습니다.</p>
+
+<div style="text-align:center; margin: 20px 0;">
+  <div class="metric"><div class="num">0원</div><div class="label">월 구독료</div></div>
+  <div class="metric"><div class="num">5분</div><div class="label">설치 시간</div></div>
+  <div class="metric"><div class="num">0대</div><div class="label">필요 서버</div></div>
+  <div class="metric"><div class="num">∞</div><div class="label">동시 접속</div></div>
+</div>
+
+<div class="box blue">
+  <strong>핵심 메시지</strong>
+  "설치 한 번으로 완성되는 인사관리 — 서버도, 클라우드도, 월 비용도 없습니다."
+</div>
+
+<!-- 2. 문제 정의 -->
+<h2 class="page-break">2. 문제 정의</h2>
+
+<h3>2.1 시장 현황 및 Pain Point</h3>
+
+<table>
+  <tr><th style="width:25%">Pain Point</th><th>현황</th><th style="width:30%">영향</th></tr>
+  <tr>
+    <td><strong>높은 도입 비용</strong></td>
+    <td>클라우드 SaaS 인사시스템은 인당 월 5,000~30,000원의 구독료 발생. 50인 기업 기준 연 300~1,800만원</td>
+    <td>중소기업 예산으로 부담</td>
+  </tr>
+  <tr>
+    <td><strong>복잡한 구축</strong></td>
+    <td>온프레미스 ERP는 서버 구매, DB 설치, 네트워크 구성 등 IT 전문 인력 필요</td>
+    <td>IT 인력 없는 중소기업 도입 불가</td>
+  </tr>
+  <tr>
+    <td><strong>엑셀 의존</strong></td>
+    <td>여전히 많은 중소기업이 엑셀로 휴가/인사 관리. 파일 충돌, 버전 관리, 공유 문제</td>
+    <td>업무 비효율, 데이터 유실 위험</td>
+  </tr>
+  <tr>
+    <td><strong>데이터 외부 유출 우려</strong></td>
+    <td>클라우드 기반 서비스는 직원 개인정보가 외부 서버에 저장</td>
+    <td>개인정보보호법 우려</td>
+  </tr>
+</table>
+
+<h3>2.2 타겟 고객</h3>
+
+<div class="box">
+  <strong>Primary Target</strong>
+  직원 10~200명 규모의 중소기업 중 아래 조건에 해당하는 기업:
+  <ul style="margin-top:8px;">
+    <li>전담 IT 인력이 없거나 제한적인 기업</li>
+    <li>클라우드 구독 비용을 최소화하고 싶은 기업</li>
+    <li>직원 개인정보를 사내에서 관리하고 싶은 기업</li>
+    <li>엑셀 기반 인사관리에서 시스템화로 전환하고 싶은 기업</li>
+  </ul>
+</div>
+
+<!-- 3. 솔루션 개요 -->
+<h2 class="page-break">3. 솔루션 개요</h2>
+
+<h3>3.1 핵심 가치 제안</h3>
+
+<table>
+  <tr><th style="width:8%">#</th><th style="width:25%">가치</th><th>설명</th></tr>
+  <tr><td>1</td><td><strong>제로 인프라</strong></td><td>서버, DB, 네트워크 설정 불필요. PC 한 대에 설치 파일 실행만으로 완료</td></tr>
+  <tr><td>2</td><td><strong>제로 월비용</strong></td><td>일회성 라이선스 비용만 발생. 월 구독료, 인당 과금 없음</td></tr>
+  <tr><td>3</td><td><strong>데이터 주권</strong></td><td>모든 데이터가 사내 PC에 저장. 외부 서버 전송 없음</td></tr>
+  <tr><td>4</td><td><strong>즉시 사용</strong></td><td>설치 후 5분 이내 전 직원이 브라우저로 접속하여 사용 가능</td></tr>
+  <tr><td>5</td><td><strong>올인원</strong></td><td>휴가, 복지, 결재, 직원관리를 하나의 시스템에서 통합 관리</td></tr>
+</table>
+
+<h3>3.2 제품 범위</h3>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────┐
+│                    HR SYSTEM v2.0                    │
+├──────────────┬──────────────┬────────────────────────┤
+│  직원 관리    │  휴가 관리    │  복지 관리              │
+│  ├ 직원 등록  │  ├ 휴가 신청  │  ├ 복지 항목 관리       │
+│  ├ 부서 관리  │  ├ 휴가 승인  │  ├ 복지 신청/승인       │
+│  ├ 직급 관리  │  ├ 휴가 부여  │  └ 자동승인 설정        │
+│  └ 권한 관리  │  ├ 잔여 관리  │                        │
+│              │  ├ 캘린더 뷰  │  시간외근무              │
+│  전자 결재    │  ├ 사용 현황  │  ├ 시간외근무 신청      │
+│  ├ 결재선설정 │  └ 관리대장   │  └ 시간외근무 승인      │
+│              │              │                        │
+│  출퇴근 관리  │              │                        │
+│  ├ 출퇴근 기록│              │                        │
+│  ├ 근태현황   │              │                        │
+│  ├ 연장근무   │              │                        │
+│  │ 신청      │              │                        │
+│  └ 연장근무   │              │                        │
+│    현황      │              │                        │
+│  ├ 순차 결재  │              │                        │
+│  ├ 선승인     │  공휴일 관리   │  데이터 관리            │
+│  └ 반려 처리  │  └ 연간 공휴일│  └ Excel 내보내기       │
+└──────────────┴──────────────┴────────────────────────┘
+</div>
+
+<h3>3.3 차별화 요소</h3>
+
+<table>
+  <tr><th style="width:25%">항목</th><th>기존 솔루션</th><th>HR SYSTEM</th></tr>
+  <tr><td>설치</td><td>서버 구축 필요 (수일~수주)</td><td><strong>설치 파일 실행 (5분)</strong></td></tr>
+  <tr><td>비용 구조</td><td>월 구독 (인당 과금)</td><td><strong>일회성 라이선스</strong></td></tr>
+  <tr><td>데이터 위치</td><td>외부 클라우드 서버</td><td><strong>사내 PC (온프레미스)</strong></td></tr>
+  <tr><td>IT 전문성</td><td>서버/DB 관리 필요</td><td><strong>불필요 (자동 관리)</strong></td></tr>
+  <tr><td>접속 방법</td><td>전용 클라이언트 설치</td><td><strong>브라우저 접속 (설치 불필요)</strong></td></tr>
+  <tr><td>모바일 지원</td><td>별도 앱 설치</td><td><strong>반응형 웹 (앱 불필요)</strong></td></tr>
+</table>
+
+<!-- 4. 시스템 아키텍처 -->
+<h2 class="page-break">4. 시스템 아키텍처</h2>
+
+<h3>4.1 전체 아키텍처</h3>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────┐
+│                  Electron Desktop App                │
+│  ┌───────────────────────────────────────────────┐  │
+│  │              Next.js Application               │  │
+│  │  ┌─────────────┐    ┌──────────────────────┐  │  │
+│  │  │  Frontend    │    │  Backend (API)        │  │  │
+│  │  │  React 19    │◄──►│  Route Handlers      │  │  │
+│  │  │  Tailwind    │    │  Server Components   │  │  │
+│  │  │  shadcn/ui   │    │  Middleware (Auth)    │  │  │
+│  │  └─────────────┘    └──────────┬───────────┘  │  │
+│  │                                │              │  │
+│  │                     ┌──────────▼───────────┐  │  │
+│  │                     │  Prisma ORM (v7)     │  │  │
+│  │                     │  + Driver Adapter    │  │  │
+│  │                     └──────────┬───────────┘  │  │
+│  └────────────────────────────────┼──────────────┘  │
+│                        ┌──────────▼───────────┐     │
+│                        │  SQLite Database     │     │
+│                        │  (better-sqlite3)    │     │
+│                        │  msa-hr.db           │     │
+│                        └──────────────────────┘     │
+│                                                     │
+│  HTTP Server (:3000) ──► 0.0.0.0 (LAN 접근 허용)    │
+└─────────────────────────────────────────────────────┘
+         ▲            ▲            ▲
+         │            │            │
+     [서버 PC]     [노트북]     [스마트폰]
+      Electron     Browser      Browser
+</div>
+
+<h3>4.2 기술 스택</h3>
+
+<table>
+  <tr><th style="width:20%">계층</th><th style="width:30%">기술</th><th>선택 근거</th></tr>
+  <tr><td><strong>Runtime</strong></td><td>Electron 35</td><td>크로스플랫폼 데스크탑 앱, Node.js 내장으로 서버 실행 가능</td></tr>
+  <tr><td><strong>Framework</strong></td><td>Next.js 16</td><td>SSR/CSR 통합, API Route 내장, 프론트·백 통합 개발</td></tr>
+  <tr><td><strong>Frontend</strong></td><td>React 19 + Tailwind CSS</td><td>컴포넌트 기반 UI, 유틸리티 CSS로 빠른 개발</td></tr>
+  <tr><td><strong>UI Library</strong></td><td>shadcn/ui + Radix</td><td>접근성 보장, 커스터마이징 용이</td></tr>
+  <tr><td><strong>ORM</strong></td><td>Prisma 7</td><td>타입 안전 DB 접근, 마이그레이션 자동화</td></tr>
+  <tr><td><strong>Database</strong></td><td>SQLite (better-sqlite3)</td><td>서버 불필요, 파일 기반, 설치 간소화</td></tr>
+  <tr><td><strong>인증</strong></td><td>JWT + HttpOnly Cookie</td><td>무상태 인증, XSS 방지</td></tr>
+  <tr><td><strong>언어</strong></td><td>TypeScript</td><td>타입 안전성, 풀스택 단일 언어</td></tr>
+</table>
+
+<h3 class="page-break">4.3 데이터 아키텍처</h3>
+
+<h4>핵심 엔티티 관계</h4>
+<div class="diagram">
+┌────────────┐     ┌────────────┐     ┌────────────┐
+│ Department │◄────│  Employee  │────►│  Position  │
+│ 부서       │ 1:N │  직원      │ N:1 │  직급      │
+└────────────┘     └──────┬─────┘     └────────────┘
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+    ┌──────────────┐ ┌──────────┐ ┌──────────────┐
+    │ LeaveRequest │ │ Approval │ │WelfareRequest│
+    │ 휴가신청     │ │ 결재     │ │ 복지신청     │
+    └──────┬───────┘ └──────────┘ └──────┬───────┘
+           │                             │
+    ┌──────▼───────┐              ┌──────▼───────┐
+    │ LeaveBalance │              │ WelfareItem  │
+    │ 휴가잔액     │              │ 복지항목     │
+    └──────────────┘              └──────────────┘
+
+    ┌──────────────┐     ┌──────────────┐
+    │ ApprovalLine │────►│ ApprovalStep │
+    │ 결재선       │ 1:N │ 결재단계     │
+    └──────────────┘     └──────────────┘
+
+    ┌──────────────┐
+    │  Attendance  │
+    │  출퇴근      │
+    └──────────────┘
+</div>
+
+<h4>주요 테이블</h4>
+<table>
+  <tr><th>테이블</th><th>설명</th><th>주요 컬럼</th></tr>
+  <tr><td>employees</td><td>직원 정보</td><td>id, name, email, departmentId, positionId, role, status</td></tr>
+  <tr><td>departments</td><td>부서 (계층)</td><td>id, name, parentId, sortOrder</td></tr>
+  <tr><td>positions</td><td>직급</td><td>id, name, level (1=사원 ~ 7=대표)</td></tr>
+  <tr><td>leave_requests</td><td>휴가 신청</td><td>id, employeeId, leaveTypeId, startDate, endDate, status, currentStep</td></tr>
+  <tr><td>leave_balances</td><td>휴가 잔액</td><td>employeeId, year, leaveTypeCode, totalGranted, totalUsed, totalRemain</td></tr>
+  <tr><td>approvals</td><td>결재 이력</td><td>id, leaveRequestId, stepOrder, approverId, action</td></tr>
+  <tr><td>approval_lines</td><td>결재선 템플릿</td><td>id, name, type(LEAVE/OVERTIME), isDefault</td></tr>
+  <tr><td>welfare_requests</td><td>복지 신청</td><td>id, employeeId, itemId, amount, status, approvedBy</td></tr>
+  <tr><td>holidays</td><td>공휴일</td><td>id, date, name</td></tr>
+  <tr><td>attendances</td><td>출퇴근 기록</td><td>id, employeeId, date, clockIn, clockOut, workHours, status</td></tr>
+</table>
+
+<h3 class="page-break">4.4 보안 아키텍처</h3>
+
+<table>
+  <tr><th style="width:25%">보안 영역</th><th>구현 내용</th></tr>
+  <tr><td><strong>인증</strong></td><td>JWT 토큰 기반 인증, 토큰 유효기간 24시간, bcrypt 비밀번호 해싱 (salt rounds: 12)</td></tr>
+  <tr><td><strong>쿠키 보안</strong></td><td>HttpOnly 쿠키 (XSS 방지), SameSite=Lax (CSRF 완화)</td></tr>
+  <tr><td><strong>접근 제어</strong></td><td>역할 기반 접근 제어(RBAC) — BASIC, DEPT_ADMIN, COMPANY_ADMIN, SYSTEM_ADMIN</td></tr>
+  <tr><td><strong>데이터 보안</strong></td><td>모든 데이터 사내 PC 로컬 저장, 외부 전송 없음</td></tr>
+  <tr><td><strong>입력 검증</strong></td><td>서버 사이드 입력값 검증, SQL Injection 방지 (Prisma ORM 파라미터 바인딩)</td></tr>
+  <tr><td><strong>네트워크</strong></td><td>LAN 전용 접근, 외부 노출 없음 (기본 설정)</td></tr>
+</table>
+
+<!-- 5. 기능 아키텍처 -->
+<h2 class="page-break">5. 기능 아키텍처</h2>
+
+<h3>5.1 기능 맵</h3>
+
+<table>
+  <tr><th style="width:18%">모듈</th><th style="width:25%">기능</th><th>상세</th></tr>
+  <tr><td rowspan="4"><strong>직원 관리</strong></td><td>직원 CRUD</td><td>등록, 수정, 삭제, 상태 관리(재직/휴직/퇴직)</td></tr>
+  <tr><td>부서 관리</td><td>계층형 부서 구조, 부서별 인원 관리</td></tr>
+  <tr><td>직급 관리</td><td>직급 레벨(1~7) 설정, 결재선과 연동</td></tr>
+  <tr><td>Excel 연동</td><td>직원 데이터 일괄 가져오기/내보내기</td></tr>
+
+  <tr><td rowspan="6"><strong>휴가 관리</strong></td><td>휴가 신청</td><td>연차, 반차, 병가, 경조 등 다양한 유형 지원</td></tr>
+  <tr><td>휴가 승인</td><td>결재선 기반 순차/선승인 처리</td></tr>
+  <tr><td>휴가 부여</td><td>개별/전직원 자동부여, 근속연수 기반 계산</td></tr>
+  <tr><td>잔여 관리</td><td>유형별 잔여일수 자동 계산, 사용 시 자동 차감</td></tr>
+  <tr><td>캘린더 뷰</td><td>부서별 휴가 일정 달력, 공휴일 표시</td></tr>
+  <tr><td>관리대장</td><td>전사 휴가 기록 조회, Excel 다운로드</td></tr>
+
+  <tr><td rowspan="3"><strong>복지 관리</strong></td><td>복지 항목</td><td>카테고리별 항목 관리, 금액/횟수 제한</td></tr>
+  <tr><td>복지 신청</td><td>항목별 신청, 커스텀 폼 필드 지원</td></tr>
+  <tr><td>자동승인</td><td>항목별 자동승인/관리자승인 설정</td></tr>
+
+  <tr><td rowspan="3"><strong>전자 결재</strong></td><td>결재선 설정</td><td>유형별(휴가/시간외) 결재 흐름 템플릿</td></tr>
+  <tr><td>결재 처리</td><td>순차 결재, 상위자 선승인, 반려 처리</td></tr>
+  <tr><td>알림</td><td>결재 요청/완료 시 알림 발송</td></tr>
+
+  <tr><td rowspan="4"><strong>출퇴근 관리</strong></td><td>출퇴근 기록</td><td>출근/퇴근 시간 기록, 자동 근무시간 계산</td></tr>
+  <tr><td>근태현황</td><td>월별 근태 기록 조회, 정상/지각/초과근무</td></tr>
+  <tr><td>연장근무 신청</td><td>평일야간/주말/공휴일 연장근무 신청</td></tr>
+  <tr><td>연장근무 승인</td><td>부서별 승인/반려 처리</td></tr>
+</table>
+
+<h3 class="page-break">5.2 결재 플로우</h3>
+
+<div class="diagram">
+[직원] 휴가 신청
+      │
+      ▼
+┌─────────────┐   기본 결재선 조회
+│ 결재 레코드  │◄──── (LEAVE 타입, isDefault=true)
+│ 자동 생성    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐    승인     ┌─────────────┐    승인     ┌─────────────┐
+│  Step 1     │───────────►│  Step 2     │───────────►│  Step 3     │
+│  부장 (Lv5) │            │  이사 (Lv6) │            │  대표 (Lv7) │
+└──────┬──────┘            └──────┬──────┘            └──────┬──────┘
+       │ 반려                     │                          │ 승인
+       ▼                         │                          ▼
+  [즉시 반려]                     │                    [최종 승인]
+                                 │                    [잔여일수 차감]
+                                 │
+                          ★ 선승인 가능
+                          대표가 Step 1,2 단계에서
+                          직접 승인 시 하위 단계
+                          자동 SKIP 처리
+</div>
+
+<h3>5.3 권한 체계</h3>
+
+<div class="diagram">
+  SYSTEM_ADMIN (시스템 관리자)
+  ├── 모든 시스템 설정
+  ├── 회사 정보 관리
+  │
+  ▼
+  COMPANY_ADMIN (회사 관리자)
+  ├── 전사 직원 관리
+  ├── 결재선/복지 설정
+  │
+  ▼
+  DEPT_ADMIN (부서 관리자)
+  ├── 부서원 휴가 승인
+  ├── 부서 현황 조회
+  │
+  ▼
+  BASIC (일반 직원)
+  ├── 자신의 휴가/복지 신청
+  └── 개인 현황 조회
+</div>
+
+<!-- 6. 배포 아키텍처 -->
+<h2 class="page-break">6. 배포 아키텍처</h2>
+
+<h3>6.1 로컬 배포 모델 (기본)</h3>
+
+<div class="box blue">
+  <strong>현재 제공 방식</strong>
+  Electron 데스크탑 앱을 사내 PC 한 대에 설치. 같은 네트워크 내 모든 기기에서 브라우저로 접속.
+</div>
+
+<div class="diagram">
+        ┌─────────────────────────┐
+        │  사내 네트워크 (LAN)     │
+        │                         │
+        │  [서버 PC]              │
+        │   Electron App          │
+        │   ├ Next.js (:3000)     │
+        │   └ SQLite DB           │
+        │        ▲  ▲  ▲          │
+        │        │  │  │          │
+        │   [PC] [PC] [Phone]     │
+        │   브라우저 접속          │
+        └─────────────────────────┘
+</div>
+
+<table>
+  <tr><th style="width:20%">특성</th><th>내용</th></tr>
+  <tr><td>설치 대수</td><td>서버 PC 1대</td></tr>
+  <tr><td>접속 방식</td><td>브라우저 (Chrome, Safari, Edge)</td></tr>
+  <tr><td>데이터 저장</td><td>서버 PC 로컬 (SQLite)</td></tr>
+  <tr><td>네트워크</td><td>사내 LAN (유선/WiFi)</td></tr>
+  <tr><td>적합 규모</td><td>10~100명</td></tr>
+</table>
+
+<h3>6.2 확장 배포 모델 (향후)</h3>
+
+<div class="diagram">
+┌───── Phase 1 ─────┐  ┌───── Phase 2 ─────┐  ┌───── Phase 3 ─────┐
+│                    │  │                    │  │                    │
+│  로컬 PC 설치     │  │  사내 서버 설치    │  │  클라우드 배포     │
+│  (현재)           │  │  + PostgreSQL      │  │  + 멀티 테넌트     │
+│                    │  │  + Docker          │  │  + SaaS 모델       │
+│  SQLite           │  │                    │  │                    │
+│  10~100명         │  │  50~500명          │  │  500명 이상        │
+└────────────────────┘  └────────────────────┘  └────────────────────┘
+</div>
+
+<div class="box green">
+  <strong>확장성 설계</strong>
+  시스템은 이미 PostgreSQL을 지원하는 듀얼 DB 아키텍처로 설계되어 있습니다. <code>DB_PROVIDER=postgresql</code> 환경 변수 전환만으로 PostgreSQL + Docker 기반의 서버 배포로 전환이 가능합니다. 코드 변경 없이 배포 환경만 변경하면 됩니다.
+</div>
+
+<!-- 7. 운영 및 거버넌스 -->
+<h2 class="page-break">7. 운영 및 거버넌스</h2>
+
+<h3>7.1 데이터 관리</h3>
+
+<table>
+  <tr><th style="width:25%">항목</th><th>정책</th></tr>
+  <tr><td><strong>데이터 저장 위치</strong></td><td>서버 PC 로컬 디스크 (Application Data 폴더)</td></tr>
+  <tr><td><strong>데이터 형식</strong></td><td>SQLite 단일 파일 (msa-hr.db)</td></tr>
+  <tr><td><strong>데이터 보존</strong></td><td>앱 삭제 시에도 데이터 유지 (Application Data에 별도 보관)</td></tr>
+  <tr><td><strong>개인정보 관리</strong></td><td>사내 PC에만 저장, 외부 전송 없음, 개인정보보호법 준수</td></tr>
+  <tr><td><strong>데이터 내보내기</strong></td><td>직원/휴가 데이터 Excel 다운로드 기능 제공</td></tr>
+</table>
+
+<h3>7.2 백업 및 복구</h3>
+
+<div class="box">
+  <strong>백업 방법</strong>
+  <ol style="margin-top:8px;">
+    <li>서버 PC의 DB 파일을 정기적으로 USB 또는 네트워크 드라이브에 복사합니다.
+      <ul>
+        <li>Windows: <code>%APPDATA%\msa-hr\msa-hr.db</code></li>
+        <li>macOS: <code>~/Library/Application Support/msa-hr/msa-hr.db</code></li>
+      </ul>
+    </li>
+    <li>주 1회 이상 백업을 권장합니다.</li>
+    <li>복구 시 백업 파일을 동일 경로에 복사하면 됩니다.</li>
+  </ol>
+</div>
+
+<div class="box purple">
+  <strong>권장 백업 스케줄</strong>
+  <table style="margin-top:8px;">
+    <tr><th>빈도</th><th>방법</th><th>보관 기간</th></tr>
+    <tr><td>매일</td><td>DB 파일 자동 복사 (스케줄러)</td><td>7일</td></tr>
+    <tr><td>매주</td><td>USB/네트워크 드라이브 수동 백업</td><td>4주</td></tr>
+    <tr><td>매월</td><td>외부 저장소 보관</td><td>12개월</td></tr>
+  </table>
+</div>
+
+<h3>7.3 업데이트 정책</h3>
+
+<table>
+  <tr><th style="width:20%">유형</th><th style="width:20%">빈도</th><th>내용</th></tr>
+  <tr><td><strong>패치</strong></td><td>수시</td><td>버그 수정, 보안 패치</td></tr>
+  <tr><td><strong>마이너</strong></td><td>분기</td><td>기능 개선, UI 업데이트</td></tr>
+  <tr><td><strong>메이저</strong></td><td>연간</td><td>신규 모듈, 아키텍처 변경</td></tr>
+</table>
+
+<p>업데이트는 새 설치 파일을 기존 앱 위에 덮어씌우는 방식입니다. 기존 데이터(DB 파일)는 유지됩니다.</p>
+
+<h3>7.4 기술 지원 체계</h3>
+
+<table>
+  <tr><th style="width:20%">지원 등급</th><th style="width:25%">응답 시간</th><th>채널</th></tr>
+  <tr><td><strong>긴급</strong> (시스템 장애)</td><td>4시간 이내</td><td>전화, 원격 접속</td></tr>
+  <tr><td><strong>일반</strong> (기능 문의)</td><td>1영업일 이내</td><td>이메일, 메신저</td></tr>
+  <tr><td><strong>개선</strong> (기능 요청)</td><td>검토 후 일정 안내</td><td>이메일</td></tr>
+</table>
+
+<!-- 8. 로드맵 -->
+<h2 class="page-break">8. 로드맵</h2>
+
+<table>
+  <tr><th style="width:15%">시기</th><th style="width:25%">버전</th><th>주요 내용</th></tr>
+  <tr><td><strong>현재</strong></td><td>v2.0 — 기본 패키지</td><td>휴가관리, 복지관리, 전자결재, 직원관리, 출퇴근관리, 로컬 배포</td></tr>
+  <tr><td><strong>Q2 2026</strong></td><td>v2.1 — 고도화</td><td>급여 관리 모듈, 자동 백업 기능</td></tr>
+  <tr><td><strong>Q3 2026</strong></td><td>v1.2 — 연동</td><td>구글 캘린더 연동, Slack/Teams 알림, 외부 접속 (터널링)</td></tr>
+  <tr><td><strong>Q4 2026</strong></td><td>v2.0 — 서버 배포</td><td>Docker 기반 서버 배포, PostgreSQL 전환, 멀티 지점 지원</td></tr>
+  <tr><td><strong>2027</strong></td><td>v3.0 — SaaS</td><td>클라우드 SaaS 모델, 멀티 테넌트, 모바일 앱(PWA)</td></tr>
+</table>
+
+<div class="box blue">
+  <strong>확장 아키텍처 준비 상태</strong>
+  <ul style="margin-top:8px;">
+    <li>PostgreSQL 듀얼 DB 지원 — <strong>구현 완료</strong></li>
+    <li>Docker 배포 설정 — <strong>구현 완료</strong></li>
+    <li>RESTful API 설계 — <strong>구현 완료</strong> (80+ 엔드포인트)</li>
+    <li>반응형 모바일 UI — <strong>구현 완료</strong></li>
+  </ul>
+</div>
+
+<div class="footer">
+  HR SYSTEM v2.0 — 시스템 아키텍처 문서 &copy; 2026 — Confidential
+</div>
+
+</body>
+</html>

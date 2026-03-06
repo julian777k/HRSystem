@@ -1,0 +1,478 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Department {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  code        String       @unique
+  parentId    String?
+  parent      Department?  @relation("DeptTree", fields: [parentId], references: [id])
+  children    Department[] @relation("DeptTree")
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+  employees   Employee[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  @@map("departments")
+}
+
+model Position {
+  id         String     @id @default(cuid())
+  name       String     @unique
+  level      Int        @unique
+  isActive   Boolean    @default(true)
+  employees  Employee[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  @@map("positions")
+}
+
+model Employee {
+  id              String    @id @default(cuid())
+  employeeNumber  String    @unique
+  name            String
+  email           String    @unique
+  passwordHash    String
+  phone           String?
+  departmentId    String
+  department      Department @relation(fields: [departmentId], references: [id])
+  positionId      String
+  position        Position   @relation(fields: [positionId], references: [id])
+  hireDate        DateTime
+  resignDate      DateTime?
+  status          String     @default("ACTIVE")
+  role            String     @default("BASIC")
+  profileImage    String?
+  customPermissions  String?
+  leaveRequests      LeaveRequest[]
+  leaveBalances      LeaveBalance[]
+  leaveGrants        LeaveGrant[]
+  approvalSteps      ApprovalStep[]
+  approvals          Approval[]
+  overtimeRequests   OvertimeRequest[]
+  sessions           Session[]
+  notifications      Notification[]
+  timeWallets        TimeWallet[]
+  timeDeductions     TimeDeduction[]
+  compTimeAccruals   CompTimeAccrual[]
+  welfareRequests    WelfareRequest[]
+  attendances        Attendance[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  @@index([departmentId])
+  @@index([positionId])
+  @@index([status])
+  @@map("employees")
+}
+
+model ViewPermission {
+  id          String     @id @default(cuid())
+  employeeId  String
+  scope       String
+  createdAt   DateTime   @default(now())
+  @@unique([employeeId, scope])
+  @@map("view_permissions")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  token        String   @unique
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  @@index([employeeId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model LeaveType {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  code           String   @unique
+  isPaid         Boolean  @default(true)
+  isAnnualDeduct Boolean  @default(false)
+  maxDays        Float?
+  requiresDoc    Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  leaveRequests  LeaveRequest[]
+  leavePolicies  LeavePolicy[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@map("leave_types")
+}
+
+model LeavePolicy {
+  id              String    @id @default(cuid())
+  leaveTypeId     String
+  leaveType       LeaveType @relation(fields: [leaveTypeId], references: [id])
+  name            String
+  description     String?
+  yearFrom        Int
+  yearTo          Int?
+  grantDays       Float
+  grantType       String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([leaveTypeId])
+  @@map("leave_policies")
+}
+
+model LeaveGrant {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  leaveTypeCode String
+  grantDays     Float
+  usedDays      Float     @default(0)
+  remainDays    Float
+  grantReason   String
+  periodStart   DateTime
+  periodEnd     DateTime
+  isExpired     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  @@index([employeeId])
+  @@index([periodEnd])
+  @@map("leave_grants")
+}
+
+model LeaveBalance {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  year          Int
+  leaveTypeCode String
+  totalGranted  Float    @default(0)
+  totalUsed     Float    @default(0)
+  totalRemain   Float    @default(0)
+  updatedAt     DateTime @updatedAt
+  @@unique([employeeId, year, leaveTypeCode])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id              String        @id @default(cuid())
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id])
+  leaveTypeId     String
+  leaveType       LeaveType     @relation(fields: [leaveTypeId], references: [id])
+  startDate       DateTime
+  endDate         DateTime
+  useUnit         String
+  requestDays     Float
+  requestHours    Float
+  dailyHours      Float         @default(8)
+  reason          String?
+  status          String        @default("PENDING")
+  appliedAt       DateTime      @default(now())
+  cancelReason    String?
+  cancelledAt     DateTime?
+  approvalLineId  String?
+  currentStep     Int           @default(1)
+  approvals       Approval[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("leave_requests")
+}
+
+model ApprovalLine {
+  id          String          @id @default(cuid())
+  name        String
+  type        String
+  isDefault   Boolean         @default(false)
+  isActive    Boolean         @default(true)
+  steps       ApprovalStep[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  @@map("approval_lines")
+}
+
+model ApprovalStep {
+  id              String       @id @default(cuid())
+  approvalLineId  String
+  approvalLine    ApprovalLine @relation(fields: [approvalLineId], references: [id], onDelete: Cascade)
+  stepOrder       Int
+  approverId      String?
+  approver        Employee?    @relation(fields: [approverId], references: [id])
+  approverRole    String
+  actionType      String
+  positionLevel   Int?
+  @@unique([approvalLineId, stepOrder])
+  @@map("approval_steps")
+}
+
+model Approval {
+  id              String          @id @default(cuid())
+  leaveRequestId  String?
+  leaveRequest    LeaveRequest?   @relation(fields: [leaveRequestId], references: [id])
+  overtimeId      String?
+  overtime        OvertimeRequest? @relation(fields: [overtimeId], references: [id])
+  stepOrder       Int
+  approverId      String
+  approver        Employee        @relation(fields: [approverId], references: [id])
+  action          String
+  comment         String?
+  processedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  @@index([leaveRequestId])
+  @@index([overtimeId])
+  @@index([approverId])
+  @@map("approvals")
+}
+
+model OvertimeRequest {
+  id            String          @id @default(cuid())
+  employeeId    String
+  employee      Employee        @relation(fields: [employeeId], references: [id])
+  date          DateTime
+  overtimeType  String
+  startTime     String
+  endTime       String
+  hours         Float
+  reason        String
+  status        String          @default("PENDING")
+  approvals     Approval[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  @@index([employeeId])
+  @@index([date])
+  @@map("overtime_requests")
+}
+
+model OvertimePolicy {
+  id              String   @id @default(cuid())
+  maxWeeklyHours  Float    @default(12)
+  maxMonthlyHours Float    @default(52)
+  nightStartTime  String   @default("22:00")
+  nightEndTime    String   @default("06:00")
+  weekdayRate     Float    @default(1.5)
+  weekendRate     Float    @default(1.5)
+  nightRate       Float    @default(2.0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@map("overtime_policies")
+}
+
+model ExternalIntegration {
+  id           String   @id @default(cuid())
+  employeeId   String
+  service      String
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([employeeId, service])
+  @@map("external_integrations")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  employeeId  String?
+  action      String
+  target      String
+  targetId    String
+  before      String?
+  after       String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+  @@index([employeeId])
+  @@index([target, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  group     String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("system_configs")
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  isRecurring Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("holidays")
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  @@map("password_resets")
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  type       String
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  link       String?
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId, isRead])
+  @@map("notifications")
+}
+
+model TimeWallet {
+  id          String         @id @default(cuid())
+  employeeId  String
+  employee    Employee       @relation(fields: [employeeId], references: [id])
+  type        String
+  year        Int
+  totalEarned Float          @default(0)
+  totalUsed   Float          @default(0)
+  totalRemain Float          @default(0)
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([employeeId, year, type])
+  @@index([employeeId])
+  @@map("time_wallets")
+}
+
+model TimeDeduction {
+  id             String         @id @default(cuid())
+  employeeId     String
+  employee       Employee       @relation(fields: [employeeId], references: [id])
+  leaveRequestId String?
+  walletType     String
+  hours          Float
+  description    String
+  createdAt      DateTime       @default(now())
+
+  @@index([employeeId])
+  @@index([leaveRequestId])
+  @@map("time_deductions")
+}
+
+model CompTimeAccrual {
+  id                String   @id @default(cuid())
+  employeeId        String
+  employee          Employee @relation(fields: [employeeId], references: [id])
+  overtimeRequestId String?
+  overtimeHours     Float
+  multiplier        Float
+  earnedHours       Float
+  createdAt         DateTime @default(now())
+
+  @@index([employeeId])
+  @@index([overtimeRequestId])
+  @@map("comp_time_accruals")
+}
+
+model CompensationPolicy {
+  id                String  @id @default(cuid())
+  compensationType  String  @default("COMP_TIME")
+  weekdayMultiplier Float   @default(1.5)
+  nightMultiplier   Float   @default(2.0)
+  holidayMultiplier Float   @default(2.0)
+  dailyWorkHours    Float   @default(8)
+  halfDayHours      Float   @default(4)
+  minUseUnit        Float   @default(1)
+  deductionOrder    String  @default("COMP_TIME,ANNUAL")
+  autoSplitDeduct   Boolean @default(true)
+  isActive          Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("compensation_policies")
+}
+
+model WelfareCategory {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  icon        String?
+  sortOrder   Int           @default(0)
+  isActive    Boolean       @default(true)
+  items       WelfareItem[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  @@map("welfare_categories")
+}
+
+model WelfareItem {
+  id          String            @id @default(cuid())
+  categoryId  String
+  category    WelfareCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  benefitType String            @default("MONEY")
+  amount      Float?
+  unit        String            @default("원")
+  maxPerYear  Int?
+  formFields  String?
+  requireApproval Boolean         @default(true)
+  isActive    Boolean           @default(true)
+  requests    WelfareRequest[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  @@map("welfare_items")
+}
+
+model WelfareRequest {
+  id          String      @id @default(cuid())
+  employeeId  String
+  employee    Employee    @relation(fields: [employeeId], references: [id])
+  itemId      String
+  item        WelfareItem @relation(fields: [itemId], references: [id])
+  status      String      @default("PENDING")
+  amount      Float?
+  note        String?
+  formValues  String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  @@index([employeeId])
+  @@index([status])
+  @@map("welfare_requests")
+}
+
+model Attendance {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  date          DateTime
+  clockIn       DateTime
+  clockOut      DateTime?
+  workHours     Float?
+  overtimeHours Float?    @default(0)
+  status        String    @default("NORMAL")
+  note          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@map("attendances")
+}

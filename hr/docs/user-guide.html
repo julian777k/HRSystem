@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>HR SYSTEM - 설치 및 사용 설명서</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif; font-size: 11pt; line-height: 1.7; color: #222; }
+
+  /* Cover */
+  .cover { page-break-after: always; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center; }
+  .cover h1 { font-size: 36pt; font-weight: 800; color: #1a1a2e; margin-bottom: 12px; }
+  .cover .subtitle { font-size: 18pt; color: #16213e; margin-bottom: 40px; }
+  .cover .info { font-size: 11pt; color: #555; line-height: 2; }
+  .cover .logo-box { width: 120px; height: 120px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32pt; font-weight: 900; margin-bottom: 30px; }
+
+  /* TOC */
+  .toc { page-break-after: always; }
+  .toc h2 { font-size: 18pt; border-bottom: 3px solid #1a1a2e; padding-bottom: 8px; margin-bottom: 20px; }
+  .toc ul { list-style: none; }
+  .toc li { padding: 6px 0; border-bottom: 1px dotted #ccc; display: flex; justify-content: space-between; }
+  .toc li span.num { color: #667eea; font-weight: 700; margin-right: 10px; }
+
+  /* Sections */
+  h2 { font-size: 16pt; color: #1a1a2e; border-left: 5px solid #667eea; padding-left: 12px; margin: 30px 0 15px; }
+  h3 { font-size: 13pt; color: #16213e; margin: 20px 0 10px; }
+  h4 { font-size: 11pt; color: #333; margin: 14px 0 6px; }
+  p { margin: 6px 0; text-align: justify; }
+  ul, ol { margin: 6px 0 6px 20px; }
+  li { margin: 3px 0; }
+
+  .page-break { page-break-before: always; }
+
+  /* Info boxes */
+  .info-box { background: #f0f4ff; border: 1px solid #d0d8f0; border-radius: 8px; padding: 14px 16px; margin: 12px 0; }
+  .info-box.warn { background: #fff8e1; border-color: #ffe082; }
+  .info-box.tip { background: #e8f5e9; border-color: #a5d6a7; }
+  .info-box strong { display: block; margin-bottom: 4px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; }
+  th { background: #1a1a2e; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e0e0e0; }
+  tr:nth-child(even) td { background: #f9f9fb; }
+
+  /* Screenshot placeholder */
+  .screen { background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 30px; text-align: center; color: #999; margin: 12px 0; font-size: 10pt; }
+
+  /* Steps */
+  .step { display: flex; align-items: flex-start; margin: 10px 0; }
+  .step-num { background: #667eea; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10pt; flex-shrink: 0; margin-right: 12px; margin-top: 2px; }
+  .step-content { flex: 1; }
+
+  .footer { text-align: center; color: #999; font-size: 9pt; margin-top: 40px; padding-top: 12px; border-top: 1px solid #eee; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="logo-box">HR</div>
+  <h1>HR SYSTEM</h1>
+  <div class="subtitle">설치 및 사용 설명서</div>
+  <div class="info">
+    버전 2.0<br>
+    사내 인사관리 시스템<br>
+    <br>
+    2026년 3월
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h2>목차</h2>
+  <ul>
+    <li><span class="num">1.</span> 시스템 소개 <span></span></li>
+    <li><span class="num">2.</span> 시스템 요구사항 <span></span></li>
+    <li><span class="num">3.</span> 설치 가이드 (Windows / macOS) <span></span></li>
+    <li><span class="num">4.</span> 초기 설정 <span></span></li>
+    <li><span class="num">5.</span> 접속 방법 (서버 PC / 클라이언트) <span></span></li>
+    <li style="padding-left:24px;">5.3 시작프로그램 등록 (자동 실행)</li>
+    <li><span class="num">6.</span> 주요 기능 사용법 <span></span></li>
+    <li style="padding-left:24px;">6.1 로그인 / 회원가입</li>
+    <li style="padding-left:24px;">6.2 대시보드</li>
+    <li style="padding-left:24px;">6.3 출퇴근 관리</li>
+    <li style="padding-left:24px;">6.4 휴가 관리</li>
+    <li style="padding-left:24px;">6.5 복지 관리</li>
+    <li style="padding-left:24px;">6.6 결재 처리</li>
+    <li style="padding-left:24px;">6.7 관리자 설정</li>
+    <li><span class="num">7.</span> 권한 체계 <span></span></li>
+    <li><span class="num">8.</span> 자주 묻는 질문 (FAQ) <span></span></li>
+    <li><span class="num">9.</span> 문제 해결 <span></span></li>
+  </ul>
+</div>
+
+<!-- 1. 시스템 소개 -->
+<h2>1. 시스템 소개</h2>
+<p>HR SYSTEM은 중소기업을 위한 올인원 인사관리 솔루션입니다. 별도의 서버 구축이나 클라우드 비용 없이, 사내 PC 한 대에 설치하면 전 직원이 브라우저로 접속하여 사용할 수 있습니다.</p>
+
+<h3>주요 특징</h3>
+<ul>
+  <li><strong>서버리스 설치</strong> — 별도 서버 없이 PC 한 대에서 서버 + DB 자동 실행</li>
+  <li><strong>브라우저 접속</strong> — 같은 네트워크 내 모든 기기에서 브라우저로 접속</li>
+  <li><strong>모바일 지원</strong> — 스마트폰, 태블릿에서도 반응형 화면 제공</li>
+  <li><strong>휴가 관리</strong> — 연차, 반차, 병가, 경조 등 다양한 휴가 유형 관리</li>
+  <li><strong>복지 관리</strong> — 건강검진, 교육비, 경조금 등 복지 항목 신청/승인</li>
+  <li><strong>전자 결재</strong> — 직급 기반 순차/선승인 결재 흐름</li>
+  <li><strong>출퇴근 관리</strong> — 출퇴근 기록, 근태현황 조회, 연장근무 신청/승인</li>
+  <li><strong>데이터 내보내기</strong> — Excel 형식으로 데이터 다운로드</li>
+</ul>
+
+<!-- 2. 시스템 요구사항 -->
+<h2 class="page-break">2. 시스템 요구사항</h2>
+
+<h3>서버 PC (앱 설치 PC)</h3>
+<table>
+  <tr><th style="width:30%">항목</th><th>최소 요구사항</th></tr>
+  <tr><td>운영체제</td><td>Windows 10 이상 / macOS 12 이상</td></tr>
+  <tr><td>CPU</td><td>Intel Core i3 이상 / Apple M1 이상</td></tr>
+  <tr><td>메모리</td><td>4GB RAM 이상 (8GB 권장)</td></tr>
+  <tr><td>저장공간</td><td>500MB 이상 여유 공간</td></tr>
+  <tr><td>네트워크</td><td>사내 네트워크(유선 또는 WiFi) 연결</td></tr>
+</table>
+
+<h3>클라이언트 (브라우저 접속 기기)</h3>
+<table>
+  <tr><th style="width:30%">항목</th><th>요구사항</th></tr>
+  <tr><td>브라우저</td><td>Chrome, Safari, Edge, Firefox 최신 버전</td></tr>
+  <tr><td>기기</td><td>PC, 노트북, 태블릿, 스마트폰</td></tr>
+  <tr><td>네트워크</td><td>서버 PC와 같은 네트워크에 연결</td></tr>
+</table>
+
+<!-- 3. 설치 가이드 -->
+<h2 class="page-break">3. 설치 가이드</h2>
+
+<div class="info-box">
+  <strong>중요</strong>
+  앱은 서버 역할을 하는 PC <strong>한 대에만</strong> 설치합니다. 나머지 직원들은 브라우저로 접속합니다.
+</div>
+
+<h3>3.1 Windows 설치</h3>
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">제공된 <strong>HRInstall-0.2.0-x64.exe</strong> 파일을 실행합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">설치가 자동으로 진행됩니다. 완료 후 바탕화면에 <strong>HR SYSTEM</strong> 바로가기가 생성됩니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">바로가기를 더블클릭하여 실행합니다. 처음 실행 시 초기 설정 화면이 나타납니다.</div>
+</div>
+
+<div class="info-box warn">
+  <strong>Windows 방화벽 알림</strong>
+  처음 실행 시 방화벽 허용 팝업이 나타날 수 있습니다. <strong>"액세스 허용"</strong>을 선택해야 다른 기기에서 접속이 가능합니다.
+</div>
+
+<h3>3.2 macOS 설치</h3>
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">제공된 <strong>HRInstall-0.2.0-arm64.dmg</strong> (M시리즈) 또는 <strong>HRInstall-0.2.0-x64.dmg</strong> (Intel) 파일을 실행합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">열린 창에서 <strong>HR SYSTEM</strong> 아이콘을 <strong>Applications</strong> 폴더로 드래그합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">Applications에서 HR SYSTEM을 실행합니다.</div>
+</div>
+
+<div class="info-box warn">
+  <strong>macOS 보안 알림</strong>
+  "확인되지 않은 개발자" 경고가 나타나면: <strong>시스템 설정 → 개인정보 보호 및 보안 → "확인 없이 열기"</strong>를 클릭합니다.
+</div>
+
+<!-- 4. 초기 설정 -->
+<h2 class="page-break">4. 초기 설정</h2>
+<p>앱을 처음 실행하면 초기 설정 마법사가 시작됩니다.</p>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <strong>회사 정보 입력</strong><br>
+    회사명, 사업자번호, 대표자명을 입력합니다.
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <strong>관리자 계정 생성</strong><br>
+    시스템 관리자의 이름, 이메일, 비밀번호를 설정합니다. 이 계정으로 모든 설정을 관리합니다.
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <strong>기본 데이터 설정</strong><br>
+    부서, 직급, 휴가 유형 등 기본 데이터가 자동 생성됩니다.
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">
+    <strong>설정 완료</strong><br>
+    대시보드로 이동합니다. 이제 관리자 메뉴에서 세부 설정을 진행합니다.
+  </div>
+</div>
+
+<!-- 5. 접속 방법 -->
+<h2 class="page-break">5. 접속 방법</h2>
+
+<h3>5.1 서버 PC에서 접속</h3>
+<p>앱을 실행하면 자동으로 HR SYSTEM이 표시됩니다. 별도 조작이 필요 없습니다.</p>
+
+<h3>5.2 다른 기기에서 접속 (PC / 노트북 / 스마트폰)</h3>
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">서버 PC와 <strong>같은 네트워크</strong>(같은 공유기)에 연결합니다. 유선/WiFi 모두 가능합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">서버 PC의 앱 화면 상단 또는 타이틀바에 표시된 <strong>IP 주소</strong>를 확인합니다.<br>예: <code>http://192.168.0.10:3000</code></div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">브라우저(Chrome 권장)를 열고 주소창에 해당 주소를 입력합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">로그인 화면이 나타나면 계정 정보를 입력하여 접속합니다.</div>
+</div>
+
+<div class="info-box tip">
+  <strong>팁: 스마트폰 즐겨찾기</strong>
+  스마트폰 브라우저에서 접속 후 "홈 화면에 추가"를 하면 앱처럼 바로 실행할 수 있습니다.
+</div>
+
+<div class="info-box">
+  <strong>네트워크 구성도</strong>
+</div>
+<pre style="background:#f5f5f5; padding:16px; border-radius:8px; font-size:10pt; line-height:1.5; text-align:center;">
+        ┌─────────────┐
+        │   공유기     │
+        └──────┬──────┘
+    ┌──────────┼──────────┐
+    │          │          │
+ [서버 PC]  [노트북]   [스마트폰]
+  앱 설치   브라우저    브라우저
+            접속       접속
+</pre>
+
+<!-- 5.3 시작프로그램 등록 -->
+<h3 class="page-break">5.3 시작프로그램 등록 (권장)</h3>
+<p>서버 PC를 켤 때마다 앱이 자동으로 실행되도록 시작프로그램에 등록하면, 별도 조작 없이 항상 시스템이 가동됩니다.</p>
+
+<h4>Windows</h4>
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">키보드에서 <strong>Win + R</strong> 키를 눌러 실행 창을 엽니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content"><code>shell:startup</code> 을 입력하고 확인을 누릅니다. 시작프로그램 폴더가 열립니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">바탕화면의 <strong>HR SYSTEM</strong> 바로가기를 이 폴더에 <strong>복사</strong>합니다.<br>
+  (바로가기를 마우스 오른쪽 클릭 → 복사 → 시작프로그램 폴더에 붙여넣기)</div>
+</div>
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">완료! 이제 PC를 켜면 HR SYSTEM이 자동으로 실행됩니다.</div>
+</div>
+
+<div class="info-box tip">
+  <strong>확인 방법</strong>
+  PC를 재시작한 후 작업표시줄(트레이)에 HR SYSTEM 아이콘이 나타나는지 확인합니다.
+</div>
+
+<h4>macOS</h4>
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content"><strong>시스템 설정</strong>을 엽니다. (좌측 상단 Apple 메뉴 → 시스템 설정)</div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content"><strong>일반 → 로그인 항목 및 확장 프로그램</strong>을 클릭합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">"로그인 시 열기" 목록 아래의 <strong>+</strong> 버튼을 클릭합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">응용 프로그램 폴더에서 <strong>HR SYSTEM</strong>을 선택하고 <strong>열기</strong>를 클릭합니다.</div>
+</div>
+<div class="step">
+  <div class="step-num">5</div>
+  <div class="step-content">완료! 이제 Mac을 켜면 HR SYSTEM이 자동으로 실행됩니다.</div>
+</div>
+
+<div class="info-box warn">
+  <strong>참고</strong>
+  시작프로그램 등록 후에도 서버 PC의 <strong>전원이 켜져 있어야</strong> 다른 기기에서 접속이 가능합니다. 절전 모드나 화면 잠금은 괜찮지만, PC가 꺼져 있으면 접속이 불가합니다.
+</div>
+
+<!-- 6. 주요 기능 사용법 -->
+<h2 class="page-break">6. 주요 기능 사용법</h2>
+
+<h3>6.1 로그인 / 회원가입</h3>
+<h4>로그인</h4>
+<ol>
+  <li>이메일과 비밀번호를 입력합니다.</li>
+  <li><strong>로그인</strong> 버튼을 클릭하면 대시보드로 이동합니다.</li>
+  <li>비밀번호를 잊은 경우 "비밀번호 찾기" 링크를 클릭합니다.</li>
+</ol>
+
+<h4>회원가입</h4>
+<ol>
+  <li>로그인 화면에서 "회원가입" 링크를 클릭합니다.</li>
+  <li>이름, 이메일, 비밀번호, 전화번호, 부서, 직급을 입력합니다.</li>
+  <li><strong>회원가입</strong> 버튼을 클릭하면 바로 로그인할 수 있습니다.</li>
+</ol>
+
+<h3 class="page-break">6.2 대시보드</h3>
+<p>로그인 후 가장 먼저 보이는 화면입니다. 주요 현황을 한눈에 파악할 수 있습니다.</p>
+
+<table>
+  <tr><th style="width:30%">항목</th><th>설명</th></tr>
+  <tr><td>잔여 휴가</td><td>본인의 남은 휴가 일수</td></tr>
+  <tr><td>결재 대기</td><td>처리해야 할 결재 건수 (관리자)</td></tr>
+  <tr><td>부서 인원</td><td>소속 부서의 현재 인원 수</td></tr>
+  <tr><td>시간외근무</td><td>이번 달 시간외근무 시간</td></tr>
+  <tr><td>오늘 근무</td><td>출근/퇴근 시간, 현재 근무 상태</td></tr>
+  <tr><td>최근 휴가 신청</td><td>최근 신청 내역 목록</td></tr>
+  <tr><td>결재 대기 목록</td><td>승인이 필요한 건 목록 (관리자)</td></tr>
+</table>
+
+<h3>6.3 출퇴근 관리</h3>
+
+<h4>오늘 근무 (출퇴근 기록)</h4>
+<ol>
+  <li>좌측 메뉴에서 <strong>근태관리 → 오늘 근무</strong>를 클릭합니다.</li>
+  <li><strong>출근</strong> 버튼을 클릭하면 현재 시간이 출근 시간으로 기록됩니다.</li>
+  <li>퇴근 시 <strong>퇴근</strong> 버튼을 클릭하면 퇴근 시간이 기록됩니다.</li>
+  <li>근무시간은 출근~퇴근 시간에서 점심시간을 제외하여 자동 계산됩니다.</li>
+</ol>
+
+<h4>내 근태현황</h4>
+<p><strong>근태관리 → 내 근태현황</strong> 메뉴에서 월별 출퇴근 기록과 근무시간을 요약하여 확인할 수 있습니다.</p>
+
+<h4>연장근무 신청</h4>
+<ol>
+  <li><strong>근태관리 → 연장근무 신청</strong> 메뉴에서 <strong>연장근무 신청</strong> 버튼을 클릭합니다.</li>
+  <li>근무 유형(평일야간/주말/공휴일), 근무 일자, 시작/종료 시간, 사유를 입력합니다.</li>
+  <li><strong>신청</strong> 버튼을 클릭하면 결재자에게 승인 요청이 전달됩니다.</li>
+</ol>
+
+<h3>6.4 휴가 관리</h3>
+
+<h4>나의 휴가 조회 및 신청</h4>
+<ol>
+  <li>좌측 메뉴에서 <strong>휴가 → 나의 휴가</strong>를 클릭합니다.</li>
+  <li>상단에서 휴가 유형별 잔여 일수를 확인합니다.</li>
+  <li><strong>휴가 신청</strong> 버튼을 클릭합니다.</li>
+  <li>휴가 유형 선택 → 시작일/종료일 선택 → 사유 입력 후 <strong>신청</strong> 버튼을 클릭합니다.</li>
+  <li>결재선에 따라 자동으로 결재자에게 알림이 발송됩니다.</li>
+</ol>
+
+<div class="info-box">
+  <strong>휴가 구분</strong>
+  <ul style="margin-top:6px;">
+    <li><strong>종일</strong> — 하루 전체 (1일 차감)</li>
+    <li><strong>오전반차</strong> — 오전만 사용 (0.5일 차감, 연차에서 차감)</li>
+    <li><strong>오후반차</strong> — 오후만 사용 (0.5일 차감, 연차에서 차감)</li>
+  </ul>
+</div>
+
+<h4>휴가 사용 현황 (캘린더)</h4>
+<p><strong>휴가 → 사용현황</strong> 메뉴에서 캘린더 탭을 선택하면, 부서원들의 휴가 일정을 달력 형태로 확인할 수 있습니다. 공휴일은 빨간색으로 표시됩니다.</p>
+
+<h3 class="page-break">6.5 복지 관리</h3>
+
+<h4>복지 신청</h4>
+<ol>
+  <li>좌측 메뉴에서 <strong>복지</strong>를 클릭합니다.</li>
+  <li>카테고리별로 이용 가능한 복지 항목이 표시됩니다.</li>
+  <li>원하는 항목을 클릭하면 신청 팝업이 나타납니다.</li>
+  <li>금액, 사유 등을 입력하고 <strong>신청</strong> 버튼을 클릭합니다.</li>
+</ol>
+
+<div class="info-box tip">
+  <strong>자동승인 항목</strong>
+  도서구입비, 식대 등 <strong>자동승인</strong>으로 설정된 항목은 신청 즉시 승인 처리됩니다. 별도의 결재가 필요 없습니다.
+</div>
+
+<h3>6.6 결재 처리</h3>
+
+<h4>결재 대기건 확인 및 처리</h4>
+<ol>
+  <li>대시보드의 <strong>결재 대기</strong> 영역 또는 <strong>휴가 → 신청 관리</strong> 메뉴에서 결재 대기건을 확인합니다.</li>
+  <li>각 건의 상세 내용을 확인한 후 <strong>승인</strong> 또는 <strong>반려</strong> 버튼을 클릭합니다.</li>
+  <li>반려 시 사유를 입력할 수 있습니다.</li>
+</ol>
+
+<div class="info-box">
+  <strong>결재 흐름</strong>
+  <ul style="margin-top:6px;">
+    <li><strong>순차 결재</strong> — 부장 → 이사 → 대표 순서로 결재가 진행됩니다.</li>
+    <li><strong>선승인</strong> — 상위 결재자(예: 대표)가 먼저 승인하면 하위 단계는 자동으로 건너뜁니다.</li>
+    <li><strong>반려</strong> — 어느 단계에서든 반려하면 즉시 반려 처리됩니다.</li>
+  </ul>
+</div>
+
+<h3 class="page-break">6.7 관리자 설정</h3>
+<p>시스템 관리자(SYSTEM_ADMIN) 또는 회사 관리자(COMPANY_ADMIN) 권한이 있는 경우 <strong>관리자</strong> 메뉴가 표시됩니다.</p>
+
+<table>
+  <tr><th style="width:30%">메뉴</th><th>설명</th></tr>
+  <tr><td>회사 정보</td><td>회사명, 사업자번호, 근무시간 등 기본 정보 설정</td></tr>
+  <tr><td>직원 관리</td><td>직원 등록/수정/삭제, 역할 배정, Excel 가져오기/내보내기</td></tr>
+  <tr><td>부서 관리</td><td>부서 추가/수정/삭제, 계층 구조 설정</td></tr>
+  <tr><td>직급 관리</td><td>직급 추가/수정/삭제, 레벨 설정</td></tr>
+  <tr><td>결재선 설정</td><td>휴가/시간외근무 결재 흐름 설정 (직급 기반)</td></tr>
+  <tr><td>휴가 규정</td><td>휴가 유형 관리, 부여 일수, 이월 규정 설정</td></tr>
+  <tr><td>공휴일 관리</td><td>연간 공휴일 등록/수정</td></tr>
+  <tr><td>복지 관리</td><td>복지 카테고리/항목 관리, 자동승인 설정</td></tr>
+  <tr><td>시간외근무</td><td>시간외근무 정책, 최대시간, 수당 설정</td></tr>
+  <tr><td>휴가 부여</td><td>직원별 휴가 부여, 전직원 자동부여</td></tr>
+</table>
+
+<!-- 7. 권한 체계 -->
+<h2 class="page-break">7. 권한 체계</h2>
+
+<table>
+  <tr><th style="width:22%">역할</th><th style="width:20%">구분</th><th>권한 범위</th></tr>
+  <tr><td><strong>일반 직원</strong></td><td>BASIC</td><td>자신의 휴가 조회/신청, 복지 신청, 대시보드 확인</td></tr>
+  <tr><td><strong>부서 관리자</strong></td><td>DEPT_ADMIN</td><td>일반 직원 권한 + 소속 부서원 휴가 승인, 부서 현황 조회</td></tr>
+  <tr><td><strong>회사 관리자</strong></td><td>COMPANY_ADMIN</td><td>부서 관리자 권한 + 전사 직원 관리, 결재선/복지 설정</td></tr>
+  <tr><td><strong>시스템 관리자</strong></td><td>SYSTEM_ADMIN</td><td>모든 권한 — 시스템 설정, 회사 정보, 모든 관리 기능</td></tr>
+</table>
+
+<!-- 8. FAQ -->
+<h2 class="page-break">8. 자주 묻는 질문 (FAQ)</h2>
+
+<h4>Q. 서버 PC를 꺼도 되나요?</h4>
+<p>A. 서버 PC가 꺼지면 다른 기기에서 접속이 불가능합니다. 근무 시간 동안은 서버 PC를 켜두어야 합니다. <strong>5.3 시작프로그램 등록</strong>을 참고하여 자동 실행을 설정하면, PC를 켤 때마다 앱이 자동으로 시작되어 편리합니다.</p>
+
+<h4>Q. 여러 대에 앱을 설치하면 데이터가 공유되나요?</h4>
+<p>A. 아닙니다. 각 PC에 설치하면 별도의 독립된 시스템이 됩니다. 데이터를 공유하려면 <strong>한 대만 설치</strong>하고 나머지는 브라우저로 접속해야 합니다.</p>
+
+<h4>Q. 데이터 백업은 어떻게 하나요?</h4>
+<p>A. 서버 PC의 아래 경로에 있는 <code>msa-hr.db</code> 파일을 복사하면 됩니다.</p>
+<ul>
+  <li>Windows: <code>C:\Users\[사용자명]\AppData\Roaming\msa-hr\msa-hr.db</code></li>
+  <li>macOS: <code>~/Library/Application Support/msa-hr/msa-hr.db</code></li>
+</ul>
+
+<h4>Q. IP 주소가 바뀌었어요.</h4>
+<p>A. 서버 PC의 IP가 변경되면 다른 기기에서 새 IP로 접속해야 합니다. IP 변경을 방지하려면 공유기에서 서버 PC에 고정 IP를 할당하는 것을 권장합니다.</p>
+
+<h4>Q. 외부(집, 외근지)에서 접속할 수 있나요?</h4>
+<p>A. 기본적으로 같은 네트워크 내에서만 접속 가능합니다. 외부 접속이 필요한 경우 VPN 또는 Cloudflare Tunnel 등 추가 설정이 필요합니다. 별도 문의해주세요.</p>
+
+<h4>Q. 동시 접속자 수 제한이 있나요?</h4>
+<p>A. 소프트웨어 상의 제한은 없습니다. 서버 PC의 성능에 따라 수십 명까지 동시 접속이 가능합니다.</p>
+
+<!-- 9. 문제 해결 -->
+<h2 class="page-break">9. 문제 해결</h2>
+
+<table>
+  <tr><th style="width:35%">증상</th><th>해결 방법</th></tr>
+  <tr><td>앱 실행 후 화면이 안 나옴</td><td>잠시 기다려주세요 (최초 실행 시 10~20초 소요). 계속 안 되면 앱을 종료 후 재실행합니다.</td></tr>
+  <tr><td>다른 기기에서 접속 안 됨</td><td>① 같은 네트워크인지 확인 ② 서버 PC 방화벽에서 3000번 포트 허용 ③ IP 주소가 정확한지 확인</td></tr>
+  <tr><td>로그인은 되는데 화면 안 바뀜</td><td>브라우저 캐시 삭제 후 재접속 (Ctrl+Shift+Delete)</td></tr>
+  <tr><td>비밀번호를 잊었어요</td><td>관리자에게 비밀번호 초기화를 요청합니다. 관리자는 직원 관리에서 비밀번호를 재설정할 수 있습니다.</td></tr>
+  <tr><td>macOS에서 "손상된 파일" 오류</td><td>터미널에서 <code>xattr -cr /Applications/HR\ SYSTEM.app</code> 실행 후 다시 엽니다.</td></tr>
+  <tr><td>데이터가 사라졌어요</td><td>앱 삭제/재설치 시 데이터가 초기화될 수 있습니다. 정기적인 DB 파일 백업을 권장합니다.</td></tr>
+</table>
+
+<div class="footer">
+  HR SYSTEM v2.0 — 설치 및 사용 설명서 &copy; 2026
+</div>
+
+</body>
+</html>

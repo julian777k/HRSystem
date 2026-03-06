@@ -1,0 +1,63 @@
+services:
+  # PostgreSQL 데이터베이스
+  db:
+    image: postgres:16-alpine
+    container_name: msa-hr-db
+    environment:
+      POSTGRES_DB: msa_hr
+      POSTGRES_USER: msa
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-msa1234}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U msa -d msa_hr"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Next.js 애플리케이션 (프로덕션 배포용)
+  app:
+    build: .
+    container_name: msa-hr-app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://msa:${DB_PASSWORD:-msa1234}@db:5432/msa_hr
+      JWT_SECRET: ${JWT_SECRET:-msa-hr-jwt-secret-change-in-production}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
+      COMPANY_NAME: ${COMPANY_NAME:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # (선택) 자동 DB 백업 - 매일 1회
+  backup:
+    image: postgres:16-alpine
+    container_name: msa-hr-backup
+    volumes:
+      - ./backups:/backups
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-msa1234}
+    entrypoint: >
+      sh -c "while true; do
+        pg_dump -h db -U msa msa_hr > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql;
+        find /backups -name '*.sql' -mtime +30 -delete;
+        sleep 86400;
+      done"
+    depends_on:
+      - db
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  pgdata:

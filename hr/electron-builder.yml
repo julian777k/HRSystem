@@ -1,0 +1,86 @@
+appId: com.msa-hr.app
+productName: HR SYSTEM
+artifactName: HRInstall-${version}-${arch}.${ext}
+copyright: Copyright © 2025
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist-electron/**/*
+  - "!.next"
+  - "!node_modules"
+  - "!src"
+  - "!prisma"
+  - "!electron"
+  - "!scripts"
+
+extraResources:
+  - from: .next/standalone
+    to: .next/standalone
+    filter:
+      - "**/*"
+  - from: .next/static
+    to: .next/standalone/.next/static
+    filter:
+      - "**/*"
+  - from: public
+    to: .next/standalone/public
+    filter:
+      - "**/*"
+  - from: prisma/schema.sqlite.prisma
+    to: prisma/schema.sqlite.prisma
+  - from: node_modules/.prisma
+    to: .next/standalone/_modules/.prisma
+    filter:
+      - "**/*"
+  - from: node_modules/@prisma/client
+    to: .next/standalone/_modules/@prisma/client
+    filter:
+      - "**/*"
+  - from: node_modules/@prisma/adapter-better-sqlite3
+    to: .next/standalone/_modules/@prisma/adapter-better-sqlite3
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: public/favicon.ico
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: HR SYSTEM
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: public/favicon.ico
+  category: public.app-category.business
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  icon: public/favicon.ico
+  category: Office

@@ -270,7 +270,7 @@
   <h2>설치 및 사용 설명서</h2>
   <div class="ver">버전 2.0</div>
   <div class="date">사내 인사관리 시스템</div>
-  <div class="date" style="margin-top:8px;">2026년 2월</div>
+  <div class="date" style="margin-top:8px;">2026년 3월</div>
 </div>
 
 <!-- ==================== TOC ==================== -->
@@ -298,10 +298,11 @@
   <div class="toc-item"><span><span class="num">6.</span> 주요 기능 사용법</span></div>
   <div class="toc-item sub"><span>6.1 로그인 / 회원가입</span></div>
   <div class="toc-item sub"><span>6.2 대시보드</span></div>
-  <div class="toc-item sub"><span>6.3 휴가 관리</span></div>
-  <div class="toc-item sub"><span>6.4 복지 관리</span></div>
-  <div class="toc-item sub"><span>6.5 결재 처리</span></div>
-  <div class="toc-item sub"><span>6.6 관리자 설정</span></div>
+  <div class="toc-item sub"><span>6.3 출퇴근 관리</span></div>
+  <div class="toc-item sub"><span>6.4 휴가 관리</span></div>
+  <div class="toc-item sub"><span>6.5 복지 관리</span></div>
+  <div class="toc-item sub"><span>6.6 결재 처리</span></div>
+  <div class="toc-item sub"><span>6.7 관리자 설정</span></div>
   <div class="toc-item"><span><span class="num">7.</span> 권한 체계</span></div>
   <div class="toc-item"><span><span class="num">8.</span> 데이터 백업 및 복원</span></div>
   <div class="toc-item sub"><span>8.1 시스템 트레이에서 백업 (권장)</span></div>
@@ -368,6 +369,10 @@
     <div class="feature-card">
       <div class="feature-icon" style="background:#fff7ed;">&#128221;</div>
       <div><h4>전자 결재</h4><p>직급 기반 순차/선승인 결재 흐름 지원</p></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fef3c7;">&#9201;</div>
+      <div><h4>출퇴근 관리</h4><p>출퇴근 기록, 근태현황 조회, 연장근무 신청/승인</p></div>
     </div>
     <div class="feature-card">
       <div class="feature-icon" style="background:#f0f9ff;">&#128202;</div>
@@ -604,12 +609,12 @@
   <table>
     <thead><tr><th>운영체제</th><th>파일명</th><th>용량</th><th>설명</th></tr></thead>
     <tbody>
-      <tr><td><strong>Windows</strong></td><td><code>HRInstall-0.1.0-x64(window).exe</code></td><td>~160 MB</td><td>더블클릭으로 자동 설치</td></tr>
-      <tr><td><strong>macOS (M시리즈)</strong></td><td><code>HRInstall-0.1.0-arm64(macM).zip</code></td><td>~170 MB</td><td>압축 해제 후 Applications에 드래그</td></tr>
-      <tr><td><strong>macOS (Intel)</strong></td><td><code>HRInstall-0.1.0-x64(macintel).zip</code></td><td>~170 MB</td><td>압축 해제 후 Applications에 드래그</td></tr>
+      <tr><td><strong>Windows</strong></td><td><code>HRInstall-0.2.0-x64(window).exe</code></td><td>~160 MB</td><td>더블클릭으로 자동 설치</td></tr>
+      <tr><td><strong>macOS (M시리즈)</strong></td><td><code>HRInstall-0.2.0-arm64(mac_M).dmg</code></td><td>~170 MB</td><td>더블클릭하여 마운트 후 Applications에 드래그</td></tr>
+      <tr><td><strong>macOS (Intel)</strong></td><td><code>HRInstall-0.2.0-x64(Mac_intel).dmg</code></td><td>~170 MB</td><td>더블클릭하여 마운트 후 Applications에 드래그</td></tr>
       <tr>
         <td><strong>NAS (Docker)</strong></td>
-        <td><code>HRInstall-0.1.0-docker(nas).tar</code><br><code>docker-compose.yml</code></td>
+        <td><code>HRInstall-0.2.0-docker(nas).zip</code><br><code>docker-compose.yml</code></td>
         <td>~278 MB<br><span style="color:#64748b;font-size:12px;">+ 1 KB</span></td>
         <td>2개 파일 모두 NAS에 복사<br>터미널에서 docker 명령 실행</td>
       </tr>
@@ -623,7 +628,7 @@
     <div class="flow-box" style="background:#eff6ff;border-color:#3b82f6;">
       <div class="flow-icon">&#128229;</div>
       <div class="flow-title">설치파일 실행</div>
-      <div class="flow-desc">HRInstall-0.1.0<br>-x64(window).exe</div>
+      <div class="flow-desc">HRInstall-0.2.0<br>-x64(window).exe</div>
     </div>
     <div class="flow-arrow">&#10148;</div>
     <div class="flow-box" style="background:#f0fdf4;border-color:#22c55e;">
@@ -646,7 +651,7 @@
       <div class="step-num">1</div>
       <div class="step-content">
         <strong>설치 파일 실행</strong>
-        <p>제공된 <code>HRInstall-0.1.0-x64(window).exe</code> 파일을 더블클릭합니다.<br>
+        <p>제공된 <code>HRInstall-0.2.0-x64(window).exe</code> 파일을 더블클릭합니다.<br>
         <span style="font-size:12px;color:#64748b;">더블클릭으로 실행이 안 되는 경우: 파일을 <strong>마우스 오른쪽 버튼으로 클릭</strong> &rarr; <strong>"관리자 권한으로 실행"</strong>을 선택합니다.</span></p>
       </div>
     </div>
@@ -676,7 +681,7 @@
 
   <h3>3.2 macOS 설치</h3>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>ZIP 파일 압축 해제</strong><p>제공된 <code>HRInstall-0.1.0-arm64(macM).zip</code> (M시리즈) 또는 <code>HRInstall-0.1.0-x64(macintel).zip</code> (Intel) 파일을 더블클릭하여 압축을 풀어줍니다.</p></div></div>
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>DMG 파일 실행</strong><p>제공된 <code>HRInstall-0.2.0-arm64(mac_M).dmg</code> (M시리즈) 또는 <code>HRInstall-0.2.0-x64(Mac_intel).dmg</code> (Intel) 파일을 더블클릭하여 마운트합니다.</p></div></div>
     <div class="step"><div class="step-num">2</div><div class="step-content"><strong>앱 설치</strong><p>압축 해제된 <strong>HR SYSTEM.app</strong> 파일을 <strong>Applications(응용 프로그램)</strong> 폴더로 드래그합니다.</p></div></div>
     <div class="step"><div class="step-num">3</div><div class="step-content"><strong>앱 실행</strong><p>Applications에서 HR SYSTEM을 실행합니다.</p></div></div>
   </div>
@@ -758,7 +763,7 @@
         <p>아래 2개 파일을 NAS의 공유 폴더(아무 폴더)에 복사합니다.</p>
         <table>
           <tbody>
-            <tr><td><code>HRInstall-0.1.0-docker(nas).tar</code></td><td>HR SYSTEM 이미지 파일</td></tr>
+            <tr><td><code>HRInstall-0.2.0-docker(nas).zip</code></td><td>HR SYSTEM 이미지 파일</td></tr>
             <tr><td><code>docker-compose.yml</code></td><td>실행 설정 파일</td></tr>
           </tbody>
         </table>
@@ -790,9 +795,9 @@
           <span style="color:#94a3b8;"># 파일이 있는 폴더로 이동</span><br>
           cd /volume1/docker &nbsp; <span style="color:#94a3b8;"># (경로는 NAS마다 다름)</span><br><br>
           <span style="color:#94a3b8;"># Docker 이미지 로드</span><br>
-          docker load -i HRInstall-0.1.0-docker(nas).tar
+          docker load -i HRInstall-0.2.0-docker(nas).zip
         </div>
-        <p style="font-size:12px;color:#64748b;">약 1~2분 소요됩니다. "Loaded image: hr-system:0.1.0" 메시지가 나오면 성공입니다.</p>
+        <p style="font-size:12px;color:#64748b;">약 1~2분 소요됩니다. "Loaded image: hr-system:0.2.0" 메시지가 나오면 성공입니다.</p>
       </div>
     </div>
     <div class="step">
@@ -855,7 +860,7 @@
     <div class="callout-icon">&#9888;&#65039;</div>
     <div class="callout-content">
       <strong>NAS에서 삭제하는 경우</strong>
-      <p>서비스 중지(<code>docker-compose down</code>) 후 이미지 삭제(<code>docker rmi hr-system:0.1.0</code>)를 실행합니다. 데이터는 Docker 볼륨에 별도 보관되므로, 볼륨을 삭제(<code>docker volume rm 폴더명_hr-data</code>)하지 않는 한 유지됩니다.</p>
+      <p>서비스 중지(<code>docker-compose down</code>) 후 이미지 삭제(<code>docker rmi hr-system:0.2.0</code>)를 실행합니다. 데이터는 Docker 볼륨에 별도 보관되므로, 볼륨을 삭제(<code>docker volume rm 폴더명_hr-data</code>)하지 않는 한 유지됩니다.</p>
     </div>
   </div>
 
@@ -1134,12 +1139,30 @@
       <tr><td>결재 대기</td><td>처리해야 할 결재 건수 (관리자)</td></tr>
       <tr><td>부서 인원</td><td>소속 부서의 현재 인원 수</td></tr>
       <tr><td>시간외근무</td><td>이번 달 시간외근무 시간</td></tr>
+      <tr><td>오늘 근무</td><td>출근/퇴근 시간, 현재 근무 상태</td></tr>
       <tr><td>최근 휴가 신청</td><td>최근 신청 내역 목록</td></tr>
       <tr><td>결재 대기 목록</td><td>승인이 필요한 건 목록 (관리자)</td></tr>
     </tbody>
   </table>
 
-  <h3>6.3 휴가 관리</h3>
+  <h3>6.3 출퇴근 관리</h3>
+  <h4>오늘 근무 (출퇴근 기록)</h4>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><p>좌측 메뉴에서 <strong>근태관리 → 오늘 근무</strong>를 클릭합니다.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><p><strong>출근</strong> 버튼을 클릭하면 현재 시간이 출근 시간으로 기록됩니다.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><p>퇴근 시 <strong>퇴근</strong> 버튼을 클릭하면 퇴근 시간이 기록되고, 근무시간이 자동 계산됩니다.</p></div></div>
+  </div>
+  <h4>내 근태현황</h4>
+  <p><strong>근태관리 → 내 근태현황</strong> 메뉴에서 월별 출퇴근 기록과 근무시간을 요약하여 확인할 수 있습니다.</p>
+  <h4>연장근무 신청</h4>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><p><strong>근태관리 → 연장근무 신청</strong> 메뉴에서 근무 유형(평일야간/주말/공휴일), 날짜, 시간, 사유를 입력합니다.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><p><strong>신청</strong> 버튼을 클릭하면 결재자에게 승인 요청이 전달됩니다.</p></div></div>
+  </div>
+  <h4>연장근무 현황</h4>
+  <p>관리자는 <strong>근태관리 → 연장근무 현황</strong> 메뉴에서 부서원의 연장근무 신청을 승인하거나 반려할 수 있습니다.</p>
+
+  <h3>6.4 휴가 관리</h3>
   <h4>나의 휴가 조회 및 신청</h4>
   <div class="steps">
     <div class="step"><div class="step-num">1</div><div class="step-content"><p>좌측 메뉴에서 <strong>휴가 &rarr; 나의 휴가</strong>를 클릭합니다.</p></div></div>
@@ -1156,14 +1179,14 @@
   </div>
   <p><strong>휴가 &rarr; 사용현황</strong> 메뉴에서 캘린더 탭을 선택하면 부서원들의 휴가 일정을 달력 형태로 확인할 수 있습니다.</p>
 
-  <h3>6.4 복지 관리</h3>
+  <h3>6.5 복지 관리</h3>
   <p>1. 좌측 메뉴에서 <strong>복지</strong>를 클릭합니다.<br>2. 카테고리별로 이용 가능한 복지 항목이 표시됩니다.<br>3. 원하는 항목을 클릭하면 신청 팝업이 나타납니다.<br>4. 금액, 사유 등을 입력하고 <strong>신청</strong> 버튼을 클릭합니다.</p>
   <div class="callout success">
     <div class="callout-icon">&#9889;</div>
     <div class="callout-content"><strong>자동승인 항목</strong><p>도서구입비, 식대 등 <strong>자동승인</strong>으로 설정된 항목은 신청 즉시 승인 처리됩니다.</p></div>
   </div>
 
-  <h3>6.5 결재 처리</h3>
+  <h3>6.6 결재 처리</h3>
   <p>1. 대시보드의 <strong>결재 대기</strong> 영역 또는 <strong>휴가 &rarr; 신청 관리</strong> 메뉴에서 결재 대기건을 확인합니다.<br>2. 각 건의 상세 내용을 확인한 후 <strong>승인</strong> 또는 <strong>반려</strong> 버튼을 클릭합니다.<br>3. 반려 시 사유를 입력할 수 있습니다.</p>
   <div class="callout info">
     <div class="callout-icon">&#128260;</div>
@@ -1174,7 +1197,7 @@
   </div>
 
   <div class="page-break"></div>
-  <h3>6.6 관리자 설정</h3>
+  <h3>6.7 관리자 설정</h3>
   <p>시스템 관리자 또는 회사 관리자 권한이 있는 경우 관리자 메뉴가 표시됩니다.</p>
   <table>
     <thead><tr><th>메뉴</th><th>설명</th></tr></thead>

@@ -220,8 +220,11 @@ export default function DashboardPage() {
     },
     {
       title: "결재 대기",
-      value: data ? `${data.pendingApprovals}건` : "-",
-      description: data?.pendingWelfareCount ? `복지 ${data.pendingWelfareCount}건 별도 대기` : "처리 대기중인 결재",
+      value: data ? `${data.pendingApprovals + (data.pendingWelfareCount || 0)}건` : "-",
+      description: data ? [
+        data.pendingApprovals > 0 && `휴가/연장 ${data.pendingApprovals}건`,
+        (data.pendingWelfareCount || 0) > 0 && `복지 ${data.pendingWelfareCount}건`,
+      ].filter(Boolean).join(' · ') || "대기중인 결재 없음" : "처리 대기중인 결재",
       icon: ClipboardCheck,
       color: "text-orange-600",
       bg: "bg-orange-50",
@@ -356,12 +359,20 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">결재 대기 항목</CardTitle>
-            <Link
-              href="/leave/requests"
-              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-            >
-              결재하기 <ArrowRight className="w-3 h-3" />
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/attendance/overtime/requests"
+                className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+              >
+                연장근무 <ArrowRight className="w-3 h-3" />
+              </Link>
+              <Link
+                href="/leave/requests"
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                휴가결재 <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -380,41 +391,44 @@ export default function DashboardPage() {
                   <div
                     key={item.id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => router.push("/leave/requests")}
+                    onClick={() => router.push(item.overtime ? "/attendance/overtime/requests" : "/leave/requests")}
                   >
-                    <div>
-                      {item.leaveRequest ? (
-                        <>
-                          <p className="font-medium text-sm">
-                            {item.leaveRequest.employee.name} -{" "}
-                            {item.leaveRequest.leaveType.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(item.leaveRequest.startDate)} ~{" "}
-                            {formatDate(item.leaveRequest.endDate)} (
-                            {item.leaveRequest.requestDays}일)
-                          </p>
-                        </>
-                      ) : item.overtime ? (
-                        <>
-                          <p className="font-medium text-sm">
-                            {item.overtime.employee.name} - 시간외근무
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(item.overtime.date)} ·{" "}
-                            {item.overtime.hours}시간
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-sm text-gray-500">알 수 없는 항목</p>
-                      )}
+                    <div className="flex items-center gap-2">
+                      {item.overtime && <Clock className="w-4 h-4 text-indigo-500 flex-shrink-0" />}
+                      <div>
+                        {item.leaveRequest ? (
+                          <>
+                            <p className="font-medium text-sm">
+                              {item.leaveRequest.employee.name} -{" "}
+                              {item.leaveRequest.leaveType.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatDate(item.leaveRequest.startDate)} ~{" "}
+                              {formatDate(item.leaveRequest.endDate)} (
+                              {item.leaveRequest.requestDays}일)
+                            </p>
+                          </>
+                        ) : item.overtime ? (
+                          <>
+                            <p className="font-medium text-sm">
+                              {item.overtime.employee.name} - 시간외근무
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatDate(item.overtime.date)} ·{" "}
+                              {item.overtime.hours}시간
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">알 수 없는 항목</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="secondary"
-                        className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                        className={item.overtime ? "bg-indigo-100 text-indigo-800 hover:bg-indigo-100" : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"}
                       >
-                        대기
+                        {item.overtime ? "연장근무" : "대기"}
                       </Badge>
                       <ArrowRight className="w-4 h-4 text-gray-400" />
                     </div>

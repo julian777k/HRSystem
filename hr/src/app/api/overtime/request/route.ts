@@ -19,6 +19,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Find default approval line for OVERTIME
+    const approvalLine = await prisma.approvalLine.findFirst({
+      where: { type: 'OVERTIME', isDefault: true, isActive: true },
+      include: {
+        steps: { orderBy: { stepOrder: 'asc' } },
+      },
+    });
+
+    // Resolve approvers for each step
+    const approvalRecords: { stepOrder: number; approverId: string }[] = [];
+    if (approvalLine) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: user.id },
+        select: { departmentId: true },
+      });
+
+      for (const step of approvalLine.steps) {
+        let approverId: string | null = null;
+
+        if (step.approverRole === 'FIXED' && step.approverId) {
+          approverId = step.approverId;
+        } else if (step.approverRole === 'POSITION' && step.positionLevel != null) {
+          const approver = await prisma.employee.findFirst({
+            where: {
+              departmentId: employee?.departmentId,
+              position: { level: step.positionLevel },
+              status: 'ACTIVE',
+              id: { not: user.id },
+            },
+          });
+          approverId = approver?.id || null;
+        } else if (step.approverRole === 'DEPT_HEAD') {
+          const approver = await prisma.employee.findFirst({
+            where: {
+              departmentId: employee?.departmentId,
+              role: { in: ['DEPT_ADMIN', 'COMPANY_ADMIN', 'SYSTEM_ADMIN'] },
+              status: 'ACTIVE',
+              id: { not: user.id },
+            },
+            include: { position: true },
+            orderBy: { position: { level: 'desc' } },
+          });
+          approverId = approver?.id || null;
+        }
+
+        if (approverId) {
+          approvalRecords.push({ stepOrder: step.stepOrder, approverId });
+        }
+      }
+    }
+
     const overtimeRequest = await prisma.overtimeRequest.create({
       data: {
         employeeId: user.id,
@@ -28,6 +79,7 @@ export async function POST(request: NextRequest) {
         endTime: endTime || '',
         hours: parseFloat(hours),
         reason,
+        status: approvalRecords.length > 0 ? 'PENDING' : 'APPROVED',
       },
       include: {
         employee: {
@@ -35,6 +87,18 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Create approval records
+    if (approvalRecords.length > 0) {
+      await prisma.approval.createMany({
+        data: approvalRecords.map((rec) => ({
+          overtimeId: overtimeRequest.id,
+          stepOrder: rec.stepOrder,
+          approverId: rec.approverId,
+          action: 'PENDING',
+        })),
+      });
+    }
 
     return NextResponse.json({ overtimeRequest }, { status: 201 });
   } catch (error) {

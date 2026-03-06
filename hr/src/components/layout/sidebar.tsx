@@ -187,7 +187,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <div key={group.group}>
             <button
               onClick={() => toggleGroup(group.group)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-50 rounded-md transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-blue-50/60 hover:text-blue-700 hover:scale-[1.06] rounded-md transition-all duration-150 origin-left"
             >
               <div className="flex items-center gap-2">
                 <group.icon className="w-3.5 h-3.5" />
@@ -213,11 +213,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-colors",
+                        "flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150",
                         pathname === item.href ||
                           pathname.startsWith(item.href + "/")
                           ? "bg-blue-50 text-blue-700 font-medium border-l-[3px] border-blue-600"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          : "text-gray-600 hover:bg-blue-50/60 hover:text-blue-700 hover:translate-x-0.5"
                       )}
                     >
                       <item.icon className="w-4 h-4 shrink-0" />

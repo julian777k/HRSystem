@@ -137,9 +137,11 @@ export async function POST(request: NextRequest) {
           // 매칭되는 정책 중 가장 높은 grantDays 적용
           let grantDays = Math.max(...matchingPolicies.map((p) => p.grantDays));
 
-          // ANNUAL 타입: calculateAnnualLeave() 결과와 정책 grantDays 중 큰 값 사용 (법정 최소 보장)
+          // ANNUAL 타입: 근로기준법 법정 최소일수 보장
           if (typeCode === 'ANNUAL') {
-            const legalDays = calculateAnnualLeave(emp.hireDate, referenceDate);
+            // periodEnd(12/31) 기준으로 계산하여 해당 연도 전체 근무 개월수 반영
+            // (referenceDate=1/1 사용 시 연중 입사자의 근무월수가 0으로 계산됨)
+            const legalDays = calculateAnnualLeave(emp.hireDate, periodEnd);
             grantDays = Math.max(grantDays, legalDays);
           }
 

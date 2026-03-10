@@ -1,9 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { basePrismaClient } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { calculateAnnualLeave, getYearsWorked } from '@/lib/leave-calculator';
 import { initAnnualWallet, getCompensationPolicy } from '@/lib/time-wallet';
 import { getTenantId } from '@/lib/tenant-context';
+
+/** 기본 휴가 정책이 없는 기존 테넌트를 위한 자동 시드 */
+async function seedDefaultPolicies(tenantId: string) {
+  const db = basePrismaClient;
+  const annualType = await db.leaveType.findFirst({ where: { tenantId, code: 'ANNUAL' } });
+  const sickType = await db.leaveType.findFirst({ where: { tenantId, code: 'SICK' } });
+  const familyType = await db.leaveType.findFirst({ where: { tenantId, code: 'FAMILY' } });
+  const publicType = await db.leaveType.findFirst({ where: { tenantId, code: 'PUBLIC' } });
+
+  const policies: Array<Record<string, unknown>> = [];
+
+  if (annualType) {
+    policies.push(
+      { tenantId, leaveTypeId: annualType.id, name: '1년 미만 월차', description: '입사 1년 미만 직원 월 1일 부여', yearFrom: 0, yearTo: 1, grantDays: 1, grantType: 'MONTHLY' },
+      { tenantId, leaveTypeId: annualType.id, name: '1년차 연차', description: '1년 이상 근무 시 15일 부여', yearFrom: 1, yearTo: 3, grantDays: 15, grantType: 'YEARLY' },
+      { tenantId, leaveTypeId: annualType.id, name: '3년차 이상 연차', description: '3년 이상 근무 시 매 2년마다 1일 추가 (최대 25일)', yearFrom: 3, yearTo: null, grantDays: 16, grantType: 'YEARLY' },
+    );
+  }
+  if (sickType) {
+    policies.push({ tenantId, leaveTypeId: sickType.id, name: '병가', description: '연 11일 유급 병가', yearFrom: 0, yearTo: null, grantDays: 11, grantType: 'YEARLY' });
+  }
+  if (familyType) {
+    policies.push({ tenantId, leaveTypeId: familyType.id, name: '경조사 휴가', description: '연 5일 경조사 휴가', yearFrom: 0, yearTo: null, grantDays: 5, grantType: 'YEARLY' });
+  }
+  if (publicType) {
+    policies.push({ tenantId, leaveTypeId: publicType.id, name: '공가', description: '연 5일 공가', yearFrom: 0, yearTo: null, grantDays: 5, grantType: 'YEARLY' });
+  }
+
+  for (const p of policies) {
+    await db.leavePolicy.create({ data: p as any });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,10 +58,19 @@ export async function POST(request: NextRequest) {
     const referenceDate = new Date(year, 0, 1);
 
     // 활성화된 모든 LeavePolicy 조회 (leaveType 포함)
-    const allPolicies = await prisma.leavePolicy.findMany({
+    let allPolicies = await prisma.leavePolicy.findMany({
       where: { isActive: true },
       include: { leaveType: true },
     });
+
+    // 정책이 하나도 없으면 기본 정책 자동 생성
+    if (allPolicies.length === 0) {
+      await seedDefaultPolicies(tenantId);
+      allPolicies = await prisma.leavePolicy.findMany({
+        where: { isActive: true },
+        include: { leaveType: true },
+      });
+    }
 
     // isAnnualDeduct: true인 타입(AM_HALF, PM_HALF)은 제외 (연차 잔여 공유)
     const policies = allPolicies.filter(

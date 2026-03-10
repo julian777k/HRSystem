@@ -102,7 +102,102 @@ export async function seedTenantData(options: TenantSeedOptions) {
     });
   }
 
-  // 5. Create default system configs
+  // 5. Create default leave policies (연차 자동부여에 필요)
+  const annualType = await basePrismaClient.leaveType.findFirst({
+    where: { tenantId, code: 'ANNUAL' },
+  });
+  const sickType = await basePrismaClient.leaveType.findFirst({
+    where: { tenantId, code: 'SICK' },
+  });
+  const familyType = await basePrismaClient.leaveType.findFirst({
+    where: { tenantId, code: 'FAMILY' },
+  });
+  const publicType = await basePrismaClient.leaveType.findFirst({
+    where: { tenantId, code: 'PUBLIC' },
+  });
+
+  const leavePolicies: Array<{
+    leaveTypeId: string;
+    name: string;
+    description: string;
+    yearFrom: number;
+    yearTo: number | null;
+    grantDays: number;
+    grantType: string;
+  }> = [];
+
+  if (annualType) {
+    leavePolicies.push(
+      {
+        leaveTypeId: annualType.id,
+        name: '1년 미만 월차',
+        description: '입사 1년 미만 직원 월 1일 부여',
+        yearFrom: 0,
+        yearTo: 1,
+        grantDays: 1,
+        grantType: 'MONTHLY',
+      },
+      {
+        leaveTypeId: annualType.id,
+        name: '1년차 연차',
+        description: '1년 이상 근무 시 15일 부여',
+        yearFrom: 1,
+        yearTo: 3,
+        grantDays: 15,
+        grantType: 'YEARLY',
+      },
+      {
+        leaveTypeId: annualType.id,
+        name: '3년차 이상 연차',
+        description: '3년 이상 근무 시 매 2년마다 1일 추가 (최대 25일)',
+        yearFrom: 3,
+        yearTo: null,
+        grantDays: 16,
+        grantType: 'YEARLY',
+      },
+    );
+  }
+  if (sickType) {
+    leavePolicies.push({
+      leaveTypeId: sickType.id,
+      name: '병가',
+      description: '연 11일 유급 병가 (근로기준법)',
+      yearFrom: 0,
+      yearTo: null,
+      grantDays: 11,
+      grantType: 'YEARLY',
+    });
+  }
+  if (familyType) {
+    leavePolicies.push({
+      leaveTypeId: familyType.id,
+      name: '경조사 휴가',
+      description: '연 5일 경조사 휴가',
+      yearFrom: 0,
+      yearTo: null,
+      grantDays: 5,
+      grantType: 'YEARLY',
+    });
+  }
+  if (publicType) {
+    leavePolicies.push({
+      leaveTypeId: publicType.id,
+      name: '공가',
+      description: '연 5일 공가',
+      yearFrom: 0,
+      yearTo: null,
+      grantDays: 5,
+      grantType: 'YEARLY',
+    });
+  }
+
+  for (const policy of leavePolicies) {
+    await basePrismaClient.leavePolicy.create({
+      data: { tenantId, ...policy },
+    });
+  }
+
+  // 6. Create default system configs
   const configs = [
     { key: 'company_name', value: companyName, group: 'company' },
     { key: 'work_start_time', value: '09:00', group: 'company' },
@@ -124,7 +219,7 @@ export async function seedTenantData(options: TenantSeedOptions) {
     });
   }
 
-  // 6. Create default overtime policy
+  // 7. Create default overtime policy
   await basePrismaClient.overtimePolicy.create({
     data: {
       tenantId,
@@ -139,7 +234,7 @@ export async function seedTenantData(options: TenantSeedOptions) {
     },
   });
 
-  // 7. Create default compensation policy
+  // 8. Create default compensation policy
   await basePrismaClient.compensationPolicy.create({
     data: {
       tenantId,

@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { notifyApprovers } from '@/lib/notifications';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ message: '인증 필요' }, { status: 401 });
 
+    const tenantId = await getTenantId();
     const body = await request.json();
     const { leaveTypeId, startDate, endDate, useUnit, requestDays, reason } = body;
 
@@ -32,7 +34,8 @@ export async function POST(request: NextRequest) {
     const balanceLookupCode = (leaveType.isAnnualDeduct && leaveType.code !== 'ANNUAL') ? 'ANNUAL' : leaveType.code;
     const balance = await prisma.leaveBalance.findUnique({
       where: {
-        employeeId_year_leaveTypeCode: {
+        tenantId_employeeId_year_leaveTypeCode: {
+          tenantId,
           employeeId: user.id,
           year,
           leaveTypeCode: balanceLookupCode,
@@ -68,7 +71,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '해당 기간에 이미 신청된 휴가가 있습니다.' }, { status: 400 });
     }
 
-    const requestHours = requestDays * 8;
+    // Fetch dailyWorkHours from CompensationPolicy (default 8)
+    const compPolicy = await prisma.compensationPolicy.findFirst({
+      where: { isActive: true },
+      select: { dailyWorkHours: true },
+    });
+    const dailyWorkHours = compPolicy?.dailyWorkHours ?? 8;
+    const requestHours = requestDays * dailyWorkHours;
 
     // Find default approval line for LEAVE
     const approvalLine = await prisma.approvalLine.findFirst({

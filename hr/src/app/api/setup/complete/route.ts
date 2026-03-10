@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
+import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { isSQLiteMode } from '@/lib/db-utils';
 import { isSetupComplete } from '@/lib/setup-config';
+import { getTenantId } from '@/lib/tenant-context';
 
 async function seedDatabaseWithPrisma(
   admin: { employeeNumber: string; name: string; email: string; password: string; department: string; position: string },
   company: { name: string; bizNumber?: string; representative?: string; address?: string; workStartTime?: string; workEndTime?: string; lunchStartTime?: string; lunchEndTime?: string; serverUrl?: string },
   policies: { leaveBasis?: string; amHalfStart?: string; amHalfEnd?: string; pmHalfStart?: string; pmHalfEnd?: string; approvalLevels?: number; unusedLeavePolicy?: string }
 ) {
+  const tenantId = await getTenantId();
+
   // 1. Create positions
   const positions = [
     { name: '사원', level: 1 },
@@ -21,7 +24,7 @@ async function seedDatabaseWithPrisma(
   ];
   for (const pos of positions) {
     await prisma.position.upsert({
-      where: { name: pos.name },
+      where: { tenantId_name: { tenantId, name: pos.name } },
       update: { level: pos.level },
       create: pos,
     });
@@ -37,14 +40,14 @@ async function seedDatabaseWithPrisma(
   ];
   for (const dept of departments) {
     await prisma.department.upsert({
-      where: { code: dept.code },
+      where: { tenantId_code: { tenantId, code: dept.code } },
       update: {},
       create: dept,
     });
   }
 
   // 3. Create admin account
-  const passwordHash = await hash(admin.password, 12);
+  const passwordHash = await hashPassword(admin.password);
   const dept = await prisma.department.findFirst({ where: { code: 'MGMT' } });
 
   // Find position: exact name match → highest level fallback
@@ -55,7 +58,7 @@ async function seedDatabaseWithPrisma(
 
   if (dept && pos) {
     await prisma.employee.upsert({
-      where: { email: admin.email },
+      where: { tenantId_email: { tenantId, email: admin.email } },
       update: {
         passwordHash,
         name: admin.name,
@@ -92,7 +95,7 @@ async function seedDatabaseWithPrisma(
   ];
   for (const lt of leaveTypes) {
     await prisma.leaveType.upsert({
-      where: { code: lt.code },
+      where: { tenantId_code: { tenantId, code: lt.code } },
       update: {},
       create: {
         name: lt.name,
@@ -107,10 +110,10 @@ async function seedDatabaseWithPrisma(
   }
 
   // 5. Leave policies (연차 + 병가 + 경조사 + 공가)
-  const annualType = await prisma.leaveType.findUnique({ where: { code: 'ANNUAL' } });
-  const sickType = await prisma.leaveType.findUnique({ where: { code: 'SICK' } });
-  const familyType = await prisma.leaveType.findUnique({ where: { code: 'FAMILY' } });
-  const publicType = await prisma.leaveType.findUnique({ where: { code: 'PUBLIC' } });
+  const annualType = await prisma.leaveType.findFirst({ where: { code: 'ANNUAL' } });
+  const sickType = await prisma.leaveType.findFirst({ where: { code: 'SICK' } });
+  const familyType = await prisma.leaveType.findFirst({ where: { code: 'FAMILY' } });
+  const publicType = await prisma.leaveType.findFirst({ where: { code: 'PUBLIC' } });
 
   const defaultPolicies: { leaveTypeId: string; name: string; description: string; yearFrom: number; yearTo: number | null; grantDays: number; grantType: 'YEARLY' | 'MONTHLY' | 'ONCE' }[] = [];
 
@@ -148,7 +151,7 @@ async function seedDatabaseWithPrisma(
     { key: 'work_end_time', value: company.workEndTime || '18:00', group: 'company' },
     { key: 'lunch_start_time', value: company.lunchStartTime || '12:00', group: 'company' },
     { key: 'lunch_end_time', value: company.lunchEndTime || '13:00', group: 'company' },
-    { key: 'server_url', value: company.serverUrl || 'http://localhost:3000', group: 'company' },
+    { key: 'server_url', value: company.serverUrl || (process.env.DEPLOY_TARGET === 'cloudflare' ? 'https://keystonehr.app' : 'http://localhost:3000'), group: 'company' },
     { key: 'leave_basis', value: policies.leaveBasis || 'hire_date', group: 'leave' },
     { key: 'am_half_start', value: policies.amHalfStart || '09:00', group: 'leave' },
     { key: 'am_half_end', value: policies.amHalfEnd || '13:00', group: 'leave' },
@@ -161,7 +164,7 @@ async function seedDatabaseWithPrisma(
   ];
   for (const cfg of configs) {
     await prisma.systemConfig.upsert({
-      where: { key: cfg.key },
+      where: { tenantId_key: { tenantId, key: cfg.key } },
       update: { value: cfg.value },
       create: cfg,
     });
@@ -191,7 +194,10 @@ async function seedDatabaseWithPg(
   policies: { leaveBasis?: string; amHalfStart?: string; amHalfEnd?: string; pmHalfStart?: string; pmHalfEnd?: string; approvalLevels?: number; unusedLeavePolicy?: string },
   connectionConfig: Record<string, unknown>
 ) {
-  const { Client } = require('pg');
+  const tenantId = await getTenantId();
+  // Dynamic require prevents esbuild from tracing pg into Cloudflare bundle
+  const _require = new Function('m', 'return require(m)') as NodeRequire;
+  const { Client } = _require('pg');
   const client = new Client(connectionConfig);
   await client.connect();
 
@@ -208,10 +214,10 @@ async function seedDatabaseWithPg(
     ];
     for (const pos of positions) {
       await client.query(
-        `INSERT INTO positions (id, name, level, "isActive", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::text, $1, $2, true, NOW(), NOW())
-         ON CONFLICT (name) DO UPDATE SET level = $2, "updatedAt" = NOW()`,
-        [pos.name, pos.level]
+        `INSERT INTO positions (id, "tenantId", name, level, "isActive", "createdAt", "updatedAt")
+         VALUES (gen_random_uuid()::text, $3, $1, $2, true, NOW(), NOW())
+         ON CONFLICT ("tenantId", name) DO UPDATE SET level = $2, "updatedAt" = NOW()`,
+        [pos.name, pos.level, tenantId]
       );
       await client.query(
         `UPDATE positions SET name = $1, "updatedAt" = NOW() WHERE level = $2 AND name != $1`,
@@ -229,15 +235,15 @@ async function seedDatabaseWithPg(
     ];
     for (const dept of departments) {
       await client.query(
-        `INSERT INTO departments (id, name, code, "sortOrder", "isActive", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::text, $1, $2, $3, true, NOW(), NOW())
-         ON CONFLICT (code) DO NOTHING`,
-        [dept.name, dept.code, dept.sortOrder]
+        `INSERT INTO departments (id, "tenantId", name, code, "sortOrder", "isActive", "createdAt", "updatedAt")
+         VALUES (gen_random_uuid()::text, $4, $1, $2, $3, true, NOW(), NOW())
+         ON CONFLICT ("tenantId", code) DO NOTHING`,
+        [dept.name, dept.code, dept.sortOrder, tenantId]
       );
     }
 
     // 3. Create admin account
-    const passwordHash = await hash(admin.password, 12);
+    const passwordHash = await hashPassword(admin.password);
     const deptResult = await client.query(`SELECT id FROM departments WHERE code = 'MGMT'`);
     let posResult = await client.query(`SELECT id FROM positions WHERE name = $1`, [admin.position]);
     if (posResult.rows.length === 0) {
@@ -249,16 +255,16 @@ async function seedDatabaseWithPg(
 
     if (deptResult.rows.length > 0 && posResult.rows.length > 0) {
       await client.query(
-        `INSERT INTO employees (id, "employeeNumber", name, email, "passwordHash", "departmentId", "positionId", "hireDate", status, role, "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, NOW(), 'ACTIVE', 'SYSTEM_ADMIN', NOW(), NOW())
-         ON CONFLICT (email) DO UPDATE SET
+        `INSERT INTO employees (id, "tenantId", "employeeNumber", name, email, "passwordHash", "departmentId", "positionId", "hireDate", status, role, "createdAt", "updatedAt")
+         VALUES (gen_random_uuid()::text, $7, $1, $2, $3, $4, $5, $6, NOW(), 'ACTIVE', 'SYSTEM_ADMIN', NOW(), NOW())
+         ON CONFLICT ("tenantId", email) DO UPDATE SET
            "passwordHash" = $4,
            name = $2,
            "employeeNumber" = $1,
            "departmentId" = $5,
            "positionId" = $6,
            "updatedAt" = NOW()`,
-        [admin.employeeNumber, admin.name, admin.email, passwordHash, deptResult.rows[0].id, posResult.rows[0].id]
+        [admin.employeeNumber, admin.name, admin.email, passwordHash, deptResult.rows[0].id, posResult.rows[0].id, tenantId]
       );
     }
 
@@ -275,10 +281,10 @@ async function seedDatabaseWithPg(
     ];
     for (const lt of leaveTypes) {
       await client.query(
-        `INSERT INTO leave_types (id, name, code, "isPaid", "isAnnualDeduct", "maxDays", "requiresDoc", "isActive", "sortOrder", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, true, $7, NOW(), NOW())
-         ON CONFLICT (code) DO NOTHING`,
-        [lt.name, lt.code, lt.isPaid, lt.isAnnualDeduct, (lt as Record<string, unknown>).maxDays ?? null, lt.requiresDoc, lt.sortOrder]
+        `INSERT INTO leave_types (id, "tenantId", name, code, "isPaid", "isAnnualDeduct", "maxDays", "requiresDoc", "isActive", "sortOrder", "createdAt", "updatedAt")
+         VALUES (gen_random_uuid()::text, $8, $1, $2, $3, $4, $5, $6, true, $7, NOW(), NOW())
+         ON CONFLICT ("tenantId", code) DO NOTHING`,
+        [lt.name, lt.code, lt.isPaid, lt.isAnnualDeduct, (lt as Record<string, unknown>).maxDays ?? null, lt.requiresDoc, lt.sortOrder, tenantId]
       );
     }
 
@@ -309,9 +315,9 @@ async function seedDatabaseWithPg(
         const existing = await client.query(`SELECT id FROM leave_policies WHERE name = $1`, [p.name]);
         if (existing.rows.length === 0) {
           await client.query(
-            `INSERT INTO leave_policies (id, "leaveTypeId", name, description, "yearFrom", "yearTo", "grantDays", "grantType", "isActive", "createdAt", "updatedAt")
-             VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW())`,
-            [leaveTypeId, p.name, p.description, p.yearFrom, p.yearTo, p.grantDays, p.grantType]
+            `INSERT INTO leave_policies (id, "tenantId", "leaveTypeId", name, description, "yearFrom", "yearTo", "grantDays", "grantType", "isActive", "createdAt", "updatedAt")
+             VALUES (gen_random_uuid()::text, $8, $1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW())`,
+            [leaveTypeId, p.name, p.description, p.yearFrom, p.yearTo, p.grantDays, p.grantType, tenantId]
           );
         }
       }
@@ -327,7 +333,7 @@ async function seedDatabaseWithPg(
       { key: 'work_end_time', value: company.workEndTime || '18:00', group: 'company' },
       { key: 'lunch_start_time', value: company.lunchStartTime || '12:00', group: 'company' },
       { key: 'lunch_end_time', value: company.lunchEndTime || '13:00', group: 'company' },
-      { key: 'server_url', value: company.serverUrl || 'http://localhost:3000', group: 'company' },
+      { key: 'server_url', value: company.serverUrl || (process.env.DEPLOY_TARGET === 'cloudflare' ? 'https://keystonehr.app' : 'http://localhost:3000'), group: 'company' },
       { key: 'leave_basis', value: policies.leaveBasis || 'hire_date', group: 'leave' },
       { key: 'am_half_start', value: policies.amHalfStart || '09:00', group: 'leave' },
       { key: 'am_half_end', value: policies.amHalfEnd || '13:00', group: 'leave' },
@@ -340,10 +346,10 @@ async function seedDatabaseWithPg(
     ];
     for (const cfg of configs) {
       await client.query(
-        `INSERT INTO system_configs (id, key, value, "group", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::text, $1, $2, $3, NOW(), NOW())
-         ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = NOW()`,
-        [cfg.key, cfg.value, cfg.group]
+        `INSERT INTO system_configs (id, "tenantId", key, value, "group", "createdAt", "updatedAt")
+         VALUES (gen_random_uuid()::text, $4, $1, $2, $3, NOW(), NOW())
+         ON CONFLICT ("tenantId", key) DO UPDATE SET value = $2, "updatedAt" = NOW()`,
+        [cfg.key, cfg.value, cfg.group, tenantId]
       );
     }
 
@@ -351,8 +357,9 @@ async function seedDatabaseWithPg(
     const existingPolicy = await client.query(`SELECT id FROM overtime_policies LIMIT 1`);
     if (existingPolicy.rows.length === 0) {
       await client.query(
-        `INSERT INTO overtime_policies (id, "maxWeeklyHours", "maxMonthlyHours", "nightStartTime", "nightEndTime", "weekdayRate", "weekendRate", "nightRate", "isActive", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::text, 12, 52, '22:00', '06:00', 1.5, 1.5, 2.0, true, NOW(), NOW())`
+        `INSERT INTO overtime_policies (id, "tenantId", "maxWeeklyHours", "maxMonthlyHours", "nightStartTime", "nightEndTime", "weekdayRate", "weekendRate", "nightRate", "isActive", "createdAt", "updatedAt")
+         VALUES (gen_random_uuid()::text, $1, 12, 52, '22:00', '06:00', 1.5, 1.5, 2.0, true, NOW(), NOW())`,
+        [tenantId]
       );
     }
   } finally {
@@ -362,6 +369,15 @@ async function seedDatabaseWithPg(
 
 export async function POST(request: NextRequest) {
   try {
+    // Setup secret check
+    const setupSecret = process.env.SETUP_SECRET;
+    if (setupSecret && request.headers.get('x-setup-secret') !== setupSecret) {
+      return NextResponse.json(
+        { success: false, message: '설정 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     // Guard: block if setup already completed
     if (await isSetupComplete()) {
       return NextResponse.json(
@@ -377,7 +393,7 @@ export async function POST(request: NextRequest) {
       // SQLite mode: use Prisma client directly
       await seedDatabaseWithPrisma(admin, company, policies);
     } else {
-      // PostgreSQL mode: use pg Client
+      // Non-SQLite mode: use pg Client directly
       const connectionConfig = process.env.DATABASE_URL
         ? { connectionString: process.env.DATABASE_URL }
         : {
@@ -396,9 +412,9 @@ export async function POST(request: NextRequest) {
       message: '시스템 설정이 완료되었습니다. 로그인 페이지로 이동합니다.',
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : '알 수 없는 오류';
+    console.error('Setup complete error:', error);
     return NextResponse.json(
-      { success: false, message: `설정 저장 실패: ${msg}` },
+      { success: false, message: '설정 저장 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

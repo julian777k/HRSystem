@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser, clearAuthCookie } from '@/lib/auth-actions';
+import { getCurrentUserWithRefresh, clearAuthCookie, setAuthCookie } from '@/lib/auth-actions';
+import { signToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const result = await getCurrentUserWithRefresh();
 
-    if (!user) {
+    if (!result) {
       return NextResponse.json(
         { message: '인증되지 않았습니다.' },
         { status: 401 }
       );
     }
+
+    const { user, shouldRefresh } = result;
 
     // Verify employee still exists in DB (handles DB re-seed case)
     const employee = await prisma.employee.findUnique({
@@ -25,6 +28,12 @@ export async function GET() {
         { message: '세션이 만료되었습니다. 다시 로그인해주세요.' },
         { status: 401 }
       );
+    }
+
+    // 만료 4시간 전이면 자동 토큰 갱신 (사용자 끊김 방지)
+    if (shouldRefresh) {
+      const newToken = await signToken(user);
+      await setAuthCookie(newToken);
     }
 
     return NextResponse.json({

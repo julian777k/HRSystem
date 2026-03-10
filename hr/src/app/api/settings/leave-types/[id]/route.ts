@@ -20,20 +20,20 @@ export async function PUT(
     const body = await request.json();
     const { name, code, isPaid, isAnnualDeduct, maxDays, requiresDoc, isActive, sortOrder } = body;
 
-    const existing = await prisma.leaveType.findUnique({ where: { id } });
+    const existing = await prisma.leaveType.findFirst({ where: { id } });
     if (!existing) {
       return NextResponse.json({ message: '휴가유형을 찾을 수 없습니다.' }, { status: 404 });
     }
 
     if (name && name !== existing.name) {
-      const dup = await prisma.leaveType.findUnique({ where: { name } });
+      const dup = await prisma.leaveType.findFirst({ where: { name } });
       if (dup) {
         return NextResponse.json({ message: '이미 존재하는 유형명입니다.' }, { status: 409 });
       }
     }
 
     if (code && code !== existing.code) {
-      const dup = await prisma.leaveType.findUnique({ where: { code } });
+      const dup = await prisma.leaveType.findFirst({ where: { code } });
       if (dup) {
         return NextResponse.json({ message: '이미 존재하는 코드입니다.' }, { status: 409 });
       }

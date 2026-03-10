@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, LogIn, Building2, AlertCircle } from "lucide-react";
+import { Loader2, LogIn, AlertCircle } from "lucide-react";
+import Image from "next/image";
 import { Toaster, toast } from "sonner";
 
 export default function LoginPage() {
@@ -25,6 +26,17 @@ export default function LoginPage() {
       .then((data) => {
         if (!data.isComplete) {
           router.replace("/setup");
+        }
+      })
+      .catch(() => {});
+  }, [router]);
+
+  // 이미 로그인된 사용자는 대시보드로 리다이렉트
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (res.ok) {
+          router.replace("/dashboard");
         }
       })
       .catch(() => {});
@@ -67,10 +79,8 @@ export default function LoginPage() {
       <Toaster position="top-center" richColors closeButton />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2 px-4 sm:px-6">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-2">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
-          <CardTitle className="text-xl sm:text-2xl font-bold">HR SYSTEM</CardTitle>
+          <Image src="/logo.png" alt="KeystoneHR" width={48} height={48} className="mx-auto w-12 h-12 mb-2" />
+          <CardTitle className="text-xl sm:text-2xl font-bold">KeystoneHR</CardTitle>
           <CardDescription>인사관리 시스템에 로그인하세요</CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
@@ -121,12 +131,6 @@ export default function LoginPage() {
               )}
             </Button>
             <div className="text-center space-y-3 pt-2">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-800 hover:underline active:text-blue-900 block py-1"
-              >
-                비밀번호를 잊으셨나요?
-              </Link>
               <div>
                 <span className="text-sm text-gray-500">계정이 없으신가요?</span>{' '}
                 <Link
@@ -136,6 +140,9 @@ export default function LoginPage() {
                   회원가입
                 </Link>
               </div>
+              <p className="text-xs text-gray-400">
+                비밀번호 분실 시 관리자에게 문의해주세요.
+              </p>
             </div>
           </form>
         </CardContent>

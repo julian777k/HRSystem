@@ -102,7 +102,7 @@ function getStatusStyle(status: string) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toISOString().split('T')[0];
+  return dateStr.split('T')[0];
 }
 
 function calculateWorkingDaysClient(
@@ -159,7 +159,6 @@ export default function MyLeavePage() {
   const [confirmDialog, setConfirmDialog] = useState<{open: boolean; title: string; description: string; action: () => void}>({open: false, title: '', description: '', action: () => {}});
 
   // Holidays for working day calculation
-  const [, setHolidays] = useState<HolidayData[]>([]);
   const [holidayDates, setHolidayDates] = useState<string[]>([]);
 
   // Form state
@@ -217,7 +216,6 @@ export default function MyLeavePage() {
       const res = await fetch(`/api/holidays?year=${year}`);
       if (res.ok) {
         const data = await res.json();
-        setHolidays(data.holidays || []);
         setHolidayDates(
           (data.holidays || []).map((h: HolidayData) => {
             const d = new Date(h.date);
@@ -264,6 +262,7 @@ export default function MyLeavePage() {
         }),
       });
       if (res.ok) {
+        toast.success('휴가 신청이 완료되었습니다.');
         setDialogOpen(false);
         resetForm();
         fetchData();
@@ -287,6 +286,7 @@ export default function MyLeavePage() {
         try {
           const res = await fetch(`/api/leave/request/${id}`, { method: 'DELETE' });
           if (res.ok) {
+            toast.success('휴가 신청이 취소되었습니다.');
             fetchData();
           } else {
             const err = await res.json();

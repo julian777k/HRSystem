@@ -64,8 +64,8 @@ interface EmployeePermission {
   email: string;
   role: string;
   customPermissions?: string | null;
-  department: { id: string; name: string };
-  position: { id: string; name: string };
+  department?: { id: string; name: string } | null;
+  position?: { id: string; name: string } | null;
 }
 
 interface EmployeeOption {
@@ -583,8 +583,8 @@ export default function ApprovalSettingsPage() {
                       <tr key={emp.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">{emp.employeeNumber}</td>
                         <td className="px-4 py-3 font-medium">{emp.name}</td>
-                        <td className="px-4 py-3 hidden sm:table-cell">{emp.department.name}</td>
-                        <td className="px-4 py-3 hidden sm:table-cell">{emp.position.name}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell">{emp.department?.name ?? '-'}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell">{emp.position?.name ?? '-'}</td>
                         <td className="px-4 py-3">
                           <Select
                             value={emp.role}
@@ -816,7 +816,7 @@ export default function ApprovalSettingsPage() {
           <DialogHeader>
             <DialogTitle>커스텀 권한 설정</DialogTitle>
             <DialogDescription>
-              {permTarget?.name} ({permTarget?.department.name}) - 모듈별 접근 권한을 설정합니다.
+              {permTarget?.name} ({permTarget?.department?.name ?? '-'}) - 모듈별 접근 권한을 설정합니다.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

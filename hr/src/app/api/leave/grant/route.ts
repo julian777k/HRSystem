@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
+    const tenantId = await getTenantId();
     const body = await request.json();
     const { employeeId, leaveTypeCode, grantDays, grantReason, periodStart, periodEnd } = body;
 
@@ -61,7 +63,8 @@ export async function POST(request: NextRequest) {
     // Update or create balance for the year
     const existingBalance = await prisma.leaveBalance.findUnique({
       where: {
-        employeeId_year_leaveTypeCode: {
+        tenantId_employeeId_year_leaveTypeCode: {
+          tenantId,
           employeeId,
           year,
           leaveTypeCode,

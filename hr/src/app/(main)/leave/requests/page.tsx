@@ -91,12 +91,15 @@ function getStatusStyle(status: string) {
   }
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toISOString().split('T')[0];
+function formatDate(dateStr: string | null | undefined) {
+  if (!dateStr) return '-';
+  return dateStr.split('T')[0];
 }
 
-function formatDateWithDay(dateStr: string) {
+function formatDateWithDay(dateStr: string | null | undefined) {
+  if (!dateStr) return '-';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '-';
   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
   const m = d.getMonth() + 1;
   const day = d.getDate();
@@ -113,9 +116,13 @@ function isConsecutiveOrOverlapping(endA: string, startB: string): boolean {
 }
 
 function groupConsecutiveRecords(records: RegisterRecord[]): GroupedRequest[] {
-  if (records.length === 0) return [];
+  if (!records || records.length === 0) return [];
 
-  const sorted = [...records].sort((a, b) => {
+  // Filter out any null/undefined entries defensively
+  const validRecords = records.filter((r): r is RegisterRecord => r != null);
+  if (validRecords.length === 0) return [];
+
+  const sorted = [...validRecords].sort((a, b) => {
     if (a.employeeName !== b.employeeName) return a.employeeName.localeCompare(b.employeeName);
     return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
   });
@@ -225,7 +232,7 @@ export default function LeaveRequestsPage() {
       const res = await fetch(`/api/leave/register?${params}`);
       if (res.ok) {
         const json = await res.json();
-        setRecords(json.data);
+        setRecords(json.data ?? []);
       } else {
         setError('데이터를 불러오는데 실패했습니다.');
       }
@@ -258,37 +265,42 @@ export default function LeaveRequestsPage() {
   const handleApproval = async () => {
     if (approvalTargetIds.length === 0) return;
     setProcessing(true);
+    setBatchProcessing(true);
     const newStatus = approvalAction === 'approve' ? 'APPROVED' : 'REJECTED';
     let success = 0;
     let fail = 0;
 
-    for (const id of approvalTargetIds) {
-      try {
-        const res = await fetch(`/api/leave/request/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus, comment: approvalComment }),
-        });
-        if (res.ok) success++;
-        else fail++;
-      } catch {
-        fail++;
+    try {
+      for (const id of approvalTargetIds) {
+        try {
+          const res = await fetch(`/api/leave/request/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus, comment: approvalComment }),
+          });
+          if (res.ok) success++;
+          else fail++;
+        } catch {
+          fail++;
+        }
       }
-    }
 
-    setProcessing(false);
-    setApprovalDialog(false);
+      setApprovalDialog(false);
 
-    if (fail === 0) {
-      toast.success(
-        approvalAction === 'approve'
-          ? `${success}건이 승인되었습니다.`
-          : `${success}건이 반려되었습니다.`
-      );
-    } else {
-      toast.error(`${success}건 처리, ${fail}건 실패`);
+      if (fail === 0) {
+        toast.success(
+          approvalAction === 'approve'
+            ? `${success}건이 승인되었습니다.`
+            : `${success}건이 반려되었습니다.`
+        );
+      } else {
+        toast.error(`${success}건 처리, ${fail}건 실패`);
+      }
+      fetchRecords();
+    } finally {
+      setProcessing(false);
+      setBatchProcessing(false);
     }
-    fetchRecords();
   };
 
   const toggleGroupSelect = (group: GroupedRequest) => {

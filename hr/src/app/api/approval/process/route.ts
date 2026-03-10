@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { notifyRequestResult } from '@/lib/notifications';
+import { createLeaveAttendance } from '@/lib/attendance-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,103 +48,133 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '이미 처리된 결재입니다.' }, { status: 400 });
     }
 
-    // Update the approval
-    await prisma.approval.update({
-      where: { id: approvalId },
-      data: {
-        action,
-        comment: comment || null,
-        processedAt: new Date(),
-      },
-    });
-
-    if (action === 'REJECTED') {
-      // Reject the request
-      if (approval.leaveRequestId) {
-        await prisma.leaveRequest.update({
-          where: { id: approval.leaveRequestId },
-          data: { status: 'REJECTED' },
-        });
-        notifyRequestResult(approval.leaveRequestId, 'REJECTED', comment).catch(() => {});
-      }
-      if (approval.overtimeId) {
-        await prisma.overtimeRequest.update({
-          where: { id: approval.overtimeId },
-          data: { status: 'REJECTED' },
-        });
-      }
-    } else {
-      // APPROVED - 상위 레벨 선승인 시 하위 단계 자동 건너뛰기
-      const whereClause = approval.leaveRequestId
-        ? { leaveRequestId: approval.leaveRequestId }
-        : { overtimeId: approval.overtimeId };
-
-      const allApprovals = await prisma.approval.findMany({
-        where: whereClause,
-        orderBy: { stepOrder: 'asc' },
+    // Wrap entire approval processing in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Update the approval
+      await tx.approval.update({
+        where: { id: approvalId },
+        data: {
+          action,
+          comment: comment || null,
+          processedAt: new Date(),
+        },
       });
 
-      // 현재 승인자보다 하위 단계 중 PENDING인 건을 SKIPPED 처리
-      const lowerPending = allApprovals.filter(
-        (a) => a.stepOrder < approval.stepOrder && a.action === 'PENDING'
-      );
-      if (lowerPending.length > 0) {
-        await prisma.approval.updateMany({
-          where: { id: { in: lowerPending.map((a) => a.id) } },
-          data: { action: 'SKIPPED', processedAt: new Date() },
-        });
-      }
-
-      const nextStep = allApprovals.find(
-        (a) => a.stepOrder > approval.stepOrder && a.action === 'PENDING'
-      );
-
-      if (nextStep) {
-        // Move to next step
+      if (action === 'REJECTED') {
+        // Reject the request
         if (approval.leaveRequestId) {
-          await prisma.leaveRequest.update({
+          await tx.leaveRequest.update({
             where: { id: approval.leaveRequestId },
-            data: {
-              currentStep: nextStep.stepOrder,
-              status: 'IN_PROGRESS',
-            },
+            data: { status: 'REJECTED' },
+          });
+        }
+        if (approval.overtimeId) {
+          await tx.overtimeRequest.update({
+            where: { id: approval.overtimeId },
+            data: { status: 'REJECTED' },
           });
         }
       } else {
-        // 마지막 단계 또는 상위자가 선승인 → 최종 승인
-        if (approval.leaveRequestId && approval.leaveRequest) {
-          await prisma.leaveRequest.update({
-            where: { id: approval.leaveRequestId },
-            data: { status: 'APPROVED' },
-          });
+        // APPROVED - 상위 레벨 선승인 시 하위 단계 자동 건너뛰기
+        const whereClause = approval.leaveRequestId
+          ? { leaveRequestId: approval.leaveRequestId }
+          : { overtimeId: approval.overtimeId };
 
-          // Deduct from leave balance
-          const lr = approval.leaveRequest;
-          const leaveType = await prisma.leaveType.findUnique({ where: { id: lr.leaveTypeId } });
-          if (leaveType) {
-            const year = lr.startDate.getFullYear();
-            const balanceCode = (leaveType.isAnnualDeduct && leaveType.code !== 'ANNUAL')
-              ? 'ANNUAL' : leaveType.code;
-            await prisma.leaveBalance.updateMany({
-              where: {
-                employeeId: lr.employeeId,
-                year,
-                leaveTypeCode: balanceCode,
-              },
+        const allApprovals = await tx.approval.findMany({
+          where: whereClause,
+          orderBy: { stepOrder: 'asc' },
+        });
+
+        // 현재 승인자보다 하위 단계 중 PENDING인 건을 SKIPPED 처리
+        const lowerPending = allApprovals.filter(
+          (a) => a.stepOrder < approval.stepOrder && a.action === 'PENDING'
+        );
+        if (lowerPending.length > 0) {
+          await tx.approval.updateMany({
+            where: { id: { in: lowerPending.map((a) => a.id) } },
+            data: { action: 'SKIPPED', processedAt: new Date() },
+          });
+        }
+
+        const nextStep = allApprovals.find(
+          (a) => a.stepOrder > approval.stepOrder && a.action === 'PENDING'
+        );
+
+        if (nextStep) {
+          // Move to next step
+          if (approval.leaveRequestId) {
+            await tx.leaveRequest.update({
+              where: { id: approval.leaveRequestId },
               data: {
-                totalUsed: { increment: lr.requestDays },
-                totalRemain: { decrement: lr.requestDays },
+                currentStep: nextStep.stepOrder,
+                status: 'IN_PROGRESS',
               },
             });
           }
+        } else {
+          // 마지막 단계 또는 상위자가 선승인 → 최종 승인
+          if (approval.leaveRequestId && approval.leaveRequest) {
+            // Double-deduction guard: skip if already approved
+            if (approval.leaveRequest.status === 'APPROVED') {
+              return;
+            }
 
-          notifyRequestResult(approval.leaveRequestId, 'APPROVED').catch(() => {});
+            await tx.leaveRequest.update({
+              where: { id: approval.leaveRequestId },
+              data: { status: 'APPROVED' },
+            });
+
+            // Deduct from leave balance
+            const lr = approval.leaveRequest;
+            const leaveType = await tx.leaveType.findUnique({ where: { id: lr.leaveTypeId } });
+            if (leaveType) {
+              const year = lr.startDate.getFullYear();
+              const balanceCode = (leaveType.isAnnualDeduct && leaveType.code !== 'ANNUAL')
+                ? 'ANNUAL' : leaveType.code;
+              await tx.leaveBalance.updateMany({
+                where: {
+                  employeeId: lr.employeeId,
+                  year,
+                  leaveTypeCode: balanceCode,
+                },
+                data: {
+                  totalUsed: { increment: lr.requestDays },
+                  totalRemain: { decrement: lr.requestDays },
+                },
+              });
+            }
+          }
+          if (approval.overtimeId) {
+            await tx.overtimeRequest.update({
+              where: { id: approval.overtimeId },
+              data: { status: 'APPROVED' },
+            });
+          }
         }
-        if (approval.overtimeId) {
-          await prisma.overtimeRequest.update({
-            where: { id: approval.overtimeId },
-            data: { status: 'APPROVED' },
-          });
+      }
+    });
+
+    // Post-transaction side effects (notifications, attendance creation)
+    if (action === 'REJECTED' && approval.leaveRequestId) {
+      notifyRequestResult(approval.leaveRequestId, 'REJECTED', comment).catch(() => {});
+    } else if (action === 'APPROVED') {
+      if (approval.leaveRequestId && approval.leaveRequest) {
+        // Check if this was the final approval (no more pending steps)
+        const remainingPending = await prisma.approval.count({
+          where: { leaveRequestId: approval.leaveRequestId, action: 'PENDING' },
+        });
+        if (remainingPending === 0) {
+          notifyRequestResult(approval.leaveRequestId, 'APPROVED').catch(() => {});
+          const lr = approval.leaveRequest;
+          const leaveType = await prisma.leaveType.findUnique({ where: { id: lr.leaveTypeId } });
+          const leaveTypeName = leaveType?.name || '휴가';
+          await createLeaveAttendance(
+            lr.employeeId,
+            lr.startDate,
+            lr.endDate,
+            lr.useUnit,
+            leaveTypeName
+          );
         }
       }
     }

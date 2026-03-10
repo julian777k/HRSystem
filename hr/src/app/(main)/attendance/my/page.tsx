@@ -11,11 +11,12 @@ import {
   Loader2,
   ClipboardList,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AttendanceRecord {
   id: string;
   date: string;
-  clockIn: string;
+  clockIn: string | null;
   clockOut: string | null;
   workHours: number | null;
   overtimeHours: number | null;
@@ -91,7 +92,7 @@ export default function MyAttendancePage() {
         setSummary(summaryData.summary);
       }
     } catch {
-      // ignore
+      toast.error('근태 기록을 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
@@ -218,7 +219,7 @@ export default function MyAttendancePage() {
                       return (
                         <tr key={att.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                           <td className="py-2.5 px-3 font-medium">{formatDateShort(att.date)}</td>
-                          <td className="py-2.5 px-3">{formatTime(att.clockIn)}</td>
+                          <td className="py-2.5 px-3">{att.clockIn ? formatTime(att.clockIn) : '-'}</td>
                           <td className="py-2.5 px-3">{att.clockOut ? formatTime(att.clockOut) : '-'}</td>
                           <td className="py-2.5 px-3">
                             {att.workHours != null ? `${att.workHours.toFixed(1)}h` : '-'}

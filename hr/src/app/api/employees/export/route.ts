@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 
 const STATUS_LABELS: Record<string, string> = {
+  PENDING: '승인대기',
   ACTIVE: '재직',
   ON_LEAVE: '휴직',
   RESIGNED: '퇴직',
@@ -40,6 +40,7 @@ export async function GET() {
       '상태': STATUS_LABELS[emp.status] || emp.status,
     }));
 
+    const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '직원목록');

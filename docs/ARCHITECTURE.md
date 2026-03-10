@@ -1,26 +1,34 @@
-# MSA 사내 인사관리 시스템 - 설계 문서
+# KeystoneHR — 사내 인사관리 SaaS 시스템 설계 문서
 
-> **프로젝트명**: MSA HR (인트라넷 인사관리 시스템)
-> **작성일**: 2026-02-13
-> **참조 시스템**: 유니포스트(UNIPOST) / Flex
-> **배포 방식**: 사내 인트라넷 (도메인 비용 없음)
+> **프로젝트명**: KeystoneHR (인사관리 SaaS)
+> **작성일**: 2026-03-10
+> **도메인**: keystonehr.app (와일드카드 서브도메인 멀티테넌트)
+> **배포 방식**: Cloudflare Workers (OpenNext)
 
 ---
 
 ## 1. 시스템 개요
 
 ### 1.1 목적
-사내 인트라넷 환경에서 도메인 비용 없이 운영 가능한 인사관리 시스템 구축.
-직급별 전자결재, 휴가 관리, 근태 관리 등 핵심 HR 업무를 자동화한다.
+클라우드 기반 멀티테넌트 SaaS 인사관리 시스템.
+직급별 전자결재, 휴가 관리, 출퇴근 관리, 복지 관리 등 핵심 HR 업무를 자동화한다.
 
-### 1.2 핵심 기능
+### 1.2 비즈니스 모델
+- **1회 판매 모델** (one-time sale, 구독 아님)
+- 단일 "standard" 플랜 — 모든 기능 활성화
+- 트라이얼 상태 지원 (자동 만료: 매 요청 시 체크, 만료 시 자동 정지)
+- 슈퍼 어드민: admin@admin.com (전체 테넌트 관리)
+
+### 1.3 핵심 기능
 | 번호 | 기능 | 설명 |
 |------|------|------|
 | 1 | 전자결재 시스템 | 직급별 결재선, 다단계 승인/반려/전결 |
-| 2 | 휴가 관리 | 나의 휴가, 사용현황, 신청관리, 관리대장, 부여 |
-| 3 | 연차 자동생성 | 입사일 기반 근속일수 계산, 근로기준법 연차 자동부여 |
-| 4 | 기본설정 | 권한/결재선, 휴가규정, 시간외근무, 직원관리, 외부연동 |
-| 5 | 출퇴근 관리 | 출퇴근 기록, 근태현황 조회, 연장근무 신청/승인 |
+| 2 | 휴가 관리 | 연차 자동생성 (근로기준법), 신청/승인/잔여일 관리 |
+| 3 | 출퇴근 관리 | 출퇴근 기록, 근태현황 조회, 연장근무 신청/승인 |
+| 4 | 웹훅 알림 | Slack, Kakao Work, Teams, Custom webhook (비용 무료) |
+| 5 | 복지 관리 | 복지 카테고리/항목 관리, 예약/신청 |
+| 6 | 직원 관리 | CRUD, 엑셀 import/export, 권한 관리 |
+| 7 | 회사 로고 | 슈퍼어드민이 테넌트별 로고 업로드 (R2 저장) |
 
 ---
 
@@ -31,22 +39,22 @@
 ```
 ┌─────────────────────────────────────────────────┐
 │                    Frontend                      │
-│  Next.js 14 (App Router) + TypeScript            │
+│  Next.js 16 (App Router) + TypeScript            │
 │  Tailwind CSS + shadcn/ui                        │
-│  React Query (서버 상태 관리)                      │
-│  Zustand (클라이언트 상태 관리)                     │
 ├─────────────────────────────────────────────────┤
 │                    Backend                        │
 │  Next.js API Routes (Route Handlers)             │
-│  Prisma ORM                                      │
-│  NextAuth.js (인증/세션 관리)                      │
+│  Prisma ORM (로컬) / D1 SQL Client (CF)          │
+│  Custom JWT (jose) + PBKDF2 비밀번호 해싱         │
 ├─────────────────────────────────────────────────┤
 │                   Database                        │
-│  PostgreSQL 16                                    │
+│  Cloudflare D1 (SQLite) — 프로덕션               │
+│  SQLite (Prisma) — 로컬 개발                      │
 ├─────────────────────────────────────────────────┤
 │                Infrastructure                     │
-│  Docker + Docker Compose                         │
-│  사내 서버 (IP 직접 접속 또는 hosts 파일 설정)       │
+│  Cloudflare Workers (OpenNext)                   │
+│  Cloudflare R2 (파일 저장소)                      │
+│  Cloudflare KV (캐시)                            │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -54,222 +62,106 @@
 
 | 기술 | 선택 이유 |
 |------|-----------|
-| **Next.js 14** | 풀스택 프레임워크로 프론트/백엔드 통합, SSR/CSR 유연 |
+| **Next.js 16** | 풀스택 프레임워크로 프론트/백엔드 통합, SSR/CSR 유연 |
 | **TypeScript** | 타입 안전성, HR 시스템의 복잡한 비즈니스 로직 안정성 |
-| **PostgreSQL** | 복잡한 관계형 데이터, JSON 지원, 트랜잭션 안정성 |
-| **Prisma** | 타입 세이프 ORM, 마이그레이션 관리, 직관적 스키마 |
-| **Docker** | 사내 서버 배포 일관성, 환경 독립성 |
-| **Tailwind + shadcn/ui** | 유니포스트 유사 UI 빠른 구현, 커스터마이징 용이 |
+| **Cloudflare D1 (SQLite)** | 서버리스 환경, 글로벌 엣지 배포, 비용 효율 |
+| **Custom D1 Client** | Prisma WASM이 번들 크기 초과 — 커스텀 SQL 클라이언트로 대체 |
+| **Cloudflare Workers** | 엣지 배포, 자동 SSL, 글로벌 CDN, 서버 관리 불필요 |
+| **PBKDF2** | bcrypt는 엣지 환경 미지원, PBKDF2는 Web Crypto API로 호환 |
+| **jose (JWT)** | NextAuth.js 대비 경량, 엣지 환경 완벽 호환 |
+| **Tailwind + shadcn/ui** | 빠른 UI 구현, 커스터마이징 용이 |
 
 ### 2.3 아키텍처 다이어그램
 
 ```
-[사내 PC 브라우저] ──── http://192.168.x.x:3000 ────┐
-                      (또는 http://hr.local:3000)     │
-                                                       ▼
-                                            ┌──────────────────┐
-                                            │   Docker Host     │
-                                            │  (사내 서버/NAS)   │
-                                            │                   │
-                                            │ ┌───────────────┐ │
-                                            │ │  Next.js App  │ │
-                                            │ │   :3000       │ │
-                                            │ └──────┬────────┘ │
-                                            │        │          │
-                                            │ ┌──────▼────────┐ │
-                                            │ │  PostgreSQL   │ │
-                                            │ │   :5432       │ │
-                                            │ └───────────────┘ │
-                                            └──────────────────┘
+[브라우저] ── HTTPS ──→ [Cloudflare Edge]
+                              │
+                    ┌─────────┴─────────┐
+                    │  Cloudflare Worker │
+                    │  (Next.js via      │
+                    │   OpenNext)        │
+                    └────┬────┬────┬────┘
+                         │    │    │
+                    ┌────┘    │    └────┐
+                    ▼         ▼         ▼
+              ┌──────┐  ┌──────┐  ┌──────┐
+              │  D1  │  │  R2  │  │  KV  │
+              │(SQLite)│ │(파일)│  │(캐시)│
+              └──────┘  └──────┘  └──────┘
 ```
+
+### 2.4 멀티테넌트 SaaS 구조
+
+```
+acme.keystonehr.app    → 테넌트 "acme"
+demo.keystonehr.app    → 테넌트 "demo"
+keystonehr.app         → 랜딩 페이지
+admin.keystonehr.app   → 슈퍼 어드민 (미래)
+```
+
+**테넌트 해석 흐름:**
+1. `middleware.ts` — 요청 호스트에서 서브도메인 추출, `x-tenant-subdomain` 헤더 설정
+2. `tenant-context.ts` — 서브도메인 → tenantId 매핑 (D1 직접 쿼리 + 5분 캐시)
+3. `withD1TenantScope()` — D1 클라이언트 래핑, 모든 쿼리에 tenantId 자동 주입
+
+> **주의**: Cloudflare Workers는 자기 자신의 URL을 fetch할 수 없음.
+> 따라서 미들웨어에서 API 호출 불가 — 서버 함수 레이어에서 D1 직접 쿼리로 해결.
 
 ---
 
-## 3. 인트라넷 + 외부 접속 (도메인 비용 없음)
+## 3. 삭제된 기능 (비용/호환성 이유)
 
-### 3.1 사내 접속
-사내 네트워크에서 **IP 주소**로 직접 접속:
-
-```
-http://192.168.x.x:3000
-```
-
-### 3.2 외부 접속 (집/모바일) - Cloudflare Tunnel
-
-```
-[집 PC / 모바일] ─── HTTPS ──→ [Cloudflare Edge] ─── 터널 ──→ [사내 서버:3000]
-                     (무료)         (자동 SSL)         (암호화)
-```
-
-- 비용: 무료
-- 도메인 불필요 (`*.cfargotunnel.com` 서브도메인 자동 제공)
-- 사내 방화벽/공유기 설정 변경 불필요
-- HTTPS 자동 적용
-
-```yaml
-# docker-compose.yml에 추가
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-    restart: unless-stopped
-```
-
-### 3.3 모바일 대응
-- UI를 **반응형(Responsive)**으로 구현
-- 모바일에서 휴가 신청/결재 승인 가능
-- 별도 앱 설치 불필요 (모바일 브라우저로 접속)
-
-### 3.2 서버 요구 사양
-| 항목 | 최소 | 권장 |
-|------|------|------|
-| CPU | 2 Core | 4 Core |
-| RAM | 4 GB | 8 GB |
-| 디스크 | 20 GB SSD | 50 GB SSD |
-| OS | Ubuntu 22.04 / macOS | Ubuntu 22.04 LTS |
-| 네트워크 | 고정 IP (사내) | 고정 IP + 사내 DNS |
-
-### 3.3 Docker Compose 구성
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://msa:${DB_PASSWORD}@db:5432/msa_hr
-      - NEXTAUTH_SECRET=${AUTH_SECRET}
-      - NEXTAUTH_URL=http://192.168.0.100:3000
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-  db:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_DB=msa_hr
-      - POSTGRES_USER=msa
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U msa -d msa_hr"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # (선택) 자동 DB 백업
-  backup:
-    image: postgres:16-alpine
-    volumes:
-      - ./backups:/backups
-    environment:
-      - PGPASSWORD=${DB_PASSWORD}
-    entrypoint: >
-      sh -c "while true; do
-        pg_dump -h db -U msa msa_hr > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql;
-        find /backups -name '*.sql' -mtime +30 -delete;
-        sleep 86400;
-      done"
-    depends_on:
-      - db
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-```
+| 삭제된 기능 | 이유 |
+|-------------|------|
+| **인앱 알림** (벨 아이콘, 알림 폴링) | D1 비용 절감 → 웹훅으로 대체 |
+| **이메일 서비스** (Resend API, SMTP) | 비용 발생 → 삭제 |
+| **비밀번호 찾기** | 이메일 없이 불가능 → 관리자가 직접 리셋 |
+| **구글 캘린더 연동** | 복잡성 대비 사용빈도 낮음 → 삭제 |
+| **bcrypt** | 엣지 환경 미지원 → PBKDF2로 대체 |
+| **PostgreSQL** | 서버리스 비호환 → D1 (SQLite)로 대체 |
+| **Docker** | 자체 서버 불필요 → Cloudflare Workers |
+| **NextAuth.js** | 무거움 + 엣지 미지원 → Custom JWT (jose) |
 
 ---
 
-## 4. DB 관리 접근성 (SQL 지식 불필요)
-
-> PostgreSQL은 내부 엔진일 뿐, **관리자와 직원은 SQL을 전혀 몰라도 됩니다.**
-> 모든 데이터 관리는 웹 화면에서 클릭/입력으로 처리합니다.
-
-### 4.1 관리자용 웹 관리 기능
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                   관리자 웹 화면에서 가능한 것              │
-├──────────────────────────────────────────────────────────┤
-│                                                           │
-│  [직원관리] 화면                                          │
-│  → 직원 등록/수정/퇴사처리 (폼 입력)                       │
-│  → 엑셀 일괄 업로드 (기존 유니포스트 데이터 이관)            │
-│  → 직원 목록 엑셀 다운로드                                 │
-│                                                           │
-│  [휴가관리] 화면                                          │
-│  → 휴가 수동 부여/차감/조정 (숫자 입력)                     │
-│  → 휴가 내역 엑셀 다운로드                                 │
-│  → 휴가 일괄 등록                                         │
-│                                                           │
-│  [설정] 화면                                              │
-│  → 부서 추가/수정/삭제 (폼)                                │
-│  → 직급 관리 (폼)                                         │
-│  → 휴가 규정 변경 (폼)                                    │
-│  → 결재선 설정 (드래그 & 드롭)                             │
-│  → 권한 설정 (체크박스 토글)                                │
-│                                                           │
-│  [데이터 관리]                                            │
-│  → 엑셀 내보내기 (전체 데이터 백업용)                       │
-│  → 엑셀 가져오기 (데이터 일괄 등록)                        │
-│  → DB 백업/복원 (버튼 클릭)                                │
-│                                                           │
-└──────────────────────────────────────────────────────────┘
-```
-
-### 4.2 핵심 원칙
-- SQL 직접 실행 필요 없음: 모든 CRUD가 웹 UI로 제공됨
-- 엑셀 import/export: 직원 데이터, 휴가 내역 등 엑셀로 입출력
-- 원클릭 백업: 관리자 화면에서 DB 백업 파일 다운로드
-- 원클릭 복원: 백업 파일 업로드로 복원
-- 감사 로그: 누가 언제 무엇을 변경했는지 웹에서 조회
-
----
-
-## 5. 데이터베이스 스키마
+## 4. 데이터베이스 스키마
 
 ### 4.1 ERD 개요
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
-│  Department  │────<│   Employee   │────<│  LeaveRequest    │
-│  (부서)       │     │  (직원)       │     │  (휴가신청)       │
-└──────────────┘     └──────┬───────┘     └──────────────────┘
-                            │
-                     ┌──────┴───────┐     ┌──────────────────┐
-                     │   Position   │     │  ApprovalLine    │
-                     │  (직급)       │     │  (결재선)         │
-                     └──────────────┘     └──────────────────┘
-                                                   │
-                                          ┌────────▼─────────┐
-                                          │  ApprovalStep    │
-                                          │  (결재단계)       │
-                                          └──────────────────┘
-                                                   │
-                                          ┌────────▼─────────┐
-                                          │  Approval        │
-                                          │  (결재이력)       │
-                                          └──────────────────┘
+┌──────────┐     ┌──────────────┐     ┌──────────────────┐
+│  Tenant  │     │  Department  │────<│   Employee       │
+│ (테넌트)  │     │  (부서)       │     │  (직원)           │
+└──────────┘     └──────────────┘     └──────┬───────────┘
+                                              │
+                  ┌──────────────┐     ┌──────┴───────────┐
+                  │   Position   │     │  LeaveRequest    │
+                  │  (직급)       │     │  (휴가신청)       │
+                  └──────────────┘     └──────────────────┘
+                                              │
+                                     ┌────────▼───────────┐
+                                     │  Approval          │
+                                     │  (결재이력)         │
+                                     └────────────────────┘
 
-                     ┌──────────────┐
-                     │  Attendance  │
-                     │  (출퇴근)     │
-                     └──────────────┘
+                  ┌──────────────┐     ┌──────────────────┐
+                  │  Attendance  │     │ OvertimeRequest   │
+                  │  (출퇴근)     │     │ (시간외근무)       │
+                  └──────────────┘     └──────────────────┘
+
+                  ┌──────────────┐     ┌──────────────────┐
+                  │ WelfareCategory│   │  WelfareItem      │
+                  │ (복지카테고리) │    │  (복지항목)        │
+                  └──────────────┘     └──────────────────┘
 ```
 
-### 4.2 Prisma 스키마
+### 4.2 Prisma 스키마 (로컬 개발용)
+
+> D1 배포 시에는 `d1-client.ts`가 Prisma 호환 API를 제공하며,
+> 스키마는 `prisma/schema.sqlite.prisma`(SQLite 버전)로 마이그레이션 생성.
 
 ```prisma
-// prisma/schema.prisma
+// prisma/schema.prisma (PostgreSQL — 로컬 개발)
 
 generator client {
   provider = "prisma-client-js"
@@ -278,6 +170,40 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ============================================
+// SaaS Multi-tenant Models
+// ============================================
+
+model Tenant {
+  id            String   @id @default(cuid())
+  name          String
+  subdomain     String   @unique
+  customDomain  String?
+  plan          String   @default("standard")
+  maxEmployees  Int      @default(50)
+  ownerEmail    String
+  bizNumber     String?
+  status        String   @default("active")
+  trialExpiresAt DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([subdomain])
+  @@index([status])
+  @@map("tenants")
+}
+
+model SuperAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("SUPER_ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@map("super_admins")
 }
 
 // ============================================
@@ -294,10 +220,13 @@ model Department {
   children    Department[] @relation("DeptTree")
   sortOrder   Int          @default(0)           // 정렬 순서
   isActive    Boolean      @default(true)
+  workStartTime  String?                        // 부서 기본 출근 시간 (HH:mm)
+  workEndTime    String?                        // 부서 기본 퇴근 시간
+  lunchStartTime String?                        // 점심 시작
+  lunchEndTime   String?                        // 점심 종료
   employees   Employee[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-
   @@map("departments")
 }
 
@@ -310,7 +239,6 @@ model Position {
   employees  Employee[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-
   @@map("positions")
 }
 
@@ -320,7 +248,7 @@ model Employee {
   employeeNumber  String    @unique              // 사번
   name            String                         // 이름
   email           String    @unique              // 이메일 (로그인 ID)
-  passwordHash    String                         // 비밀번호 해시
+  passwordHash    String                         // 비밀번호 해시 (PBKDF2)
   phone           String?                        // 전화번호
   departmentId    String                         // 부서
   department      Department @relation(fields: [departmentId], references: [id])
@@ -328,23 +256,26 @@ model Employee {
   position        Position   @relation(fields: [positionId], references: [id])
   hireDate        DateTime                       // 입사일 ★ 연차 계산의 기준
   resignDate      DateTime?                      // 퇴사일
-  status          EmployeeStatus @default(ACTIVE)  // 재직/휴직/퇴직
-  role            SystemRole     @default(BASIC)   // 시스템 권한
-  profileImage    String?                        // 프로필 이미지 경로
+  status          EmployeeStatus @default(ACTIVE)
+  role            SystemRole     @default(BASIC)
+  profileImage    String?
+  workType        String?                        // "FIXED" | "FLEXIBLE" | null=회사기본
+  workStartTime   String?
+  workEndTime     String?
+  lunchStartTime  String?
+  lunchEndTime    String?
 
-  // Relations
-  leaveRequests      LeaveRequest[]       // 본인이 신청한 휴가
-  leaveBalances      LeaveBalance[]       // 휴가 잔여
-  leaveGrants        LeaveGrant[]         // 휴가 부여 이력
-  approvalSteps      ApprovalStep[]       // 결재자로 지정된 단계
-  approvals          Approval[]           // 결재 처리 이력
-  overtimeRequests   OvertimeRequest[]    // 시간외근무 신청
-  attendances        Attendance[]         // 출퇴근 기록
-  sessions           Session[]            // 로그인 세션
+  leaveRequests      LeaveRequest[]
+  leaveBalances      LeaveBalance[]
+  leaveGrants        LeaveGrant[]
+  approvalSteps      ApprovalStep[]
+  approvals          Approval[]
+  overtimeRequests   OvertimeRequest[]
+  attendances        Attendance[]
+  sessions           Session[]
 
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-
   @@index([departmentId])
   @@index([positionId])
   @@index([status])
@@ -358,26 +289,10 @@ enum EmployeeStatus {
 }
 
 enum SystemRole {
-  SYSTEM_ADMIN   // 시스템 관리자 (전체 관리)
-  COMPANY_ADMIN  // 회사관리 (전 직원 휴가내역 관리)
-  DEPT_ADMIN     // 부서관리 (부서 직원 휴가내역 관리)
-  BASIC          // 기본권한 (휴가신청, 시간외근무 신청)
-}
-
-/// 조회 권한 (별도 매핑 테이블)
-model ViewPermission {
-  id          String          @id @default(cuid())
-  employeeId  String
-  scope       ViewScope                         // 회사 전체 / 부서
-  createdAt   DateTime        @default(now())
-
-  @@unique([employeeId, scope])
-  @@map("view_permissions")
-}
-
-enum ViewScope {
-  COMPANY   // 전 직원 휴가, 시간외근무 현황 조회
-  DEPARTMENT // 부서 직원 휴가, 시간외근무 현황 조회
+  SYSTEM_ADMIN   // 시스템 관리자
+  COMPANY_ADMIN  // 회사관리
+  DEPT_ADMIN     // 부서관리
+  BASIC          // 기본권한
 }
 
 // ============================================
@@ -393,132 +308,123 @@ model Session {
   ipAddress    String?
   userAgent    String?
   createdAt    DateTime @default(now())
-
   @@index([employeeId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  isRecurring Boolean  @default(false)
+  type        String   @default("PUBLIC")      // PUBLIC | COMPANY | DEPARTMENT
+  targetId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([date])
+  @@index([type])
+  @@map("holidays")
 }
 
 // ============================================
 // 3. 휴가 관련 테이블
 // ============================================
 
-/// 휴가 유형 설정
 model LeaveType {
   id             String   @id @default(cuid())
-  name           String   @unique              // 연차휴가, 병가, 경조사, 출산휴가, 특별휴가 등
-  code           String   @unique              // ANNUAL, SICK, FAMILY, MATERNITY, SPECIAL
-  isPaid         Boolean  @default(true)       // 유급 여부
-  isAnnualDeduct Boolean  @default(false)      // 연차 차감 여부
-  maxDays        Float?                        // 최대 사용 가능일 (NULL=무제한)
-  requiresDoc    Boolean  @default(false)      // 증빙서류 필요 여부
+  name           String   @unique
+  code           String   @unique
+  isPaid         Boolean  @default(true)
+  isAnnualDeduct Boolean  @default(false)
+  maxDays        Float?
+  requiresDoc    Boolean  @default(false)
   isActive       Boolean  @default(true)
   sortOrder      Int      @default(0)
-
   leaveRequests  LeaveRequest[]
   leavePolicies  LeavePolicy[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
   @@map("leave_types")
 }
 
-/// 휴가 규정 (근속연수별 연차 부여 기준)
 model LeavePolicy {
   id              String    @id @default(cuid())
   leaveTypeId     String
   leaveType       LeaveType @relation(fields: [leaveTypeId], references: [id])
-  name            String                       // 규정명
-  description     String?                      // 설명
-
-  // 근로기준법 기반 연차 부여 규칙
-  // 입사 1년 미만: 매월 1일 (최대 11일)
-  // 입사 1년 이상: 15일 + 2년마다 1일 추가 (최대 25일)
-  yearFrom        Int                          // 근속 시작 연차 (0=입사 첫해)
-  yearTo          Int?                         // 근속 종료 연차 (NULL=무한)
-  grantDays       Float                        // 부여 일수
-  grantType       GrantType                    // 부여 방식
-
+  name            String
+  description     String?
+  yearFrom        Int
+  yearTo          Int?
+  grantDays       Float
+  grantType       GrantType
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
   @@map("leave_policies")
 }
 
 enum GrantType {
   MONTHLY     // 매월 부여 (입사 1년 미만)
   YEARLY      // 매년 부여 (입사 1년 이상)
-  ONCE        // 1회 부여 (경조사 등)
+  ONCE        // 1회 부여
 }
 
-/// 휴가 부여 이력
 model LeaveGrant {
   id            String    @id @default(cuid())
   employeeId    String
   employee      Employee  @relation(fields: [employeeId], references: [id])
-  leaveTypeCode String                        // 휴가유형 코드
-  grantDays     Float                         // 부여 일수
-  usedDays      Float     @default(0)         // 사용 일수
-  remainDays    Float                         // 잔여 일수 (computed)
-  grantReason   String                        // 부여 사유 (자동부여/수동부여/이월 등)
-  periodStart   DateTime                      // 사용 가능 시작일
-  periodEnd     DateTime                      // 사용 가능 종료일 (만료일)
-  isExpired     Boolean   @default(false)     // 만료 여부
+  leaveTypeCode String
+  grantDays     Float
+  usedDays      Float     @default(0)
+  remainDays    Float
+  grantReason   String
+  periodStart   DateTime
+  periodEnd     DateTime
+  isExpired     Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-
   @@index([employeeId])
   @@index([periodEnd])
   @@map("leave_grants")
 }
 
-/// 휴가 잔여 현황 (캐시 테이블 - 실시간 집계 성능용)
 model LeaveBalance {
   id            String   @id @default(cuid())
   employeeId    String
   employee      Employee @relation(fields: [employeeId], references: [id])
-  year          Int                            // 연도
-  leaveTypeCode String                         // 휴가유형 코드
-  totalGranted  Float    @default(0)           // 총 부여일수
-  totalUsed     Float    @default(0)           // 총 사용일수
-  totalRemain   Float    @default(0)           // 잔여일수
+  year          Int
+  leaveTypeCode String
+  totalGranted  Float    @default(0)
+  totalUsed     Float    @default(0)
+  totalRemain   Float    @default(0)
   updatedAt     DateTime @updatedAt
-
   @@unique([employeeId, year, leaveTypeCode])
   @@map("leave_balances")
 }
 
-/// 휴가 신청
 model LeaveRequest {
   id              String        @id @default(cuid())
   employeeId      String
   employee        Employee      @relation(fields: [employeeId], references: [id])
   leaveTypeId     String
   leaveType       LeaveType     @relation(fields: [leaveTypeId], references: [id])
-
-  // 휴가 기간
-  startDate       DateTime                     // 시작일
-  endDate         DateTime                     // 종료일
-  useUnit         LeaveUnit                    // 사용 단위
-  requestDays     Float                        // 신청일수 (0.5 = 반차)
-  requestHours    Float                        // 신청시간 (4시간 = 반차)
-  dailyHours      Float         @default(8)    // 일 기준시간
-
-  reason          String?                      // 사유
-  status          LeaveStatus   @default(PENDING) // 상태
-  appliedAt       DateTime      @default(now())   // 신청일
-  cancelReason    String?                      // 취소 사유
-  cancelledAt     DateTime?                    // 취소일
-
-  // 결재 관련
+  startDate       DateTime
+  endDate         DateTime
+  useUnit         LeaveUnit
+  requestDays     Float
+  requestHours    Float
+  dailyHours      Float         @default(8)
+  reason          String?
+  status          LeaveStatus   @default(PENDING)
+  appliedAt       DateTime      @default(now())
+  cancelReason    String?
+  cancelledAt     DateTime?
   approvalLineId  String?
-  currentStep     Int           @default(1)    // 현재 결재 단계
-  approvals       Approval[]                   // 결재 이력
-
+  currentStep     Int           @default(1)
+  approvals       Approval[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-
   @@index([employeeId])
   @@index([status])
   @@index([startDate, endDate])
@@ -533,164 +439,147 @@ enum LeaveUnit {
 }
 
 enum LeaveStatus {
-  PENDING        // 결재 대기
-  IN_PROGRESS    // 결재 진행중
-  APPROVED       // 승인 완료
-  REJECTED       // 반려
-  CANCELLED      // 취소
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
 }
 
 // ============================================
 // 4. 전자결재 시스템
 // ============================================
 
-/// 결재선 템플릿
 model ApprovalLine {
   id          String          @id @default(cuid())
-  name        String                           // 결재선명
-  type        ApprovalLineType                 // 휴가/시간외근무/일반
-  isDefault   Boolean         @default(false)  // 기본 결재선 여부
+  name        String
+  type        ApprovalLineType
+  isDefault   Boolean         @default(false)
   isActive    Boolean         @default(true)
   steps       ApprovalStep[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-
   @@map("approval_lines")
 }
 
 enum ApprovalLineType {
-  LEAVE        // 휴가 결재
-  OVERTIME     // 시간외근무 결재
-  GENERAL      // 일반 결재
+  LEAVE
+  OVERTIME
+  WELFARE
+  GENERAL
 }
 
-/// 결재 단계
 model ApprovalStep {
   id              String       @id @default(cuid())
   approvalLineId  String
   approvalLine    ApprovalLine @relation(fields: [approvalLineId], references: [id], onDelete: Cascade)
-  stepOrder       Int                          // 결재 순서 (1, 2, 3...)
-  approverId      String?                      // 고정 결재자
+  stepOrder       Int
+  approverId      String?
   approver        Employee?    @relation(fields: [approverId], references: [id])
-  approverRole    ApproverRole                 // 결재자 결정 방식
-  actionType      ApprovalActionType           // 결재/합의/통보
-
+  approverRole    ApproverRole
+  actionType      ApprovalActionType
   @@unique([approvalLineId, stepOrder])
   @@map("approval_steps")
 }
 
 enum ApproverRole {
-  FIXED          // 고정 결재자 (지정된 사람)
-  DEPT_HEAD      // 부서장
-  UPPER_POSITION // 차상위 직급
-  SKIP_TO_HEAD   // 전결 (부서장까지 스킵)
+  FIXED
+  DEPT_HEAD
+  UPPER_POSITION
+  SKIP_TO_HEAD
 }
 
 enum ApprovalActionType {
-  APPROVE    // 결재 (승인/반려 권한)
-  AGREE      // 합의 (의견 제시)
-  NOTIFY     // 통보 (열람만)
+  APPROVE
+  AGREE
+  NOTIFY
 }
 
-/// 결재 이력
 model Approval {
   id              String          @id @default(cuid())
   leaveRequestId  String?
   leaveRequest    LeaveRequest?   @relation(fields: [leaveRequestId], references: [id])
   overtimeId      String?
   overtime        OvertimeRequest? @relation(fields: [overtimeId], references: [id])
-
-  stepOrder       Int                          // 결재 단계
+  stepOrder       Int
   approverId      String
   approver        Employee        @relation(fields: [approverId], references: [id])
-  action          ApprovalAction               // 처리 결과
-  comment         String?                      // 결재 의견
-  processedAt     DateTime?                    // 처리 일시
-
+  action          ApprovalAction
+  comment         String?
+  processedAt     DateTime?
   createdAt       DateTime        @default(now())
-
   @@index([leaveRequestId])
   @@index([approverId])
   @@map("approvals")
 }
 
 enum ApprovalAction {
-  PENDING    // 대기
-  APPROVED   // 승인
-  REJECTED   // 반려
-  SKIPPED    // 전결 (건너뜀)
+  PENDING
+  APPROVED
+  REJECTED
+  SKIPPED
 }
 
 // ============================================
 // 5. 시간외 근무
 // ============================================
 
-/// 시간외 근무 신청
 model OvertimeRequest {
   id            String          @id @default(cuid())
   employeeId    String
   employee      Employee        @relation(fields: [employeeId], references: [id])
-  date          DateTime                       // 근무일
-  overtimeType  OvertimeType                   // 유형
-  startTime     String                         // 시작 시간 (HH:mm)
-  endTime       String                         // 종료 시간 (HH:mm)
-  hours         Float                          // 시간외 근무 시간
-  reason        String                         // 사유
-  status        LeaveStatus     @default(PENDING) // 상태 (재사용)
+  date          DateTime
+  overtimeType  OvertimeType
+  startTime     String
+  endTime       String
+  hours         Float
+  reason        String
+  status        LeaveStatus     @default(PENDING)
   approvals     Approval[]
-
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
-
   @@index([employeeId])
   @@index([date])
   @@map("overtime_requests")
 }
 
 enum OvertimeType {
-  WEEKDAY_NIGHT  // 평일 야간
-  WEEKEND        // 휴일 근무
-  HOLIDAY        // 공휴일 근무
+  WEEKDAY_NIGHT
+  WEEKEND
+  HOLIDAY
 }
-
-// ============================================
-// 6. 시간외 근무 설정
-// ============================================
 
 model OvertimePolicy {
   id              String   @id @default(cuid())
-  maxWeeklyHours  Float    @default(12)        // 주 최대 시간외근무 시간
-  maxMonthlyHours Float    @default(52)        // 월 최대
-  nightStartTime  String   @default("22:00")   // 야간근무 시작
-  nightEndTime    String   @default("06:00")   // 야간근무 종료
-  weekdayRate     Float    @default(1.5)       // 평일 시간외 수당 배율
-  weekendRate     Float    @default(1.5)       // 휴일 수당 배율
-  nightRate       Float    @default(2.0)       // 야간 수당 배율
+  maxWeeklyHours  Float    @default(12)
+  maxMonthlyHours Float    @default(52)
+  nightStartTime  String   @default("22:00")
+  nightEndTime    String   @default("06:00")
+  weekdayRate     Float    @default(1.5)
+  weekendRate     Float    @default(1.5)
+  nightRate       Float    @default(2.0)
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
   @@map("overtime_policies")
 }
 
 // ============================================
-// 출퇴근 관리
+// 6. 출퇴근 관리
 // ============================================
 
-/// 출퇴근 기록
 model Attendance {
   id          String   @id @default(cuid())
   employeeId  String
   employee    Employee @relation(fields: [employeeId], references: [id])
-  date        DateTime                       // 근무일
-  clockIn     DateTime?                      // 출근 시간
-  clockOut    DateTime?                      // 퇴근 시간
-  workHours   Float?                         // 실근무 시간
-  status      AttendanceStatus @default(ABSENT) // 근무 상태
-  note        String?                        // 비고
+  date        DateTime
+  clockIn     DateTime?
+  clockOut    DateTime?
+  workHours   Float?
+  status      AttendanceStatus @default(ABSENT)
+  note        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   @@unique([employeeId, date])
   @@index([employeeId])
   @@index([date])
@@ -698,50 +587,14 @@ model Attendance {
 }
 
 enum AttendanceStatus {
-  NORMAL     // 정상
-  LATE       // 지각
-  EARLY_LEAVE // 조퇴
-  ABSENT     // 결근
-}
-
-// ============================================
-// 7. 외부 서비스 연동
-// ============================================
-
-model ExternalIntegration {
-  id           String   @id @default(cuid())
-  employeeId   String
-  service      String                          // google_calendar, slack 등
-  accessToken  String                          // 암호화 저장
-  refreshToken String?
-  expiresAt    DateTime?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@unique([employeeId, service])
-  @@map("external_integrations")
-}
-
-// ============================================
-// 8. 시스템 로그 (감사 추적)
-// ============================================
-
-model AuditLog {
-  id          String   @id @default(cuid())
-  employeeId  String?                          // 작업 수행자
-  action      String                           // 작업 유형
-  target      String                           // 대상 테이블
-  targetId    String                           // 대상 레코드 ID
-  before      Json?                            // 변경 전 데이터
-  after       Json?                            // 변경 후 데이터
-  ipAddress   String?
-  createdAt   DateTime @default(now())
-
-  @@index([employeeId])
-  @@index([target, targetId])
-  @@index([createdAt])
-  @@map("audit_logs")
+  NORMAL
+  LATE
+  EARLY_LEAVE
+  ABSENT
+  LEAVE
+  AM_HALF_LEAVE
+  PM_HALF_LEAVE
+  HOLIDAY
 }
 ```
 
@@ -772,56 +625,7 @@ model AuditLog {
 │  추가일수 = floor((근속연수 - 1) / 2)                          │
 │  연차일수 = min(15 + 추가일수, 25)                             │
 │                                                              │
-│  [자동 실행 시점]                                              │
-│  - 매일 00:00 크론잡으로 입사일 도래 직원 체크                    │
-│  - 입사 1년 미만: 매월 입사일에 1일 부여                         │
-│  - 입사 1년 이상: 입사 기념일에 연간 연차 일괄 부여               │
-│                                                              │
 └─────────────────────────────────────────────────────────────┘
-```
-
-**구현 의사 코드:**
-
-```typescript
-// services/leave/annualLeaveGenerator.ts
-
-interface AnnualLeaveResult {
-  employeeId: string;
-  grantDays: number;
-  periodStart: Date;
-  periodEnd: Date;
-  reason: string;
-}
-
-function calculateAnnualLeave(hireDate: Date, referenceDate: Date): AnnualLeaveResult {
-  const diffMs = referenceDate.getTime() - hireDate.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const yearsWorked = Math.floor(diffDays / 365);
-
-  if (yearsWorked < 1) {
-    // 입사 1년 미만: 매월 1일
-    const monthsWorked = calculateMonthsDiff(hireDate, referenceDate);
-    if (monthsWorked > 0 && monthsWorked <= 11) {
-      return {
-        grantDays: 1,
-        periodStart: referenceDate,
-        periodEnd: addYears(hireDate, 1), // 입사 1주년까지 사용 가능
-        reason: `입사 ${monthsWorked}개월 - 월별 연차 자동부여`,
-      };
-    }
-  } else {
-    // 입사 1년 이상: 15일 + 2년마다 1일 추가 (최대 25일)
-    const extraDays = Math.floor((yearsWorked - 1) / 2);
-    const totalDays = Math.min(15 + extraDays, 25);
-
-    return {
-      grantDays: totalDays,
-      periodStart: getAnniversaryDate(hireDate, yearsWorked),
-      periodEnd: getAnniversaryDate(hireDate, yearsWorked + 1),
-      reason: `입사 ${yearsWorked}년차 - 연차 ${totalDays}일 자동부여`,
-    };
-  }
-}
 ```
 
 ### 5.2 전자결재 흐름
@@ -861,13 +665,13 @@ function calculateAnnualLeave(hireDate: Date, referenceDate: Date): AnnualLeaveR
   1. 잔여 연차 확인 → 부족 시 신청 불가
   2. 중복 일자 체크 → 이미 휴가 있으면 신청 불가
   3. 결재선 자동 배정 → 부서/직급 기반 결재선 매핑
-  4. 결재 요청 → 1단계 결재자에게 알림
+  4. 결재 요청 → 1단계 결재자에게 웹훅 알림
 
 [결재 완료 시]
   1. LeaveGrant.usedDays 증가
   2. LeaveBalance 갱신
-  3. 구글 캘린더 연동 시 일정 자동 등록
-  4. 신청자에게 승인 알림
+  3. 신청자에게 웹훅 알림
+  4. 근태 자동 반영 (해당 기간 Attendance 레코드 생성)
 
 [취소 시]
   1. 이미 시작된 휴가 → 취소 불가 (관리자만 가능)
@@ -875,114 +679,107 @@ function calculateAnnualLeave(hireDate: Date, referenceDate: Date): AnnualLeaveR
   3. 취소 승인 → usedDays 복원, 잔여일수 복원
 ```
 
+### 5.4 근태 자동 생성 및 휴가 연동
+
+#### 근무시간 우선순위 체인
+```
+Employee 개인 설정 → Department 부서 설정 → SystemConfig 회사 설정
+```
+각 단계에서 값이 null이면 다음 우선순위로 fallback합니다.
+`src/lib/attendance-utils.ts`의 `getWorkSettings(employeeId)` 함수가 이 체인을 구현합니다.
+
+#### 휴일 통합 확인
+`isHoliday(date, departmentId?)` 함수가 다음을 순서대로 확인합니다:
+1. 공휴일 (PUBLIC) - 모든 직원 적용
+2. 회사 휴무일 (COMPANY) - 전사 적용
+3. 부서 휴무일 (DEPARTMENT) - 특정 부서만 적용
+
+#### 휴가 승인 → 근태 자동 반영
+휴가가 최종 승인되면 `createLeaveAttendance()` 함수가 자동으로:
+- 해당 기간의 근무일마다 근태 레코드를 LEAVE/AM_HALF_LEAVE/PM_HALF_LEAVE 상태로 생성
+- 기존 NORMAL 근태가 있으면 상태를 변경
+- 비고(note)에 휴가 유형 기록
+
 ---
 
-## 6. 보안 및 안전장치
+## 6. 보안
 
 ### 6.1 인증/인가
 
-```
-┌──────────────────────────────────────────┐
-│              인증 체계                     │
-├──────────────────────────────────────────┤
-│                                           │
-│  1. 비밀번호 정책                          │
-│     - bcrypt (salt rounds: 12)            │
-│     - 최소 8자, 영문+숫자+특수문자          │
-│     - 90일 주기 변경 권고                   │
-│     - 최근 3개 비밀번호 재사용 불가          │
-│                                           │
-│  2. 세션 관리                              │
-│     - JWT + HttpOnly Cookie               │
-│     - Access Token: 1시간                  │
-│     - Refresh Token: 7일                   │
-│     - 동시 세션 제한 (최대 3개)             │
-│     - 세션 타임아웃 표시 (유니포스트 참고)    │
-│                                           │
-│  3. RBAC (역할 기반 접근 제어)              │
-│     - 시스템관리자 / 회사관리 / 부서관리 /   │
-│       기본권한                              │
-│     - 미들웨어에서 라우트별 권한 체크         │
-│     - 데이터 조회 시 부서/직급 필터링         │
-│                                           │
-└──────────────────────────────────────────┘
-```
+| 항목 | 구현 |
+|------|------|
+| 비밀번호 해싱 | PBKDF2 (Web Crypto API, 엣지 호환) |
+| 세션 관리 | JWT (HS256, jose 라이브러리) + HttpOnly Secure SameSite Cookie |
+| JWT 자동갱신 | 만료 4시간 전 자동 리프레시 |
+| 권한 체계 | RBAC (SYSTEM_ADMIN / COMPANY_ADMIN / DEPT_ADMIN / BASIC) |
+| 미들웨어 인증 | 모든 API 라우트에서 JWT 검증 |
+| 로그인 제한 | Rate Limiting 적용 |
 
 ### 6.2 데이터 보호
 
 | 항목 | 보호 방법 |
 |------|-----------|
-| 비밀번호 | bcrypt 해싱 (절대 평문 저장 안함) |
+| 비밀번호 | PBKDF2 해싱 (절대 평문 저장 안함) |
 | 세션 토큰 | HttpOnly + Secure + SameSite Cookie |
-| DB 접속 | 환경변수로 관리, .env 파일 gitignore |
-| 외부 API 토큰 | AES-256 암호화 후 DB 저장 |
-| SQL Injection | Prisma ORM 파라미터 바인딩 |
-| XSS | React 자동 이스케이핑 + CSP 헤더 |
-| CSRF | SameSite Cookie + CSRF 토큰 |
-| 감사 로그 | 모든 중요 작업 AuditLog 테이블 기록 |
-
-### 6.3 백업 전략
-
-```
-[자동 백업]
-- 매일 새벽 3시: pg_dump → ./backups/ 폴더
-- 30일 이상 된 백업 자동 삭제
-- Docker volume으로 데이터 영속성 보장
-
-[수동 백업]
-- 관리자 화면에서 즉시 백업 버튼
-- 백업 파일 다운로드 기능
-
-[복구]
-- pg_restore 명령으로 복구
-- 관리자 화면에서 복구 기능 제공
-```
+| SQL Injection | Prisma 파라미터 바인딩 / D1 prepared statements |
+| XSS | React 자동 이스케이핑 |
+| 응답 헤더 | X-Frame-Options: DENY, X-Content-Type-Options: nosniff |
+| 웹훅 SSRF | HTTPS only, 사설 IP 차단 |
+| 환경변수 | Wrangler secrets으로 관리 (JWT_SECRET, SUPER_ADMIN_JWT_SECRET) |
 
 ---
 
-## 7. UI 구조 (유니포스트 참고)
+## 7. UI 구조
 
 ### 7.1 레이아웃
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  [로고] 인사관리     (주)엠에스에이  홍길동 ▼  로그아웃  00:00 │
+│  [로고] KeystoneHR    (주)회사명   홍길동 ▼   로그아웃      │
 ├──────────┬─────────────────────────────────────────────────┤
 │          │                                                  │
-│  ◎ 휴가   │  Breadcrumb: 휴가 > 나의 휴가                    │
-│  나의 휴가 │  ┌──────────────────────────────────────────┐  │
-│  휴가사용  │  │                                           │  │
-│  현황     │  │           메인 콘텐츠 영역                  │  │
-│  휴가신청  │  │                                           │  │
-│  관리     │  │  - 테이블 형태의 데이터 표시                 │  │
-│  휴가관리  │  │  - 필터/검색 기능                           │  │
-│  대장     │  │  - 엑셀 다운로드 버튼                       │  │
-│  휴가부여  │  │                                           │  │
-│          │  └──────────────────────────────────────────┘  │
+│  ◎ 대시보드│  메인 콘텐츠 영역                                │
 │          │                                                  │
-│  ⏱ 근태관리│                                                │
+│  ◎ 휴가   │  - 테이블 형태의 데이터 표시                      │
+│  나의 휴가 │  - 필터/검색 기능                                │
+│  휴가사용  │  - 엑셀 다운로드 버튼                             │
+│  현황     │                                                  │
+│  휴가신청  │                                                  │
+│  관리     │                                                  │
+│  휴가관리  │                                                  │
+│  대장     │                                                  │
+│  휴가부여  │                                                  │
+│          │                                                  │
+│  ⏱ 근태관리│                                                 │
 │  오늘 근무 │                                                 │
 │  내 근태   │                                                 │
-│  현황     │                                                 │
+│  현황     │                                                  │
 │  연장근무  │                                                 │
-│  신청     │                                                 │
+│  신청     │                                                  │
 │  연장근무  │                                                 │
-│  현황     │                                                 │
+│  현황     │                                                  │
 │          │                                                  │
-│  ⚙ 기본설정│                                                │
-│  권한/결재 │                                                 │
-│  선 설정   │                                                │
-│  휴가규정  │                                                 │
-│  관리     │                                                 │
+│  ◎ 복지   │                                                  │
+│  복지 현황 │                                                  │
+│  복지 신청 │                                                  │
+│          │                                                  │
+│  ⚙ 기본설정│                                                 │
+│  회사 설정 │                                                  │
+│  부서 관리 │                                                 │
+│  직급 관리 │                                                 │
+│  직원 관리 │                                                 │
+│  권한/결재 │                                                  │
+│  휴가 규정 │                                                 │
+│  공휴일   │                                                  │
 │  시간외근무│                                                 │
-│  설정     │                                                 │
-│  직원관리  │                                                │
-│  외부서비스│                                                │
-│  연동     │                                                 │
+│  복지 설정 │                                                 │
+│  웹훅 설정 │                                                  │
 │          │                                                  │
-├──────────┴─────────────────────────────────────────────────┤
-│  ©UNIPOST → ©MSA HR                                        │
-└────────────────────────────────────────────────────────────┘
+│  ◎ 관리자 │                                                  │
+│  비밀번호  │                                                 │
+│  리셋     │                                                  │
+│          │                                                  │
+└──────────┴─────────────────────────────────────────────────┘
 ```
 
 ### 7.2 페이지 목록
@@ -990,21 +787,32 @@ function calculateAnnualLeave(hireDate: Date, referenceDate: Date): AnnualLeaveR
 | 경로 | 페이지명 | 설명 |
 |------|----------|------|
 | `/login` | 로그인 | 이메일/비밀번호 인증 |
+| `/register` | 회원가입 | 직원 등록 (관리자 승인 필요) |
+| `/setup` | 초기설정 | 최초 시스템 설정 |
 | `/dashboard` | 대시보드 | 나의 휴가 현황 요약, 결재 대기 건수 |
 | `/leave/my` | 나의 휴가 | 내 연차 잔여/사용 현황, 휴가 신청 |
 | `/leave/usage` | 휴가사용현황 | 부서/전사 직원 휴가 사용 현황 |
 | `/leave/requests` | 휴가신청관리 | 휴가 신청 목록, 승인/반려 처리 |
 | `/leave/register` | 휴가관리대장 | 전체 휴가 기록 조회/관리 |
 | `/leave/grant` | 휴가부여 | 수동 휴가 부여/조정 |
-| `/settings/approval` | 권한/결재선 설정 | 사용자별 권한, 결재선 설정 |
-| `/settings/leave-policy` | 휴가규정 관리 | 연차 부여 규정 설정 |
-| `/settings/overtime` | 시간외근무 설정 | OT 정책 설정 |
-| `/settings/employees` | 직원관리 | 직원 CRUD, 입퇴사 관리 |
-| `/settings/integration` | 외부서비스 연동 | 구글캘린더 등 연동 설정 |
 | `/attendance/clock` | 오늘 근무 | 출퇴근 기록 |
 | `/attendance/my` | 내 근태현황 | 월별 출퇴근 기록 조회 |
 | `/attendance/overtime` | 연장근무 신청 | 시간외 추가근무 신청 |
 | `/attendance/overtime/requests` | 연장근무 현황 | 연장근무 승인/반려 |
+| `/welfare` | 복지 현황 | 복지 항목 조회 |
+| `/welfare/request` | 복지 신청 | 복지 항목 예약/신청 |
+| `/settings/company` | 회사 설정 | 회사 정보 관리 |
+| `/settings/departments` | 부서관리 | 부서 CRUD |
+| `/settings/positions` | 직급관리 | 직급 CRUD |
+| `/settings/employees` | 직원관리 | 직원 CRUD, 입퇴사 관리 |
+| `/settings/approval` | 권한/결재선 설정 | 사용자별 권한, 결재선 설정 |
+| `/settings/leave-policy` | 휴가규정 관리 | 연차 부여 규정 설정 |
+| `/settings/holidays` | 공휴일 관리 | 공휴일/회사휴무 관리 |
+| `/settings/overtime` | 시간외근무 설정 | OT 정책 설정 |
+| `/settings/welfare` | 복지 설정 | 복지 카테고리/항목 관리 |
+| `/settings/integration` | 웹훅 설정 | 웹훅 알림 연동 설정 |
+| `/settings/compensation` | 보상정책 | 보상/수당 정책 설정 |
+| `/admin` | 관리자 | 비밀번호 리셋 등 관리 기능 |
 
 ---
 
@@ -1014,255 +822,251 @@ function calculateAnnualLeave(hireDate: Date, referenceDate: Date): AnnualLeaveR
 
 ```
 [인증]
-POST   /api/auth/login          # 로그인
-POST   /api/auth/logout         # 로그아웃
-GET    /api/auth/me             # 현재 사용자 정보
-PUT    /api/auth/password       # 비밀번호 변경
+POST   /api/auth/login              # 로그인
+POST   /api/auth/logout             # 로그아웃
+GET    /api/auth/me                 # 현재 사용자 정보
+POST   /api/auth/register           # 회원가입
+POST   /api/auth/change-password    # 비밀번호 변경
+POST   /api/auth/reset-password     # 비밀번호 리셋 (관리자)
 
 [직원 관리]
-GET    /api/employees           # 직원 목록 (검색/필터/페이징)
-GET    /api/employees/:id       # 직원 상세
-POST   /api/employees           # 직원 등록
-PUT    /api/employees/:id       # 직원 수정
-DELETE /api/employees/:id       # 직원 비활성화 (soft delete)
+GET    /api/employees               # 직원 목록
+GET    /api/employees/:id           # 직원 상세
+PUT    /api/employees/:id           # 직원 수정
+GET    /api/employees/export        # 엑셀 다운로드
+POST   /api/employees/import        # 엑셀 업로드
 
-[부서 관리]
-GET    /api/departments         # 부서 목록 (트리 구조)
-POST   /api/departments         # 부서 등록
-PUT    /api/departments/:id     # 부서 수정
-DELETE /api/departments/:id     # 부서 삭제
+[부서/직급 관리]
+GET    /api/departments             # 부서 목록
+POST   /api/departments             # 부서 등록
+PUT    /api/departments/:id         # 부서 수정
+DELETE /api/departments/:id         # 부서 삭제
+GET    /api/positions               # 직급 목록
+PUT    /api/positions/:id           # 직급 수정
 
 [휴가]
-GET    /api/leave/my            # 나의 휴가 현황
-GET    /api/leave/balance       # 잔여 연차 조회
-POST   /api/leave/request       # 휴가 신청
-PUT    /api/leave/request/:id   # 휴가 수정
-DELETE /api/leave/request/:id   # 휴가 취소
-GET    /api/leave/requests      # 휴가 신청 목록 (관리자)
-GET    /api/leave/usage         # 휴가 사용 현황
-GET    /api/leave/register      # 휴가 관리대장
-POST   /api/leave/grant         # 휴가 수동 부여
-GET    /api/leave/grants        # 휴가 부여 이력
-GET    /api/leave/export        # 엑셀 다운로드
+GET    /api/leave/my                # 나의 휴가 현황
+GET    /api/leave/balance           # 잔여 연차 조회
+POST   /api/leave/request           # 휴가 신청
+PUT    /api/leave/request/:id       # 휴가 수정/취소
+GET    /api/leave/usage             # 휴가 사용 현황
+GET    /api/leave/register          # 휴가 관리대장
+POST   /api/leave/grant             # 휴가 수동 부여
+GET    /api/leave/grants            # 휴가 부여 이력
+POST   /api/leave/auto-grant        # 연차 자동 부여
+POST   /api/leave/carry-over        # 연차 이월
+GET    /api/leave/export            # 엑셀 다운로드
+GET    /api/leave/calendar          # 캘린더 조회
+GET    /api/leave/types             # 휴가 유형 목록
 
 [전자결재]
-GET    /api/approval/pending    # 결재 대기 목록
-POST   /api/approval/process    # 결재 처리 (승인/반려)
-GET    /api/approval/lines      # 결재선 목록
-POST   /api/approval/lines      # 결재선 생성
-PUT    /api/approval/lines/:id  # 결재선 수정
+GET    /api/approval/pending        # 결재 대기 목록
+POST   /api/approval/process        # 결재 처리 (승인/반려)
+GET    /api/approval/lines          # 결재선 목록
+POST   /api/approval/lines          # 결재선 생성
+PUT    /api/approval/lines/:id      # 결재선 수정
 
 [시간외근무]
-POST   /api/overtime/request    # 시간외근무 신청
-GET    /api/overtime/requests   # 시간외근무 목록
-GET    /api/overtime/my         # 나의 시간외근무
+POST   /api/overtime/request        # 시간외근무 신청
+PUT    /api/overtime/request/:id    # 시간외근무 수정
+GET    /api/overtime/requests       # 시간외근무 목록
+GET    /api/overtime/my             # 나의 시간외근무
 
 [출퇴근 관리]
-POST   /api/attendance/clock-in      # 출근 기록
-POST   /api/attendance/clock-out     # 퇴근 기록
-GET    /api/attendance/today         # 오늘 근무 상태
-GET    /api/attendance/my            # 내 근태현황 (월별)
-POST   /api/attendance/overtime      # 연장근무 신청
-GET    /api/attendance/overtime/requests  # 연장근무 현황
+POST   /api/attendance/clock-in     # 출근 기록
+POST   /api/attendance/clock-out    # 퇴근 기록
+GET    /api/attendance/today        # 오늘 근무 상태
+GET    /api/attendance/my           # 내 근태현황 (월별)
+GET    /api/attendance/summary      # 근태 요약
+GET    /api/attendance/department   # 부서별 근태
+
+[복지]
+GET    /api/welfare/categories      # 복지 카테고리 목록
+POST   /api/welfare/categories      # 복지 카테고리 생성
+PUT    /api/welfare/categories/:id  # 복지 카테고리 수정
+GET    /api/welfare/items           # 복지 항목 목록
+POST   /api/welfare/items           # 복지 항목 생성
+PUT    /api/welfare/items/:id       # 복지 항목 수정
+POST   /api/welfare/items/:id/reservations  # 복지 예약
+GET    /api/welfare/requests        # 복지 신청 목록
+PUT    /api/welfare/requests/:id    # 복지 신청 처리
 
 [설정]
-GET    /api/settings/leave-policy   # 휴가규정 조회
-PUT    /api/settings/leave-policy   # 휴가규정 수정
-GET    /api/settings/overtime       # 시간외근무 설정 조회
-PUT    /api/settings/overtime       # 시간외근무 설정 수정
-GET    /api/settings/permissions    # 권한 설정 조회
-PUT    /api/settings/permissions    # 권한 설정 수정
+GET    /api/settings/leave-types         # 휴가유형 조회
+PUT    /api/settings/leave-types/:id     # 휴가유형 수정
+GET    /api/settings/leave-policy        # 휴가규정 조회
+GET    /api/settings/overtime            # 시간외근무 설정
+GET    /api/settings/permissions         # 권한 설정
+POST   /api/settings/webhooks            # 웹훅 설정
+GET    /api/company/settings             # 회사 설정
+GET    /api/company/logo                 # 회사 로고
+GET    /api/holidays                     # 공휴일 목록
+POST   /api/holidays                     # 공휴일 등록
+PUT    /api/holidays/:id                 # 공휴일 수정
+DELETE /api/holidays/:id                 # 공휴일 삭제
 
-[외부연동]
-POST   /api/integration/google/connect     # 구글 연동
-DELETE /api/integration/google/disconnect   # 구글 연동 해제
-POST   /api/integration/google/sync        # 구글 캘린더 동기화
+[대시보드]
+GET    /api/dashboard                    # 대시보드 데이터
+
+[초기설정]
+GET    /api/setup/status                 # 설정 상태 확인
+POST   /api/setup/initialize            # 초기화
+POST   /api/setup/seed                   # 시드 데이터
+POST   /api/setup/complete               # 설정 완료
+GET    /api/setup/verify                 # 설정 검증
+GET    /api/setup/test-db                # DB 연결 테스트
+
+[슈퍼 어드민]
+POST   /api/super-admin/auth/login       # 슈퍼 어드민 로그인
+GET    /api/super-admin/tenants          # 테넌트 목록
+GET    /api/super-admin/tenants/:id      # 테넌트 상세
+PUT    /api/super-admin/tenants/:id      # 테넌트 수정
+GET    /api/super-admin/tenants/:id/usage # 테넌트 사용량
+PUT    /api/super-admin/tenants/:id/logo # 테넌트 로고 업로드
+GET    /api/super-admin/stats            # 통계
+
+[내부]
+GET    /api/internal/tenant-lookup       # 테넌트 조회 (내부용)
+
+[기타]
+GET    /api/time-wallet                  # 타임월렛
+GET    /api/compensation-policy          # 보상정책
 ```
 
 ---
 
-## 9. 스케줄러 (크론잡)
-
-자동화가 필요한 배치 작업:
-
-| 주기 | 작업 | 설명 |
-|------|------|------|
-| 매일 00:00 | 연차 자동 부여 | 입사일 기준 월별/연별 연차 생성 |
-| 매일 00:00 | 연차 만료 처리 | 사용기한 초과 연차 자동 만료 |
-| 매일 00:00 | LeaveBalance 갱신 | 캐시 테이블 일일 정합성 체크 |
-| 매일 03:00 | DB 백업 | PostgreSQL 전체 백업 |
-| 매일 00:00 | 만료 세션 정리 | 기한 초과 세션 레코드 삭제 |
-
-**구현**: `node-cron` 라이브러리 또는 Next.js API Route + 외부 cron trigger
-
----
-
-## 10. 구글 캘린더 연동
-
-### 10.1 연동 흐름
+## 9. 주요 파일 구조
 
 ```
-[직원] → [외부서비스 연동 페이지] → [Google OAuth 동의]
-         → Access Token + Refresh Token 발급
-         → DB 암호화 저장
-
-[휴가 승인 시]
-  → Google Calendar API 호출
-  → 해당 직원 캘린더에 휴가 일정 자동 등록
-  → 제목: "[연차] 홍길동 - 개인사유"
-  → 종일 이벤트 / 반차는 오전·오후 구분
-
-[휴가 취소 시]
-  → 등록된 캘린더 이벤트 자동 삭제
-```
-
-### 10.2 필요한 Google API 스코프
-- `https://www.googleapis.com/auth/calendar.events`
-
----
-
-## 11. 프로젝트 디렉토리 구조
-
-```
-msa-hr/
-├── docker-compose.yml
-├── Dockerfile
-├── .env.example
-├── .env                        # (gitignore)
-├── package.json
-├── tsconfig.json
-├── next.config.ts
-├── tailwind.config.ts
+hr/
+├── wrangler.toml                  # Cloudflare Workers 설정
+├── open-next.config.ts            # OpenNext 설정
 ├── prisma/
-│   ├── schema.prisma           # DB 스키마
-│   ├── migrations/             # 마이그레이션
-│   └── seed.ts                 # 초기 데이터 시드
+│   ├── schema.prisma              # PostgreSQL 스키마 (로컬 개발)
+│   ├── schema.sqlite.prisma       # SQLite 스키마 (CF D1 마이그레이션)
+│   └── seed.ts                    # 시드 데이터
+├── migrations/                    # D1 마이그레이션 파일
+├── scripts/
+│   ├── build-cloudflare.sh        # CF 빌드 스크립트
+│   └── patch-wasm-r2.py           # Prisma WASM 제거 패치
 ├── src/
-│   ├── app/                    # Next.js App Router
-│   │   ├── layout.tsx          # 루트 레이아웃
-│   │   ├── page.tsx            # 메인 (→ 대시보드 리다이렉트)
+│   ├── app/
+│   │   ├── layout.tsx             # 루트 레이아웃
+│   │   ├── (landing)/             # 랜딩 페이지 (keystonehr.app)
+│   │   ├── (main)/                # 메인 앱 (테넌트 서브도메인)
+│   │   │   ├── dashboard/
+│   │   │   ├── leave/
+│   │   │   ├── attendance/
+│   │   │   ├── welfare/
+│   │   │   ├── settings/
+│   │   │   └── admin/
+│   │   ├── (super-admin)/         # 슈퍼 어드민 페이지
 │   │   ├── login/
-│   │   │   └── page.tsx        # 로그인 페이지
-│   │   ├── dashboard/
-│   │   │   └── page.tsx        # 대시보드
-│   │   ├── leave/
-│   │   │   ├── my/page.tsx             # 나의 휴가
-│   │   │   ├── usage/page.tsx          # 휴가사용현황
-│   │   │   ├── requests/page.tsx       # 휴가신청관리
-│   │   │   ├── register/page.tsx       # 휴가관리대장
-│   │   │   └── grant/page.tsx          # 휴가부여
-│   │   ├── attendance/
-│   │   │   ├── clock/page.tsx        # 오늘 근무
-│   │   │   ├── my/page.tsx           # 내 근태현황
-│   │   │   └── overtime/
-│   │   │       ├── page.tsx          # 연장근무 신청
-│   │   │       └── requests/page.tsx # 연장근무 현황
-│   │   ├── settings/
-│   │   │   ├── approval/page.tsx       # 권한/결재선 설정
-│   │   │   ├── leave-policy/page.tsx   # 휴가규정 관리
-│   │   │   ├── overtime/page.tsx       # 시간외근무 설정
-│   │   │   ├── employees/page.tsx      # 직원관리
-│   │   │   └── integration/page.tsx    # 외부서비스 연동
-│   │   └── api/
-│   │       ├── auth/
-│   │       ├── employees/
-│   │       ├── departments/
-│   │       ├── leave/
-│   │       ├── approval/
-│   │       ├── overtime/
-│   │       ├── settings/
-│   │       ├── integration/
-│   │       └── cron/               # 스케줄러 트리거 엔드포인트
+│   │   ├── register/
+│   │   ├── setup/
+│   │   └── api/                   # API Route Handlers
 │   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Sidebar.tsx         # 좌측 사이드바
-│   │   │   ├── Header.tsx          # 상단 헤더 (회사명, 사용자, 세션타이머)
-│   │   │   ├── Breadcrumb.tsx      # 경로 표시
-│   │   │   └── Footer.tsx          # 하단 푸터
-│   │   ├── ui/                     # shadcn/ui 컴포넌트
-│   │   ├── leave/                  # 휴가 관련 컴포넌트
-│   │   ├── approval/               # 결재 관련 컴포넌트
-│   │   ├── settings/               # 설정 관련 컴포넌트
-│   │   └── common/                 # 공통 컴포넌트 (DataTable, Modal 등)
+│   │   ├── layout/                # Header, Sidebar 등
+│   │   └── ui/                    # shadcn/ui 컴포넌트
 │   ├── lib/
-│   │   ├── prisma.ts               # Prisma 클라이언트 싱글톤
-│   │   ├── auth.ts                 # 인증 유틸리티
-│   │   ├── utils.ts                # 공통 유틸리티
-│   │   └── constants.ts            # 상수 정의
-│   ├── services/
-│   │   ├── leave/
-│   │   │   ├── annualLeaveGenerator.ts   # 연차 자동 생성
-│   │   │   ├── leaveCalculator.ts        # 휴가 일수 계산
-│   │   │   ├── leaveValidator.ts         # 휴가 신청 유효성 검증
-│   │   │   └── leaveBalanceService.ts    # 잔여 연차 관리
-│   │   ├── approval/
-│   │   │   ├── approvalEngine.ts         # 결재 처리 엔진
-│   │   │   └── approvalLineResolver.ts   # 결재선 자동 매핑
-│   │   ├── employee/
-│   │   │   └── employeeService.ts        # 직원 관련 비즈니스 로직
-│   │   ├── overtime/
-│   │   │   └── overtimeService.ts        # 시간외근무 로직
-│   │   ├── integration/
-│   │   │   └── googleCalendar.ts         # 구글 캘린더 연동
-│   │   └── scheduler/
-│   │       └── cronJobs.ts               # 크론잡 정의
-│   ├── hooks/                      # React 커스텀 훅
-│   ├── types/                      # TypeScript 타입 정의
-│   └── middleware.ts               # Next.js 미들웨어 (인증 체크)
-├── backups/                        # DB 백업 파일 (gitignore)
+│   │   ├── d1-client.ts           # D1 SQL 클라이언트 (~950줄, Prisma 호환 API)
+│   │   ├── prisma.ts              # Proxy 기반 클라이언트 전환 (로컬 Prisma ↔ CF D1)
+│   │   ├── prisma-tenant.ts       # 테넌트 스코프 Prisma 클라이언트
+│   │   ├── tenant-context.ts      # 서브도메인→tenantId 해석 + 5분 캐시
+│   │   ├── deploy-config.ts       # 배포 환경 감지 (로컬/CF)
+│   │   ├── auth.ts                # JWT 인증 유틸리티
+│   │   ├── auth-actions.ts        # 인증 서버 액션
+│   │   ├── password.ts            # PBKDF2 비밀번호 해싱
+│   │   ├── webhook.ts             # 웹훅 알림 (SSRF 방지)
+│   │   ├── attendance-utils.ts    # 근태 유틸리티
+│   │   ├── time-wallet.ts         # 타임월렛 로직
+│   │   ├── super-admin-auth.ts    # 슈퍼 어드민 인증
+│   │   ├── tenant-seed.ts         # 테넌트 초기 데이터
+│   │   ├── session-cleanup.ts     # 세션 정리
+│   │   └── setup-config.ts        # 초기설정 구성
+│   └── middleware.ts              # 서브도메인 추출, 인증 체크 (fetch 호출 없음)
 └── docs/
-    └── ARCHITECTURE.md             # 이 문서
+    └── ARCHITECTURE.md            # 이 문서
 ```
 
 ---
 
-## 12. 개발 단계 (마일스톤)
+## 10. 배포
 
-### Phase 1: 기반 구축 (인프라 + 인증 + 직원관리)
-- [x] 프로젝트 초기 설정 (Next.js, TypeScript, Tailwind, Prisma)
-- [ ] Docker 환경 구성
-- [ ] DB 스키마 생성 및 마이그레이션
-- [ ] 시드 데이터 (부서, 직급, 테스트 직원)
-- [ ] 로그인/로그아웃 (JWT 인증)
-- [ ] 레이아웃 (사이드바, 헤더, Breadcrumb)
-- [ ] 직원관리 CRUD
-- [ ] 권한 미들웨어 (RBAC)
+### 10.1 Cloudflare Workers 배포
 
-### Phase 2: 휴가 관리 시스템
-- [ ] 연차 자동 생성 로직 (입사일 기반)
-- [ ] 나의 휴가 페이지
-- [ ] 휴가 신청/수정/취소
-- [ ] 휴가사용현황 (부서/전사)
-- [ ] 휴가관리대장
-- [ ] 휴가부여 (수동)
-- [ ] 엑셀 다운로드
+```bash
+# 빌드
+cd hr
+bash scripts/build-cloudflare.sh
 
-### Phase 3: 전자결재 시스템
-- [ ] 결재선 설정/관리
-- [ ] 휴가 결재 프로세스
-- [ ] 결재 승인/반려/전결
-- [ ] 결재 알림 (인앱)
-- [ ] 결재 이력 조회
+# 배포
+npx wrangler deploy
+```
 
-### Phase 4: 부가 기능
-- [ ] 시간외근무 신청/관리
-- [ ] 구글 캘린더 연동
-- [ ] 대시보드 (현황 요약)
+**빌드 파이프라인:**
+1. `next build` → OpenNext로 Worker 번들 생성
+2. `patch-wasm-r2.py` → Prisma WASM 파일을 번들에서 제거 (R2로 이동)
+3. 번들 크기 확인 (~3059 KiB gzip, 제한: 3072 KiB)
 
-### Phase 5: 운영 안정화
-- [ ] DB 백업 자동화
-- [ ] 감사 로그
-- [ ] 성능 최적화
-- [ ] 사용자 매뉴얼
+### 10.2 Cloudflare 리소스
+
+| 리소스 | 이름 | 용도 |
+|--------|------|------|
+| D1 Database | hr-saas-db | 메인 데이터베이스 (30 테이블) |
+| R2 Bucket | HR_FILES | 회사 로고, 파일 첨부 |
+| KV Namespace | HR_CACHE | 캐시 |
+| Secrets | JWT_SECRET | JWT 서명 키 |
+| Secrets | SUPER_ADMIN_JWT_SECRET | 슈퍼 어드민 JWT 키 |
+
+### 10.3 도메인 라우팅
+
+```toml
+# wrangler.toml
+routes = [
+  { pattern = "keystonehr.app/*", zone_name = "keystonehr.app" },
+  { pattern = "*.keystonehr.app/*", zone_name = "keystonehr.app" },
+]
+```
+
+### 10.4 번들 크기 관리
+
+> Cloudflare Workers 제한: 3 MiB (3072 KiB) gzip 압축 후
+> 현재 번들: ~3059 KiB — **13 KiB 여유만 남음**
+
+번들 크기 절감 조치:
+- Prisma WASM을 R2로 분리 (`patch-wasm-r2.py`)
+- 불필요한 의존성 제거 (bcrypt, nodemailer 등)
+- 트리쉐이킹 최적화
 
 ---
 
-## 13. 시드 데이터 (초기 데이터)
+## 11. 환경 변수
+
+```env
+# .env (로컬 개발)
+DATABASE_URL="file:./dev.db"    # SQLite (로컬)
+JWT_SECRET="your-secret-key"
+SUPER_ADMIN_JWT_SECRET="your-super-admin-secret"
+
+# Cloudflare (wrangler.toml [vars])
+DEPLOY_TARGET=cloudflare
+DEPLOY_MODE=saas
+SAAS_BASE_DOMAIN=keystonehr.app
+NODE_ENV=production
+DB_PROVIDER=sqlite
+
+# Cloudflare Secrets (wrangler secret put)
+# JWT_SECRET
+# SUPER_ADMIN_JWT_SECRET
+```
+
+---
+
+## 12. 시드 데이터
 
 ```typescript
-// prisma/seed.ts 에서 생성할 데이터
-
-// 직급 (유니포스트 참고)
+// 직급
 const positions = [
   { name: '이사',   level: 1 },
   { name: '상무',   level: 2 },
@@ -1284,71 +1088,11 @@ const departments = [
 // 휴가 유형
 const leaveTypes = [
   { name: '연차휴가', code: 'ANNUAL', isPaid: true, isAnnualDeduct: true },
-  { name: '병가',     code: 'SICK',   isPaid: true, isAnnualDeduct: false, requiresDoc: true },
+  { name: '병가',     code: 'SICK',   isPaid: true, isAnnualDeduct: false },
   { name: '경조사',   code: 'FAMILY', isPaid: true, isAnnualDeduct: false },
-  { name: '출산휴가', code: 'MATERNITY', isPaid: true, isAnnualDeduct: false, maxDays: 90 },
-  { name: '배우자출산', code: 'PATERNITY', isPaid: true, isAnnualDeduct: false, maxDays: 10 },
+  { name: '출산휴가', code: 'MATERNITY', isPaid: true, maxDays: 90 },
+  { name: '배우자출산', code: 'PATERNITY', isPaid: true, maxDays: 10 },
   { name: '공가',     code: 'PUBLIC', isPaid: true, isAnnualDeduct: false },
   { name: '특별휴가', code: 'SPECIAL', isPaid: true, isAnnualDeduct: false },
 ];
-
-// 테스트 관리자 계정
-const adminEmployee = {
-  employeeNumber: '1088148326',
-  name: '변인수',
-  email: 'admin@msa.local',
-  position: '이사',
-  department: '영업',
-  role: 'SYSTEM_ADMIN',
-  hireDate: '2020-01-02',
-};
 ```
-
----
-
-## 14. 환경 변수
-
-```env
-# .env.example
-
-# Database
-DATABASE_URL="postgresql://msa:your_password_here@localhost:5432/msa_hr"
-DB_PASSWORD="your_password_here"
-
-# Authentication
-NEXTAUTH_SECRET="your-secret-key-minimum-32-chars"
-NEXTAUTH_URL="http://192.168.0.100:3000"
-JWT_EXPIRES_IN="1h"
-REFRESH_TOKEN_EXPIRES_IN="7d"
-
-# Google Calendar (선택)
-GOOGLE_CLIENT_ID=""
-GOOGLE_CLIENT_SECRET=""
-GOOGLE_REDIRECT_URI="http://192.168.0.100:3000/api/integration/google/callback"
-
-# Encryption (외부 API 토큰 암호화용)
-ENCRYPTION_KEY="your-32-byte-encryption-key-here"
-
-# App
-COMPANY_NAME="(주)엠에스에이"
-DAILY_WORK_HOURS=8
-```
-
----
-
-## 15. 주요 안전장치 체크리스트
-
-- [ ] 비밀번호 bcrypt 해싱 (평문 저장 절대 금지)
-- [ ] SQL Injection 방지 (Prisma 파라미터 바인딩)
-- [ ] XSS 방지 (React 자동 이스케이핑 + 사용자 입력 sanitize)
-- [ ] CSRF 방지 (SameSite Cookie)
-- [ ] 세션 타임아웃 (1시간 자동 로그아웃)
-- [ ] 권한 체크 미들웨어 (모든 API 라우트)
-- [ ] 감사 로그 (중요 작업 전수 기록)
-- [ ] DB 백업 자동화 (매일)
-- [ ] 환경 변수 분리 (.env gitignore)
-- [ ] Rate Limiting (로그인 시도 제한)
-- [ ] 입력값 유효성 검증 (Zod 스키마)
-- [ ] 트랜잭션 처리 (휴가 차감 등 원자성 보장)
-- [ ] 동시성 제어 (같은 날 중복 휴가 방지 - DB 유니크 제약)
-- [ ] 에러 핸들링 (사용자 친화적 메시지, 서버 로그)

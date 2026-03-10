@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import * as XLSX from 'xlsx';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: '대기',
@@ -63,6 +62,7 @@ export async function GET(request: NextRequest) {
       '사유': r.reason || '',
     }));
 
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
 

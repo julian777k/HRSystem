@@ -1,29 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-
-async function getCompanyWorkSettings() {
-  const configs = await prisma.systemConfig.findMany({
-    where: { key: { in: ['work_start_time', 'work_end_time'] } },
-  });
-  const map = new Map(configs.map(c => [c.key, c.value]));
-  return {
-    workStartTime: map.get('work_start_time') || '09:00',
-    workEndTime: map.get('work_end_time') || '18:00',
-  };
-}
-
-async function getDailyWorkHours(): Promise<number> {
-  const policy = await prisma.compensationPolicy.findFirst({
-    where: { isActive: true },
-  });
-  return policy?.dailyWorkHours ?? 8;
-}
-
-function isWeekday(date: Date): boolean {
-  const day = date.getDay();
-  return day >= 1 && day <= 5;
-}
+import { isHoliday, isWeekday } from '@/lib/attendance-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,13 +34,8 @@ export async function GET(request: NextRequest) {
     const targetDate = dateParam ? new Date(dateParam) : new Date();
     const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
-    // 근무일 여부 판정
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
-    const holidayCount = await prisma.holiday.count({
-      where: { date: { gte: dayStart, lte: dayEnd } },
-    });
-    const workday = isWeekday(dayStart) && holidayCount === 0;
+    // 근무일 여부 판정 (공휴일 + 회사휴무 + 부서휴무 통합 확인)
+    const workday = isWeekday(dayStart) && !(await isHoliday(dayStart, departmentId));
 
     const employees = await prisma.employee.findMany({
       where: {
@@ -96,7 +69,7 @@ export async function GET(request: NextRequest) {
         return {
           employee: emp,
           attendance: att,
-          status: 'NORMAL',
+          status: att.status || 'NORMAL',
         };
       }
       // 근무일인데 기록이 없으면 자동 기록 대상 (정상근무)

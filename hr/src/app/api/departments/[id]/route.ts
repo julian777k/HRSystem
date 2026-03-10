@@ -17,7 +17,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { name, code, parentId, sortOrder, isActive } = await request.json();
+    const { name, code, parentId, sortOrder, isActive, workStartTime, workEndTime, lunchStartTime, lunchEndTime } = await request.json();
 
     const existing = await prisma.department.findUnique({ where: { id } });
     if (!existing) {
@@ -33,6 +33,10 @@ export async function PUT(
     if (parentId !== undefined) updateData.parentId = parentId || null;
     if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (workStartTime !== undefined) updateData.workStartTime = workStartTime || null;
+    if (workEndTime !== undefined) updateData.workEndTime = workEndTime || null;
+    if (lunchStartTime !== undefined) updateData.lunchStartTime = lunchStartTime || null;
+    if (lunchEndTime !== undefined) updateData.lunchEndTime = lunchEndTime || null;
 
     const department = await prisma.department.update({
       where: { id },

@@ -40,6 +40,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 
 const isSQLiteMode = process.env.NEXT_PUBLIC_DB_PROVIDER === "sqlite";
+const isCloudflare = process.env.NEXT_PUBLIC_DEPLOY_TARGET === "cloudflare";
 
 interface SetupFormData {
   // Step 2: Company
@@ -56,21 +57,13 @@ interface SetupFormData {
   adminPosition: string;
 }
 
-const STEPS = isSQLiteMode
-  ? [
-      { number: 1, label: "DB 초기화", icon: Database },
-      { number: 2, label: "회사 정보", icon: Building2 },
-      { number: 3, label: "관리자 계정", icon: UserCog },
-      { number: 4, label: "기본 데이터", icon: Sprout },
-      { number: 5, label: "완료", icon: CheckCircle2 },
-    ]
-  : [
-      { number: 1, label: "DB 연결 확인", icon: Database },
-      { number: 2, label: "회사 정보", icon: Building2 },
-      { number: 3, label: "관리자 계정", icon: UserCog },
-      { number: 4, label: "기본 데이터", icon: Sprout },
-      { number: 5, label: "완료", icon: CheckCircle2 },
-    ];
+const STEPS = [
+  { number: 1, label: isCloudflare ? "D1 연결 확인" : isSQLiteMode ? "DB 초기화" : "DB 연결 확인", icon: Database },
+  { number: 2, label: "회사 정보", icon: Building2 },
+  { number: 3, label: "관리자 계정", icon: UserCog },
+  { number: 4, label: "기본 데이터", icon: Sprout },
+  { number: 5, label: "완료", icon: CheckCircle2 },
+];
 
 const POSITIONS = [
   "대표",
@@ -244,14 +237,14 @@ export default function SetupPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setDbStatus("success");
-        setDbMessage(data.version ? `PostgreSQL 연결 성공 (${data.version.split(",")[0]})` : "데이터베이스 연결에 성공했습니다.");
+        setDbMessage(data.version ? `데이터베이스 연결 성공 (${data.version.split(",")[0]})` : "데이터베이스 연결에 성공했습니다.");
       } else {
         setDbStatus("error");
         setDbMessage(data.message || "데이터베이스 연결에 실패했습니다.");
       }
     } catch {
       setDbStatus("error");
-      setDbMessage("서버에 연결할 수 없습니다. DATABASE_URL 환경변수를 확인해주세요.");
+      setDbMessage("서버에 연결할 수 없습니다. 데이터베이스 설정을 확인해주세요.");
     }
   };
 
@@ -263,7 +256,7 @@ export default function SetupPage() {
     setSeedMessage("");
     try {
       if (!isSQLiteMode) {
-        // PostgreSQL: run DB schema initialization
+        // Non-SQLite: run DB schema initialization
         const initRes = await fetch("/api/setup/initialize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -297,14 +290,9 @@ export default function SetupPage() {
       );
 
       // 3) 관리자 계정 + 회사 설정 저장
+      // db config is not used; DATABASE_URL env var is the proper way to configure the database connection
       const payload = {
-        db: {
-          host: "localhost",
-          port: "5432",
-          user: "msa",
-          password: "",
-          database: "msa_hr",
-        },
+        db: {},
         company: {
           name: formData.companyName,
           bizNumber: formData.bizNumber,
@@ -359,7 +347,7 @@ export default function SetupPage() {
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-slate-900">
-          HR SYSTEM 초기 설정
+          KeystoneHR 초기 설정
         </h1>
         <p className="text-sm text-slate-500">
           시스템을 사용하기 위한 초기 설정을 진행합니다.
@@ -424,23 +412,27 @@ export default function SetupPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="size-5 text-blue-500" />
-              {isSQLiteMode ? "데이터베이스 초기화" : "데이터베이스 연결 확인"}
+              {isCloudflare ? "Cloudflare D1 연결 확인" : isSQLiteMode ? "데이터베이스 초기화" : "데이터베이스 연결 확인"}
             </CardTitle>
             <CardDescription>
-              {isSQLiteMode
-                ? "내장 데이터베이스를 자동으로 초기화합니다."
-                : "DATABASE_URL 환경변수에 설정된 PostgreSQL 연결을 테스트합니다."}
+              {isCloudflare
+                ? "Cloudflare D1 데이터베이스 연결 상태를 확인합니다."
+                : isSQLiteMode
+                  ? "내장 데이터베이스를 자동으로 초기화합니다."
+                  : "환경변수에 설정된 데이터베이스 연결을 테스트합니다."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {isSQLiteMode ? (
-              // SQLite auto-init UI
+              // SQLite/D1 auto-init UI
               <div className="text-center py-6">
                 <div className="rounded-lg border bg-blue-50 border-blue-200 p-3 mb-4 text-left">
                   <div className="flex gap-2">
                     <Info className="size-4 text-blue-500 mt-0.5 shrink-0" />
                     <p className="text-xs text-blue-700">
-                      별도의 데이터베이스 소프트웨어가 필요 없습니다. 앱 내부에 데이터가 안전하게 저장됩니다.
+                      {isCloudflare
+                        ? "Cloudflare D1 데이터베이스가 자동으로 연결됩니다. 별도 설정이 필요 없습니다."
+                        : "별도의 데이터베이스 소프트웨어가 필요 없습니다. 앱 내부에 데이터가 안전하게 저장됩니다."}
                     </p>
                   </div>
                 </div>
@@ -477,15 +469,12 @@ export default function SetupPage() {
                 )}
               </div>
             ) : (
-              // PostgreSQL manual test UI
+              // 외부 DB 연결 테스트 UI
               <>
                 <div className="rounded-lg border bg-slate-50 p-4">
                   <p className="text-sm text-slate-600">
                     <span className="font-medium">DATABASE_URL</span> 환경변수가
                     .env 파일에 올바르게 설정되어 있어야 합니다.
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    예: postgresql://user:password@localhost:5432/msa_hr
                   </p>
                 </div>
 
@@ -862,7 +851,7 @@ export default function SetupPage() {
                 <CheckCircle2 className="size-8 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900">
-                HR SYSTEM이 준비되었습니다
+                KeystoneHR이 준비되었습니다
               </h3>
               <p className="text-sm text-slate-500 mt-2">
                 관리자 계정으로 로그인하여 시스템을 사용할 수 있습니다.

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcryptjs from 'bcryptjs';
+import { verifyPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { signToken, type AuthUser } from '@/lib/auth';
 import { setAuthCookie } from '@/lib/auth-actions';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { getTenantIdSafe } from '@/lib/tenant-context';
+import { cleanupExpiredSessions } from '@/lib/session-cleanup';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,8 +18,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limit: 5 attempts per email per 15 seconds
-    const rateLimitResult = checkRateLimit(`login:${email}`, 5, 15 * 1000);
+    // Rate limit: 5 attempts per email per 15 minutes
+    const rateLimitResult = checkRateLimit(`login:${email}`, 5, 900 * 1000);
     if (!rateLimitResult.success) {
       const retrySeconds = Math.ceil((rateLimitResult.retryAfterMs || 0) / 1000);
       return NextResponse.json(
@@ -26,12 +28,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { email },
+    const tenantId = await getTenantIdSafe();
+
+    const employee = await prisma.employee.findFirst({
+      where: { email, tenantId },
       include: { department: true, position: true },
     });
 
-    if (!employee || !(await bcryptjs.compare(password, employee.passwordHash))) {
+    if (!employee || !(await verifyPassword(password, employee.passwordHash))) {
       return NextResponse.json(
         { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
         { status: 401 }
@@ -60,6 +64,7 @@ export async function POST(request: NextRequest) {
       departmentId: employee.departmentId,
       departmentName: employee.department.name,
       positionName: employee.position.name,
+      tenantId: tenantId,
     };
 
     const token = await signToken(authUser);
@@ -73,6 +78,7 @@ export async function POST(request: NextRequest) {
       data: {
         employeeId: employee.id,
         token,
+        tenantId: tenantId,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
@@ -80,6 +86,9 @@ export async function POST(request: NextRequest) {
     });
 
     await setAuthCookie(token);
+
+    // Fire-and-forget: clean up expired sessions
+    cleanupExpiredSessions().catch(() => {});
 
     return NextResponse.json({
       message: '로그인 성공',

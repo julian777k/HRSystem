@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken, COOKIE_NAME } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth-actions';
+import { getTenantId } from '@/lib/tenant-context';
 
-export async function GET(request: NextRequest) {
-  const token = request.cookies.get(COOKIE_NAME)?.value;
-  const user = token ? await verifyToken(token) : null;
-
-  if (!user) {
-    return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
-  }
-
+export async function GET() {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
+    }
+
     const configs = await prisma.systemConfig.findMany({
       where: { group: 'company' },
     });
@@ -28,14 +27,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const token = request.cookies.get(COOKIE_NAME)?.value;
-  const user = token ? await verifyToken(token) : null;
-
-  if (!user || (user.role !== 'SYSTEM_ADMIN' && user.role !== 'COMPANY_ADMIN')) {
-    return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
-  }
-
   try {
+    const user = await getCurrentUser();
+    if (!user || (user.role !== 'SYSTEM_ADMIN' && user.role !== 'COMPANY_ADMIN')) {
+      return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
+    }
+
+    const tenantId = await getTenantId();
     const body = await request.json();
     const { settings } = body as { settings: Record<string, string> };
 
@@ -55,7 +53,7 @@ export async function PUT(request: NextRequest) {
       if (!allowedKeys.includes(key)) continue;
 
       await prisma.systemConfig.upsert({
-        where: { key },
+        where: { tenantId_key: { tenantId, key } },
         update: { value },
         create: { key, value, group: 'company' },
       });

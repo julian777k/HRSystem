@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, UserPlus, Building2, CheckCircle } from 'lucide-react';
+import { Loader2, UserPlus, CheckCircle } from 'lucide-react';
+import Image from 'next/image';
 import { Toaster, toast } from 'sonner';
 
 interface Department {
@@ -67,8 +68,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('비밀번호는 6자 이상이어야 합니다.');
+    if (password.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다.');
       return;
     }
 
@@ -147,11 +148,9 @@ export default function RegisterPage() {
       <Toaster position="top-center" richColors closeButton />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2 px-4 sm:px-6">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-2">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
+          <Image src="/logo.png" alt="KeystoneHR" width={48} height={48} className="mx-auto w-12 h-12 mb-2" />
           <CardTitle className="text-xl sm:text-2xl font-bold">회원가입</CardTitle>
-          <CardDescription>HR 시스템에 직원으로 등록합니다</CardDescription>
+          <CardDescription>KeystoneHR에 직원으로 등록합니다</CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <form onSubmit={handleRegister} className="space-y-4">
@@ -200,7 +199,7 @@ export default function RegisterPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="6자 이상"
+                  placeholder="8자 이상"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

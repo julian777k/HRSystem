@@ -1,60 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-
-async function getCompanyWorkSettings() {
-  const configs = await prisma.systemConfig.findMany({
-    where: { group: 'company' },
-  });
-  const settings: Record<string, string> = {};
-  for (const cfg of configs) {
-    settings[cfg.key] = cfg.value;
-  }
-  return {
-    workStartTime: settings['work_start_time'] || '09:00',
-    workEndTime: settings['work_end_time'] || '18:00',
-  };
-}
-
-async function getDailyWorkHours(): Promise<number> {
-  const policy = await prisma.compensationPolicy.findFirst({
-    where: { isActive: true },
-  });
-  return policy?.dailyWorkHours ?? 8;
-}
-
-async function getHolidaysInRange(start: Date, end: Date): Promise<Set<string>> {
-  const holidays = await prisma.holiday.findMany({
-    where: {
-      date: {
-        gte: start,
-        lte: end,
-      },
-    },
-  });
-  const set = new Set<string>();
-  for (const h of holidays) {
-    const d = new Date(h.date);
-    set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-  }
-  return set;
-}
-
-function isWeekday(date: Date): boolean {
-  const day = date.getDay();
-  return day >= 1 && day <= 5;
-}
-
-function dateKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function buildDateTime(date: Date, timeStr: string): Date {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  result.setHours(hours, minutes, 0, 0);
-  return result;
-}
+import { getWorkSettings, getDailyWorkHours, getHolidaysInRange, isWeekday, dateKey, buildDateTime } from '@/lib/attendance-utils';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,6 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: '인증 필요' }, { status: 401 });
     }
 
+    const tenantId = await getTenantId();
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -93,9 +42,9 @@ export async function GET(request: NextRequest) {
 
     // If date range is specified, fill in missing workdays with virtual records
     if (rangeStart && rangeEnd) {
-      const workSettings = await getCompanyWorkSettings();
+      const workSettings = await getWorkSettings(user.id);
       const dailyWorkHours = await getDailyWorkHours();
-      const holidays = await getHolidaysInRange(rangeStart, rangeEnd);
+      const holidays = await getHolidaysInRange(rangeStart, rangeEnd, user.departmentId);
 
       // Build a set of dates that already have records
       const existingDates = new Set<string>();
@@ -119,6 +68,7 @@ export async function GET(request: NextRequest) {
           const clockOut = buildDateTime(cursor, workSettings.workEndTime);
           virtualRecords.push({
             id: `virtual-${key}`,
+            tenantId,
             employeeId: user.id,
             date: new Date(cursor),
             clockIn,

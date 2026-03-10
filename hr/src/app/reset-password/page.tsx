@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, KeyRound, Building2, CheckCircle } from "lucide-react";
+import { Loader2, ArrowLeft, KeyRound, CheckCircle } from "lucide-react";
+import Image from "next/image";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -47,8 +48,8 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("비밀번호는 6자 이상이어야 합니다.");
+    if (password.length < 8) {
+      setError("비밀번호는 8자 이상이어야 합니다.");
       return;
     }
 
@@ -107,7 +108,7 @@ function ResetPasswordForm() {
         <Input
           id="password"
           type="password"
-          placeholder="새 비밀번호를 입력하세요 (6자 이상)"
+          placeholder="새 비밀번호를 입력하세요 (8자 이상)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -147,9 +148,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-2">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
+          <Image src="/logo.png" alt="KeystoneHR" width={48} height={48} className="mx-auto w-12 h-12 mb-2" />
           <CardTitle className="text-2xl font-bold">비밀번호 재설정</CardTitle>
           <CardDescription>새로운 비밀번호를 입력해주세요.</CardDescription>
         </CardHeader>

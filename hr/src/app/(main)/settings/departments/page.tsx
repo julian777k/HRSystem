@@ -34,6 +34,10 @@ interface Department {
   parentId: string | null;
   sortOrder: number;
   isActive: boolean;
+  workStartTime: string | null;
+  workEndTime: string | null;
+  lunchStartTime: string | null;
+  lunchEndTime: string | null;
   _count?: { employees: number };
   children?: Department[];
 }
@@ -53,6 +57,10 @@ export default function DepartmentsPage() {
   const [formCode, setFormCode] = useState('');
   const [formParentId, setFormParentId] = useState('');
   const [formSortOrder, setFormSortOrder] = useState('0');
+  const [formWorkStartTime, setFormWorkStartTime] = useState('');
+  const [formWorkEndTime, setFormWorkEndTime] = useState('');
+  const [formLunchStartTime, setFormLunchStartTime] = useState('');
+  const [formLunchEndTime, setFormLunchEndTime] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{open: boolean; title: string; description: string; action: () => void}>({open: false, title: '', description: '', action: () => {}});
 
@@ -103,6 +111,10 @@ export default function DepartmentsPage() {
     setFormCode('');
     setFormParentId('');
     setFormSortOrder('0');
+    setFormWorkStartTime('');
+    setFormWorkEndTime('');
+    setFormLunchStartTime('');
+    setFormLunchEndTime('');
     setDialogOpen(true);
   };
 
@@ -112,6 +124,10 @@ export default function DepartmentsPage() {
     setFormCode(dept.code);
     setFormParentId(dept.parentId || '');
     setFormSortOrder(String(dept.sortOrder));
+    setFormWorkStartTime(dept.workStartTime || '');
+    setFormWorkEndTime(dept.workEndTime || '');
+    setFormLunchStartTime(dept.lunchStartTime || '');
+    setFormLunchEndTime(dept.lunchEndTime || '');
     setDialogOpen(true);
   };
 
@@ -132,6 +148,10 @@ export default function DepartmentsPage() {
             code: formCode,
             parentId: formParentId && formParentId !== 'none' ? formParentId : null,
             sortOrder: Number(formSortOrder),
+            workStartTime: formWorkStartTime,
+            workEndTime: formWorkEndTime,
+            lunchStartTime: formLunchStartTime,
+            lunchEndTime: formLunchEndTime,
           }),
         });
         if (res.ok) {
@@ -151,6 +171,10 @@ export default function DepartmentsPage() {
             code: formCode,
             parentId: formParentId && formParentId !== 'none' ? formParentId : null,
             sortOrder: Number(formSortOrder),
+            workStartTime: formWorkStartTime,
+            workEndTime: formWorkEndTime,
+            lunchStartTime: formLunchStartTime,
+            lunchEndTime: formLunchEndTime,
           }),
         });
         if (res.ok) {
@@ -387,6 +411,27 @@ export default function DepartmentsPage() {
                 placeholder="0"
                 className="mt-1"
               />
+            </div>
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium text-gray-700 mb-3">근무시간 설정 (미입력시 회사 설정 사용)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>출근시간</Label>
+                  <Input type="time" value={formWorkStartTime} onChange={(e) => setFormWorkStartTime(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label>퇴근시간</Label>
+                  <Input type="time" value={formWorkEndTime} onChange={(e) => setFormWorkEndTime(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label>점심 시작</Label>
+                  <Input type="time" value={formLunchStartTime} onChange={(e) => setFormLunchStartTime(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label>점심 종료</Label>
+                  <Input type="time" value={formLunchEndTime} onChange={(e) => setFormLunchEndTime(e.target.value)} className="mt-1" />
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">

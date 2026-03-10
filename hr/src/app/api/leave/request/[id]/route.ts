@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { notifyRequestResult } from '@/lib/notifications';
 import { deductFromWallet, getCompensationPolicy } from '@/lib/time-wallet';
+import { createLeaveAttendance, removeLeaveAttendance } from '@/lib/attendance-utils';
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
 
@@ -64,6 +65,15 @@ export async function PUT(
             totalRemain: { decrement: existing.requestDays },
           },
         });
+
+        // 휴가 승인 → 근태 자동 생성
+        await createLeaveAttendance(
+          existing.employeeId,
+          existing.startDate,
+          existing.endDate,
+          existing.useUnit,
+          existing.leaveType.name
+        );
       }
 
       // Also update any pending approval records
@@ -116,7 +126,7 @@ export async function PUT(
         ...(useUnit && { useUnit }),
         ...(requestDays !== undefined && {
           requestDays: parseFloat(String(requestDays)),
-          requestHours: parseFloat(String(requestDays)) * 8,
+          requestHours: parseFloat(String(requestDays)) * (await getCompensationPolicy()).dailyWorkHours,
         }),
         ...(reason !== undefined && { reason }),
       },
@@ -157,42 +167,51 @@ export async function DELETE(
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
     }
 
-    // 승인된 건 → 잔여 복원 로직
+    // 승인된 건 → 잔여 복원 로직 (transaction으로 감싸서 원자성 보장)
     const restoreIfApproved = async () => {
       if (existing.status !== 'APPROVED') return;
-      const year = existing.startDate.getFullYear();
-      const balanceCode = (existing.leaveType.isAnnualDeduct && existing.leaveType.code !== 'ANNUAL')
-        ? 'ANNUAL' : existing.leaveType.code;
-      await prisma.leaveBalance.updateMany({
-        where: {
-          employeeId: existing.employeeId,
-          year,
-          leaveTypeCode: balanceCode,
-        },
-        data: {
-          totalUsed: { decrement: existing.requestDays },
-          totalRemain: { increment: existing.requestDays },
-        },
-      });
-      const deductions = await prisma.timeDeduction.findMany({
-        where: { leaveRequestId: existing.id },
-      });
-      for (const d of deductions) {
-        await prisma.timeWallet.updateMany({
+      await prisma.$transaction(async (tx) => {
+        const year = existing.startDate.getFullYear();
+        const balanceCode = (existing.leaveType.isAnnualDeduct && existing.leaveType.code !== 'ANNUAL')
+          ? 'ANNUAL' : existing.leaveType.code;
+        await tx.leaveBalance.updateMany({
           where: {
             employeeId: existing.employeeId,
             year,
-            type: d.walletType,
+            leaveTypeCode: balanceCode,
           },
           data: {
-            totalUsed: { decrement: d.hours },
-            totalRemain: { increment: d.hours },
+            totalUsed: { decrement: existing.requestDays },
+            totalRemain: { increment: existing.requestDays },
           },
         });
-      }
-      await prisma.timeDeduction.deleteMany({
-        where: { leaveRequestId: existing.id },
+        const deductions = await tx.timeDeduction.findMany({
+          where: { leaveRequestId: existing.id },
+        });
+        for (const d of deductions) {
+          await tx.timeWallet.updateMany({
+            where: {
+              employeeId: existing.employeeId,
+              year,
+              type: d.walletType,
+            },
+            data: {
+              totalUsed: { decrement: d.hours },
+              totalRemain: { increment: d.hours },
+            },
+          });
+        }
+        await tx.timeDeduction.deleteMany({
+          where: { leaveRequestId: existing.id },
+        });
       });
+
+      // 휴가 취소 → 근태 복원 (side effect, outside transaction)
+      await removeLeaveAttendance(
+        existing.employeeId,
+        existing.startDate,
+        existing.endDate
+      );
     };
 
     // 관리자: 어떤 상태든 삭제 가능 (DB에서 실제 삭제)
@@ -207,6 +226,12 @@ export async function DELETE(
     if (existing.status !== 'PENDING') {
       return NextResponse.json({ message: '대기 상태의 신청만 취소할 수 있습니다.' }, { status: 400 });
     }
+
+    // Cancel approval records so they don't appear in approvers' pending list
+    await prisma.approval.updateMany({
+      where: { leaveRequestId: id, action: 'PENDING' },
+      data: { action: 'CANCELLED', processedAt: new Date() },
+    });
 
     const updated = await prisma.leaveRequest.update({
       where: { id },

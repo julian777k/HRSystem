@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
+    const tenantId = await getTenantId();
     const body = await request.json();
     const { fromYear } = body;
 
@@ -21,13 +23,13 @@ export async function POST(request: NextRequest) {
     const toYear = fromYear + 1;
 
     // Check carry-over policy from SystemConfig
-    const carryOverEnabled = await prisma.systemConfig.findUnique({
+    const carryOverEnabled = await prisma.systemConfig.findFirst({
       where: { key: 'leave_carry_over_enabled' },
     });
-    const maxCarryOverDays = await prisma.systemConfig.findUnique({
+    const maxCarryOverDays = await prisma.systemConfig.findFirst({
       where: { key: 'leave_carry_over_max_days' },
     });
-    const carryOverExpiryMonths = await prisma.systemConfig.findUnique({
+    const carryOverExpiryMonths = await prisma.systemConfig.findFirst({
       where: { key: 'leave_carry_over_expiry_months' },
     });
 
@@ -112,7 +114,8 @@ export async function POST(request: NextRequest) {
         // Update or create balance for toYear
         const existingBalance = await prisma.leaveBalance.findUnique({
           where: {
-            employeeId_year_leaveTypeCode: {
+            tenantId_employeeId_year_leaveTypeCode: {
+              tenantId,
               employeeId: balance.employeeId,
               year: toYear,
               leaveTypeCode: 'ANNUAL',

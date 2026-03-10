@@ -56,7 +56,8 @@ interface OvertimeRequest {
 }
 
 const OVERTIME_TYPE_LABELS: Record<string, string> = {
-  WEEKDAY_NIGHT: '평일야간',
+  WEEKDAY_OVERTIME: '평일연장',
+  NIGHT: '야간',
   WEEKEND: '휴일근무',
   HOLIDAY: '공휴일근무',
 };
@@ -412,7 +413,7 @@ export default function OvertimeSettingsPage() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">상태</Label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <Select value={filterStatus || 'all'} onValueChange={(v) => setFilterStatus(v === 'all' ? '' : v)}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="전체" />
                   </SelectTrigger>
@@ -428,7 +429,6 @@ export default function OvertimeSettingsPage() {
                 variant="outline"
                 className="w-full sm:w-auto"
                 onClick={() => {
-                  if (filterStatus === 'all') setFilterStatus('');
                   fetchRequests();
                 }}
               >

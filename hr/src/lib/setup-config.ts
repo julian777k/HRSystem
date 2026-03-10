@@ -30,7 +30,7 @@ export async function getSetupConfig(): Promise<SetupConfig | null> {
 
 export async function isSetupComplete(): Promise<boolean> {
   try {
-    const config = await prisma.systemConfig.findUnique({
+    const config = await prisma.systemConfig.findFirst({
       where: { key: 'setup_complete' },
     });
     return config?.value === 'true';

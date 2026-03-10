@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSQLiteMode } from '@/lib/db-utils';
 import { isSetupComplete } from '@/lib/setup-config';
-import fs from 'fs';
-import path from 'path';
 
 export async function POST(request: NextRequest) {
   try {
+    // Setup secret check
+    const setupSecret = process.env.SETUP_SECRET;
+    if (setupSecret && request.headers.get('x-setup-secret') !== setupSecret) {
+      return NextResponse.json(
+        { success: false, message: '설정 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     // Guard: block if setup already completed
     if (await isSetupComplete()) {
       return NextResponse.json(
@@ -17,13 +24,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
 
     if (isSQLiteMode()) {
-      // SQLite mode: check that we can write to the DB path
-      const dbUrl = process.env.DATABASE_URL || 'file:./msa-hr.db';
+      // SQLite/D1 mode: on Cloudflare, D1 is always available
+      if (process.env.DEPLOY_TARGET === 'cloudflare') {
+        return NextResponse.json({
+          success: true,
+          message: 'Cloudflare D1 데이터베이스 준비 완료',
+          version: 'D1 (Cloudflare)',
+        });
+      }
+      // Local SQLite: check that we can write to the DB path
+      const dbUrl = process.env.DATABASE_URL || 'file:./keystonehr.db';
       const dbPath = dbUrl.replace('file:', '');
+      const path = await import('path');
+      const fs = await import('fs');
       const dbDir = path.dirname(dbPath);
 
       try {
-        // Check if directory exists and is writable
         if (!fs.existsSync(dbDir)) {
           fs.mkdirSync(dbDir, { recursive: true });
         }
@@ -42,16 +58,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // PostgreSQL mode: existing logic
+    // Non-SQLite mode: external database connection test
     let clientConfig: { connectionString?: string; host?: string; port?: number; user?: string; password?: string; database?: string; connectionTimeoutMillis: number };
 
     if (body.host) {
       clientConfig = {
         host: body.host || 'localhost',
         port: parseInt(body.port) || 5432,
-        user: body.user || 'msa',
+        user: body.user || 'keystonehr',
         password: body.password || '',
-        database: body.database || 'msa_hr',
+        database: body.database || 'keystonehr',
         connectionTimeoutMillis: 5000,
       };
     } else if (process.env.DATABASE_URL) {
@@ -66,7 +82,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { Client } = require('pg');
+    // Dynamic require prevents esbuild from tracing pg into Cloudflare bundle
+    const _require = new Function('m', 'return require(m)') as NodeRequire;
+    const { Client } = _require('pg');
     const client = new Client(clientConfig);
     await client.connect();
 
@@ -77,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'PostgreSQL 연결 성공',
+      message: '데이터베이스 연결 성공',
       version: version,
     });
   } catch (error: unknown) {
@@ -91,9 +109,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.error('DB test connection error:', error);
     return NextResponse.json({
       success: false,
-      message: `연결 실패: ${errorMessage}`,
+      message: '데이터베이스 연결에 실패했습니다.',
     }, { status: 400 });
   }
 }

@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronRight as ChevronRightIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface UserInfo {
   name: string;
@@ -86,29 +87,6 @@ interface DashboardData {
   todayAttendance?: TodayAttendance;
 }
 
-const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  PENDING: {
-    label: "대기",
-    className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-  },
-  IN_PROGRESS: {
-    label: "진행중",
-    className: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-  },
-  APPROVED: {
-    label: "승인",
-    className: "bg-green-100 text-green-800 hover:bg-green-100",
-  },
-  REJECTED: {
-    label: "반려",
-    className: "bg-red-100 text-red-800 hover:bg-red-100",
-  },
-  CANCELLED: {
-    label: "취소",
-    className: "bg-gray-100 text-gray-800 hover:bg-gray-100",
-  },
-};
-
 const ADMIN_ROLES = ["SYSTEM_ADMIN", "COMPANY_ADMIN"];
 
 export default function DashboardPage() {
@@ -141,7 +119,7 @@ export default function DashboardPage() {
           setData(dashData);
         }
       } catch {
-        // ignore
+        toast.error('대시보드 데이터를 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
@@ -246,7 +224,7 @@ export default function DashboardPage() {
       icon: Clock,
       color: "text-purple-600",
       bg: "bg-purple-50",
-      href: "/settings/overtime",
+      href: isAdmin ? "/settings/overtime" : "/attendance/overtime",
     },
   ];
 
@@ -267,8 +245,8 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-        {isAdmin && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {isAdmin && (
             <Button
               size="sm"
               variant="outline"
@@ -278,16 +256,16 @@ export default function DashboardPage() {
               <Users className="w-4 h-4 mr-1" />
               직원관리
             </Button>
-            <Button
-              size="sm"
-              className="flex-1 sm:flex-none"
-              onClick={() => router.push("/leave/my")}
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              휴가신청
-            </Button>
-          </div>
-        )}
+          )}
+          <Button
+            size="sm"
+            className="flex-1 sm:flex-none"
+            onClick={() => router.push("/leave/my")}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            휴가신청
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

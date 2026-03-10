@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 interface CompanySettings {
   company_name: string;
@@ -75,7 +76,7 @@ export default function CompanySettingsPage() {
           setSettings((prev) => ({ ...prev, ...data.settings }));
         }
       } catch {
-        // ignore
+        toast.error('설정을 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }

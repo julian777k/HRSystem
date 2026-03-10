@@ -29,7 +29,7 @@ async function main() {
 
   for (const pos of positions) {
     await prisma.position.upsert({
-      where: { name: pos.name },
+      where: { tenantId_name: { tenantId: '', name: pos.name } },
       update: {},
       create: pos,
     })
@@ -47,7 +47,7 @@ async function main() {
 
   for (const dept of departments) {
     await prisma.department.upsert({
-      where: { code: dept.code },
+      where: { tenantId_code: { tenantId: '', code: dept.code } },
       update: {},
       create: dept,
     })
@@ -68,7 +68,7 @@ async function main() {
 
   for (const lt of leaveTypes) {
     await prisma.leaveType.upsert({
-      where: { code: lt.code },
+      where: { tenantId_code: { tenantId: '', code: lt.code } },
       update: {},
       create: lt,
     })
@@ -76,10 +76,10 @@ async function main() {
   console.log(`  Created ${leaveTypes.length} leave types`)
 
   // 연차 부여 정책 (근로기준법 기반)
-  const annualLeaveType = await prisma.leaveType.findUnique({ where: { code: 'ANNUAL' } })
-  const sickLeaveType = await prisma.leaveType.findUnique({ where: { code: 'SICK' } })
-  const familyLeaveType = await prisma.leaveType.findUnique({ where: { code: 'FAMILY' } })
-  const publicLeaveType = await prisma.leaveType.findUnique({ where: { code: 'PUBLIC' } })
+  const annualLeaveType = await prisma.leaveType.findFirst({ where: { code: 'ANNUAL' } })
+  const sickLeaveType = await prisma.leaveType.findFirst({ where: { code: 'SICK' } })
+  const familyLeaveType = await prisma.leaveType.findFirst({ where: { code: 'FAMILY' } })
+  const publicLeaveType = await prisma.leaveType.findFirst({ where: { code: 'PUBLIC' } })
 
   const leavePolicies: { leaveTypeId: string; name: string; description: string; yearFrom: number; yearTo: number | null; grantDays: number; grantType: 'MONTHLY' | 'YEARLY' | 'ONCE' }[] = []
 

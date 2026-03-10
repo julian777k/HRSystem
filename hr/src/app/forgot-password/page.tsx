@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, Mail, Building2 } from "lucide-react";
+import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import Image from "next/image";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -45,9 +46,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-2">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
+          <Image src="/logo.png" alt="KeystoneHR" width={48} height={48} className="mx-auto w-12 h-12 mb-2" />
           <CardTitle className="text-2xl font-bold">비밀번호 재설정</CardTitle>
           <CardDescription>
             가입한 이메일을 입력하시면 비밀번호 재설정 링크를 보내드립니다.

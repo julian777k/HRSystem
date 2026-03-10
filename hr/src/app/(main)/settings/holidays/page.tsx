@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -32,15 +33,35 @@ interface Holiday {
   name: string;
   date: string;
   isRecurring: boolean;
+  type: string;
+  targetId: string | null;
 }
 
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  PUBLIC: '공휴일',
+  COMPANY: '회사휴무',
+  DEPARTMENT: '부서휴무',
+};
+
+const TYPE_BADGE_STYLES: Record<string, string> = {
+  PUBLIC: 'bg-blue-100 text-blue-700 border-blue-200',
+  COMPANY: 'bg-green-100 text-green-700 border-green-200',
+  DEPARTMENT: 'bg-orange-100 text-orange-700 border-orange-200',
+};
+
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toISOString().split('T')[0];
+  return dateStr.split('T')[0];
 }
 
 function getDayOfWeek(dateStr: string) {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
-  return days[new Date(dateStr).getDay()];
+  return days[new Date(dateStr.split('T')[0] + 'T00:00:00').getDay()];
 }
 
 export default function HolidaysPage() {
@@ -50,6 +71,10 @@ export default function HolidaysPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [filterType, setFilterType] = useState<string>('ALL');
+
+  // Departments
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   // Form
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -57,6 +82,8 @@ export default function HolidaysPage() {
   const [formName, setFormName] = useState('');
   const [formDate, setFormDate] = useState('');
   const [formIsRecurring, setFormIsRecurring] = useState(false);
+  const [formType, setFormType] = useState<string>('PUBLIC');
+  const [formTargetId, setFormTargetId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{open: boolean; title: string; description: string; action: () => void}>({open: false, title: '', description: '', action: () => {}});
@@ -80,6 +107,18 @@ export default function HolidaysPage() {
       .catch(() => setRoleLoaded(true));
   }, [router]);
 
+  // Fetch departments on mount
+  useEffect(() => {
+    fetch('/api/departments')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.allDepartments) {
+          setDepartments(data.allDepartments);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const fetchHolidays = useCallback(async () => {
     setLoading(true);
     try {
@@ -101,11 +140,23 @@ export default function HolidaysPage() {
     }
   }, [fetchHolidays, roleLoaded, userRole]);
 
+  const getDepartmentName = (targetId: string | null) => {
+    if (!targetId) return '';
+    const dept = departments.find((d) => d.id === targetId);
+    return dept ? dept.name : '';
+  };
+
+  const filteredHolidays = filterType === 'ALL'
+    ? holidays
+    : holidays.filter((h) => h.type === filterType);
+
   const openCreateDialog = () => {
     setEditingHoliday(null);
     setFormName('');
     setFormDate('');
     setFormIsRecurring(false);
+    setFormType('PUBLIC');
+    setFormTargetId('');
     setDialogOpen(true);
   };
 
@@ -114,6 +165,8 @@ export default function HolidaysPage() {
     setFormName(holiday.name);
     setFormDate(formatDate(holiday.date));
     setFormIsRecurring(holiday.isRecurring);
+    setFormType(holiday.type || 'PUBLIC');
+    setFormTargetId(holiday.targetId || '');
     setDialogOpen(true);
   };
 
@@ -123,16 +176,29 @@ export default function HolidaysPage() {
       return;
     }
 
+    if (formType === 'DEPARTMENT' && !formTargetId) {
+      toast.error('부서를 선택해주세요.');
+      return;
+    }
+
     setSaving(true);
     try {
+      const payload = {
+        name: formName,
+        date: formDate,
+        isRecurring: formIsRecurring,
+        type: formType,
+        targetId: formType === 'DEPARTMENT' ? formTargetId : null,
+      };
+
       if (editingHoliday) {
         const res = await fetch(`/api/holidays/${editingHoliday.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formName, date: formDate, isRecurring: formIsRecurring }),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
-          toast.success('공휴일이 수정되었습니다.');
+          toast.success('휴무일이 수정되었습니다.');
           setDialogOpen(false);
           fetchHolidays();
         } else {
@@ -143,10 +209,10 @@ export default function HolidaysPage() {
         const res = await fetch('/api/holidays', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formName, date: formDate, isRecurring: formIsRecurring }),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
-          toast.success('공휴일이 추가되었습니다.');
+          toast.success('휴무일이 추가되었습니다.');
           setDialogOpen(false);
           fetchHolidays();
         } else {
@@ -164,8 +230,8 @@ export default function HolidaysPage() {
   const handleDelete = (id: string) => {
     setConfirmDialog({
       open: true,
-      title: '공휴일 삭제',
-      description: '이 공휴일을 삭제하시겠습니까?',
+      title: '휴무일 삭제',
+      description: '이 휴무일을 삭제하시겠습니까?',
       action: async () => {
         try {
           const res = await fetch(`/api/holidays/${id}`, { method: 'DELETE' });
@@ -230,8 +296,8 @@ export default function HolidaysPage() {
         <div className="flex items-center gap-3">
           <Calendar className="w-7 h-7 text-amber-600" />
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">공휴일 관리</h1>
-            <p className="text-sm text-gray-500 mt-0.5">법정공휴일 및 회사 지정 휴일을 관리합니다.</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">공휴일 및 휴무일 관리</h1>
+            <p className="text-sm text-gray-500 mt-0.5">법정공휴일, 회사 지정 휴일, 부서별 휴무일을 관리합니다.</p>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -241,7 +307,7 @@ export default function HolidaysPage() {
           </Button>
           <Button onClick={openCreateDialog}>
             <Plus className="w-4 h-4 mr-2" />
-            공휴일 추가
+            휴무일 추가
           </Button>
         </div>
       </div>
@@ -249,19 +315,32 @@ export default function HolidaysPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <CardTitle>{selectedYear}년 공휴일 목록</CardTitle>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={y}>
-                    {y}년
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CardTitle>{selectedYear}년 휴무일 목록</CardTitle>
+            <div className="flex items-center gap-2">
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">전체</SelectItem>
+                  <SelectItem value="PUBLIC">공휴일</SelectItem>
+                  <SelectItem value="COMPANY">회사휴무</SelectItem>
+                  <SelectItem value="DEPARTMENT">부서휴무</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}년
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -270,32 +349,54 @@ export default function HolidaysPage() {
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
               불러오는 중...
             </div>
-          ) : holidays.length === 0 ? (
+          ) : filteredHolidays.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-400 mb-4">{selectedYear}년에 등록된 공휴일이 없습니다.</p>
-              <Button variant="outline" onClick={handleSeedHolidays}>
-                법정공휴일 자동생성
-              </Button>
+              <p className="text-gray-400 mb-4">
+                {filterType === 'ALL'
+                  ? `${selectedYear}년에 등록된 휴무일이 없습니다.`
+                  : `${selectedYear}년에 등록된 ${TYPE_LABELS[filterType] || ''}이(가) 없습니다.`}
+              </p>
+              {filterType === 'ALL' && (
+                <Button variant="outline" onClick={handleSeedHolidays}>
+                  법정공휴일 자동생성
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[500px]">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead>
                   <tr className="border-b bg-gray-50 text-left">
                     <th className="py-3 px-3 font-medium text-gray-600">날짜</th>
                     <th className="py-3 px-3 font-medium text-gray-600">요일</th>
-                    <th className="py-3 px-3 font-medium text-gray-600">공휴일명</th>
+                    <th className="py-3 px-3 font-medium text-gray-600">휴무일명</th>
+                    <th className="py-3 px-3 font-medium text-gray-600">유형</th>
                     <th className="py-3 px-3 font-medium text-gray-600 hidden sm:table-cell">매년반복</th>
                     <th className="py-3 px-3 font-medium text-gray-600 text-right">관리</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {holidays.map((h) => (
+                  {filteredHolidays.map((h) => (
                     <tr key={h.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="py-3 px-3">{formatDate(h.date)}</td>
                       <td className="py-3 px-3">{getDayOfWeek(h.date)}</td>
                       <td className="py-3 px-3 font-medium">{h.name}</td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <Badge
+                            variant="outline"
+                            className={TYPE_BADGE_STYLES[h.type] || TYPE_BADGE_STYLES.PUBLIC}
+                          >
+                            {TYPE_LABELS[h.type] || '공휴일'}
+                          </Badge>
+                          {h.type === 'DEPARTMENT' && h.targetId && (
+                            <span className="text-xs text-gray-500">
+                              {getDepartmentName(h.targetId)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 px-3 hidden sm:table-cell">
                         {h.isRecurring ? 'O' : 'X'}
                       </td>
@@ -344,12 +445,47 @@ export default function HolidaysPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>{editingHoliday ? '공휴일 수정' : '공휴일 추가'}</DialogTitle>
-            <DialogDescription>공휴일 정보를 입력하세요.</DialogDescription>
+            <DialogTitle>{editingHoliday ? '휴무일 수정' : '휴무일 추가'}</DialogTitle>
+            <DialogDescription>휴무일 정보를 입력하세요.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>공휴일명</Label>
+              <Label>유형</Label>
+              <Select value={formType} onValueChange={(value) => {
+                setFormType(value);
+                if (value !== 'DEPARTMENT') {
+                  setFormTargetId('');
+                }
+              }}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PUBLIC">공휴일</SelectItem>
+                  <SelectItem value="COMPANY">회사휴무</SelectItem>
+                  <SelectItem value="DEPARTMENT">부서휴무</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {formType === 'DEPARTMENT' && (
+              <div>
+                <Label>부서</Label>
+                <Select value={formTargetId} onValueChange={setFormTargetId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="부서를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <Label>휴무일명</Label>
               <Input
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}

@@ -1,0 +1,49 @@
+#:schema node_modules/wrangler/config-schema.json
+
+name = "hr-saas"
+main = ".open-next/worker.js"
+compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom Domain Routes (must be top-level, before any [section] headers)
+# Handles both root domain and wildcard subdomains for multi-tenant SaaS
+routes = [
+  { pattern = "keystonehr.app/*", zone_name = "keystonehr.app" },
+  { pattern = "*.keystonehr.app/*", zone_name = "keystonehr.app" },
+]
+
+# Assets (static files served by Cloudflare)
+[assets]
+binding = "ASSETS"
+directory = ".open-next/assets"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "hr-saas-db"
+database_id = "1dc0b8ed-7949-4d65-af12-9c10fbbc0669"
+migrations_dir = "migrations"
+
+# KV Namespace (cache)
+[[kv_namespaces]]
+binding = "HR_CACHE"
+id = "54f129537c3f4f3bb5bc595c6a7a821e"
+
+# R2 Bucket (file storage + Prisma WASM)
+[[r2_buckets]]
+binding = "HR_FILES"
+bucket_name = "hr-saas-files"
+
+# Environment Variables
+[vars]
+DEPLOY_TARGET = "cloudflare"
+DEPLOY_MODE = "saas"
+SAAS_BASE_DOMAIN = "keystonehr.app"
+NODE_ENV = "production"
+DB_PROVIDER = "sqlite"
+NEXT_PUBLIC_DB_PROVIDER = "sqlite"
+NEXT_PUBLIC_DEPLOY_TARGET = "cloudflare"
+
+# Secrets (set via: npx wrangler secret put <NAME>)
+# JWT_SECRET
+# SUPER_ADMIN_JWT_SECRET

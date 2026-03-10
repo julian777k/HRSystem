@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface AttendanceRecord {
   id: string;
@@ -43,14 +44,11 @@ interface TodayData {
 }
 
 const OVERTIME_TYPE_LABEL: Record<string, string> = {
-  WEEKDAY_NIGHT: '평일 야간',
+  WEEKDAY_OVERTIME: '평일 연장',
+  NIGHT: '야간',
   WEEKEND: '휴일',
   HOLIDAY: '공휴일',
 };
-
-function formatTimeStr(timeStr: string): string {
-  return timeStr;
-}
 
 export default function AttendanceClockPage() {
   const [todayData, setTodayData] = useState<TodayData | null>(null);
@@ -65,7 +63,7 @@ export default function AttendanceClockPage() {
         setTodayData(data);
       }
     } catch {
-      // ignore
+      toast.error('출퇴근 정보를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
@@ -145,19 +143,19 @@ export default function AttendanceClockPage() {
                     <div className="text-center">
                       <p className="text-xs text-gray-500 mb-1">출근</p>
                       <p className="text-2xl font-mono font-bold text-gray-900">
-                        {formatTimeStr(ws.workStartTime)}
+                        {ws.workStartTime}
                       </p>
                     </div>
                     <div className="w-12 h-px bg-gray-300" />
                     <div className="text-center">
                       <p className="text-xs text-gray-500 mb-1">퇴근</p>
                       <p className="text-2xl font-mono font-bold text-gray-900">
-                        {formatTimeStr(ws.workEndTime)}
+                        {ws.workEndTime}
                       </p>
                     </div>
                   </div>
                   <p className="text-center text-xs text-gray-400 mt-3">
-                    점심 {formatTimeStr(ws.lunchStartTime)}~{formatTimeStr(ws.lunchEndTime)} · 기본 {dailyHours}시간
+                    점심 {ws.lunchStartTime}~{ws.lunchEndTime} · 기본 {dailyHours}시간
                   </p>
                 </div>
 

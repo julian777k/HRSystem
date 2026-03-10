@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcryptjs from 'bcryptjs';
+import { hashPassword, verifyPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+
+function validatePassword(password: string): string | null {
+  if (password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +24,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { message: '새 비밀번호는 6자 이상이어야 합니다.' },
-        { status: 400 }
-      );
+    const pwError = validatePassword(newPassword);
+    if (pwError) {
+      return NextResponse.json({ message: pwError }, { status: 400 });
     }
 
     const employee = await prisma.employee.findUnique({
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = await bcryptjs.compare(currentPassword, employee.passwordHash);
+    const isValid = await verifyPassword(currentPassword, employee.passwordHash);
     if (!isValid) {
       return NextResponse.json(
         { message: '현재 비밀번호가 올바르지 않습니다.' },
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const passwordHash = await bcryptjs.hash(newPassword, 10);
+    const passwordHash = await hashPassword(newPassword);
 
     await prisma.employee.update({
       where: { id: user.id },

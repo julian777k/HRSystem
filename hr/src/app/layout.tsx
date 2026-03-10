@@ -12,12 +12,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "HR SYSTEM - 인사관리 시스템",
-  description: "사내 인사관리 시스템",
+  title: "KeystoneHR - 스마트 인사관리",
+  description: "KeystoneHR - 출퇴근, 휴가, 결재, 연장근무를 하나의 플랫폼으로",
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "HR SYSTEM",
+    title: "KeystoneHR",
   },
   formatDetection: {
     telephone: false,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcryptjs from 'bcryptjs';
-import * as XLSX from 'xlsx';
+import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 
@@ -43,6 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const XLSX = await import('xlsx');
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const passwordHash = await bcryptjs.hash(password, 10);
+        const passwordHash = await hashPassword(password);
 
         await prisma.employee.create({
           data: {

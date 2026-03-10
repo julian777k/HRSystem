@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { accrueCompTime } from '@/lib/time-wallet';
-import { notifyRequestResult } from '@/lib/notifications';
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
 
@@ -168,6 +167,12 @@ export async function DELETE(
     if (!['PENDING', 'IN_PROGRESS'].includes(existing.status)) {
       return NextResponse.json({ message: '대기/진행 상태의 신청만 취소할 수 있습니다.' }, { status: 400 });
     }
+
+    // Cancel approval records so they don't appear in approvers' pending list
+    await prisma.approval.updateMany({
+      where: { overtimeId: id, action: 'PENDING' },
+      data: { action: 'CANCELLED', processedAt: new Date() },
+    });
 
     const updated = await prisma.overtimeRequest.update({
       where: { id },

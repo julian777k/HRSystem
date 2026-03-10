@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { getTenantId } from '@/lib/tenant-context';
 
 interface DeductionResult {
   success: boolean;
@@ -52,6 +53,7 @@ export async function deductFromWallet(
   year: number,
   leaveRequestId?: string
 ): Promise<DeductionResult> {
+  const tenantId = await getTenantId();
   const policy = await getCompensationPolicy();
   const order = policy.deductionOrder.split(',').map((s) => s.trim());
   const details: { walletType: string; hours: number }[] = [];
@@ -62,7 +64,8 @@ export async function deductFromWallet(
 
     const wallet = await prisma.timeWallet.findUnique({
       where: {
-        employeeId_year_type: {
+        tenantId_employeeId_year_type: {
+          tenantId,
           employeeId,
           year,
           type: walletType as 'COMP_TIME' | 'ANNUAL',
@@ -134,6 +137,7 @@ export async function accrueCompTime(
     return { earnedHours: 0 };
   }
 
+  const tenantId = await getTenantId();
   let multiplier = policy.weekdayMultiplier;
   if (overtimeType === 'NIGHT') multiplier = policy.nightMultiplier;
   if (overtimeType === 'HOLIDAY') multiplier = policy.holidayMultiplier;
@@ -145,7 +149,8 @@ export async function accrueCompTime(
   // 지갑에 적립
   await prisma.timeWallet.upsert({
     where: {
-      employeeId_year_type: {
+      tenantId_employeeId_year_type: {
+        tenantId,
         employeeId,
         year,
         type: 'COMP_TIME',
@@ -186,9 +191,11 @@ export async function initAnnualWallet(
   year: number,
   totalHours: number
 ) {
+  const tenantId = await getTenantId();
   await prisma.timeWallet.upsert({
     where: {
-      employeeId_year_type: {
+      tenantId_employeeId_year_type: {
+        tenantId,
         employeeId,
         year,
         type: 'ANNUAL',

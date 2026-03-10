@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcryptjs from 'bcryptjs';
+import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 
@@ -64,7 +64,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, email, phone, departmentId, positionId, hireDate, role, status, password } = body;
+    const { name, email, phone, departmentId, positionId, hireDate, role, status, password, workType, workStartTime, workEndTime, lunchStartTime, lunchEndTime } = body;
 
     const existing = await prisma.employee.findUnique({ where: { id } });
     if (!existing) {
@@ -75,13 +75,21 @@ export async function PUT(
     }
 
     if (email && email !== existing.email) {
-      const emailTaken = await prisma.employee.findUnique({ where: { email } });
+      const emailTaken = await prisma.employee.findFirst({ where: { email } });
       if (emailTaken) {
         return NextResponse.json(
           { message: '이미 사용 중인 이메일입니다.' },
           { status: 409 }
         );
       }
+    }
+
+    // Role validation: only SYSTEM_ADMIN can assign SYSTEM_ADMIN role
+    if (role === 'SYSTEM_ADMIN' && user.role !== 'SYSTEM_ADMIN') {
+      return NextResponse.json(
+        { message: 'SYSTEM_ADMIN 역할은 시스템 관리자만 부여할 수 있습니다.' },
+        { status: 403 }
+      );
     }
 
     const updateData: Record<string, unknown> = {};
@@ -94,8 +102,13 @@ export async function PUT(
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
     if (password) {
-      updateData.passwordHash = await bcryptjs.hash(password, 10);
+      updateData.passwordHash = await hashPassword(password);
     }
+    if (workType !== undefined) updateData.workType = workType;
+    if (workStartTime !== undefined) updateData.workStartTime = workStartTime || null;
+    if (workEndTime !== undefined) updateData.workEndTime = workEndTime || null;
+    if (lunchStartTime !== undefined) updateData.lunchStartTime = lunchStartTime || null;
+    if (lunchEndTime !== undefined) updateData.lunchEndTime = lunchEndTime || null;
 
     const employee = await prisma.employee.update({
       where: { id },

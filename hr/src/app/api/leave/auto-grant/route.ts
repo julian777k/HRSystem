@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { calculateAnnualLeave, getYearsWorked } from '@/lib/leave-calculator';
 import { initAnnualWallet, getCompensationPolicy } from '@/lib/time-wallet';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
+    const tenantId = await getTenantId();
     const body = await request.json();
     const year = body.year || new Date().getFullYear();
     const selectedTypes: string[] | undefined = body.leaveTypeCodes;
@@ -138,7 +140,8 @@ export async function POST(request: NextRequest) {
             // [FIX] Balance upsert로 변경 (findUnique+create race condition 해소)
             await tx.leaveBalance.upsert({
               where: {
-                employeeId_year_leaveTypeCode: {
+                tenantId_employeeId_year_leaveTypeCode: {
+                  tenantId,
                   employeeId: emp.id,
                   year,
                   leaveTypeCode: typeCode,

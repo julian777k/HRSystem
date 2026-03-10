@@ -9,17 +9,36 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : new Date().getFullYear();
+    const type = searchParams.get('type');
+    const departmentId = searchParams.get('departmentId');
 
     const startOfYear = new Date(year, 0, 1);
     const endOfYear = new Date(year, 11, 31, 23, 59, 59);
 
-    const holidays = await prisma.holiday.findMany({
-      where: {
-        date: {
-          gte: startOfYear,
-          lte: endOfYear,
-        },
+    const whereClause: Record<string, unknown> = {
+      date: {
+        gte: startOfYear,
+        lte: endOfYear,
       },
+    };
+
+    if (type) {
+      whereClause.type = type;
+    }
+
+    if (departmentId) {
+      // Include PUBLIC, COMPANY, and DEPARTMENT holidays for the specified department
+      whereClause.OR = [
+        { type: 'PUBLIC' },
+        { type: 'COMPANY' },
+        { type: 'DEPARTMENT', targetId: departmentId },
+      ];
+      // Remove the top-level type filter if departmentId is set
+      delete whereClause.type;
+    }
+
+    const holidays = await prisma.holiday.findMany({
+      where: whereClause,
       orderBy: { date: 'asc' },
     });
 
@@ -43,10 +62,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, date, isRecurring } = body;
+    const { name, date, isRecurring, type = 'PUBLIC', targetId } = body;
 
     if (!name || !date) {
       return NextResponse.json({ message: '이름과 날짜를 입력해주세요.' }, { status: 400 });
+    }
+
+    if (!['PUBLIC', 'COMPANY', 'DEPARTMENT'].includes(type)) {
+      return NextResponse.json({ message: '유효하지 않은 유형입니다.' }, { status: 400 });
+    }
+
+    if (type === 'DEPARTMENT' && !targetId) {
+      return NextResponse.json({ message: '부서 휴무일은 부서를 지정해야 합니다.' }, { status: 400 });
     }
 
     const holiday = await prisma.holiday.create({
@@ -54,6 +81,8 @@ export async function POST(request: NextRequest) {
         name,
         date: new Date(date),
         isRecurring: isRecurring ?? false,
+        type,
+        targetId: type === 'DEPARTMENT' ? targetId : null,
       },
     });
 

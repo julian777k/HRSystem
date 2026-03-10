@@ -221,7 +221,7 @@ export default function AdminPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">관리자 콘솔</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {companyName || "회사"} 인사관리 시스템 설정 및 운영
+            {companyName || "회사"} KeystoneHR 관리
           </p>
         </div>
       </div>

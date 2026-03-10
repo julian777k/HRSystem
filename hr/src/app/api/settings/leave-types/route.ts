@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingName = await prisma.leaveType.findUnique({ where: { name } });
+    const existingName = await prisma.leaveType.findFirst({ where: { name } });
     if (existingName) {
       return NextResponse.json(
         { message: '이미 존재하는 유형명입니다.' },
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingCode = await prisma.leaveType.findUnique({ where: { code } });
+    const existingCode = await prisma.leaveType.findFirst({ where: { code } });
     if (existingCode) {
       return NextResponse.json(
         { message: '이미 존재하는 코드입니다.' },

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcryptjs from 'bcryptjs';
+import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import { sendEmail } from '@/lib/email';
-import { accountCreatedEmail } from '@/lib/email-templates';
 import { containsFilter } from '@/lib/db-utils';
 
 export async function GET(request: NextRequest) {
@@ -23,7 +21,7 @@ export async function GET(request: NextRequest) {
     const position = searchParams.get('position') || '';
     const status = searchParams.get('status') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 100);
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
@@ -64,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const sanitized = employees.map(({ passwordHash, ...rest }) => rest);
 
-    return NextResponse.json({ employees: sanitized, data: sanitized, total, page, limit });
+    return NextResponse.json({ employees: sanitized, total, page, limit });
   } catch (error) {
     console.error('Employee list error:', error);
     return NextResponse.json(
@@ -105,7 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingEmail = await prisma.employee.findUnique({ where: { email } });
+    const existingEmail = await prisma.employee.findFirst({ where: { email } });
     if (existingEmail) {
       return NextResponse.json(
         { message: '이미 사용 중인 이메일입니다.' },
@@ -129,7 +127,7 @@ export async function POST(request: NextRequest) {
       employeeNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     }
 
-    const existingNumber = await prisma.employee.findUnique({
+    const existingNumber = await prisma.employee.findFirst({
       where: { employeeNumber },
     });
     if (existingNumber) {
@@ -139,7 +137,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const passwordHash = await bcryptjs.hash(password, 10);
+    // Role validation: only SYSTEM_ADMIN can assign SYSTEM_ADMIN role
+    const assignedRole = role || 'BASIC';
+    if (assignedRole === 'SYSTEM_ADMIN' && user.role !== 'SYSTEM_ADMIN') {
+      return NextResponse.json(
+        { message: 'SYSTEM_ADMIN 역할은 시스템 관리자만 부여할 수 있습니다.' },
+        { status: 403 }
+      );
+    }
+
+    const passwordHash = await hashPassword(password);
 
     const employee = await prisma.employee.create({
       data: {
@@ -151,7 +158,7 @@ export async function POST(request: NextRequest) {
         departmentId,
         positionId,
         hireDate: new Date(hireDate),
-        role: role || 'BASIC',
+        role: assignedRole,
       },
       include: {
         department: { select: { id: true, name: true } },
@@ -160,14 +167,6 @@ export async function POST(request: NextRequest) {
     });
 
     const { passwordHash: _, ...sanitized } = employee;
-
-    // Send account creation email
-    const appUrl = process.env.APP_URL || 'http://localhost:3000';
-    sendEmail(
-      email,
-      '[HR] 계정 생성 안내',
-      accountCreatedEmail(name, email, password, `${appUrl}/login`)
-    ).catch(() => {});
 
     return NextResponse.json({ employee: sanitized }, { status: 201 });
   } catch (error) {

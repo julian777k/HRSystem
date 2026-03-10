@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcryptjs from 'bcryptjs';
+import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
+
+function validatePassword(password: string): string | null {
+  if (password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+  return null;
+}
 
 /**
  * POST /api/auth/register - 직원 자체 회원가입
@@ -29,15 +34,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { message: '비밀번호는 6자 이상이어야 합니다.' },
-        { status: 400 }
-      );
+    const pwError = validatePassword(password);
+    if (pwError) {
+      return NextResponse.json({ message: pwError }, { status: 400 });
     }
 
     // 이메일 중복 확인
-    const existing = await prisma.employee.findUnique({ where: { email } });
+    const existing = await prisma.employee.findFirst({ where: { email } });
     if (existing) {
       return NextResponse.json(
         { message: '이미 등록된 이메일입니다.' },
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 사원번호 중복 확인
-    const existingNumber = await prisma.employee.findUnique({
+    const existingNumber = await prisma.employee.findFirst({
       where: { employeeNumber: finalEmployeeNumber },
     });
     if (existingNumber) {
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
       posId = defaultPos.id;
     }
 
-    const passwordHash = await bcryptjs.hash(password, 10);
+    const passwordHash = await hashPassword(password);
 
     const employee = await prisma.employee.create({
       data: {

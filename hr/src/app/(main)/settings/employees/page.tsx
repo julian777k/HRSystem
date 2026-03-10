@@ -33,7 +33,9 @@ import {
   ChevronRight,
   Users,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const ADMIN_ROLES = ["SYSTEM_ADMIN", "COMPANY_ADMIN"];
 
@@ -60,8 +62,13 @@ interface Employee {
   position: Position;
   hireDate: string;
   resignDate: string | null;
-  status: "ACTIVE" | "ON_LEAVE" | "RESIGNED";
+  status: "PENDING" | "ACTIVE" | "ON_LEAVE" | "RESIGNED";
   role: string;
+  workType: string | null;
+  workStartTime: string | null;
+  workEndTime: string | null;
+  lunchStartTime: string | null;
+  lunchEndTime: string | null;
 }
 
 interface EmployeeForm {
@@ -74,9 +81,19 @@ interface EmployeeForm {
   positionId: string;
   hireDate: string;
   role: string;
+  status: string;
+  workType: string;
+  workStartTime: string;
+  workEndTime: string;
+  lunchStartTime: string;
+  lunchEndTime: string;
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
+  PENDING: {
+    label: "승인대기",
+    className: "bg-orange-100 text-orange-800 hover:bg-orange-100",
+  },
   ACTIVE: {
     label: "재직",
     className: "bg-green-100 text-green-800 hover:bg-green-100",
@@ -108,6 +125,12 @@ const emptyForm: EmployeeForm = {
   positionId: "",
   hireDate: "",
   role: "BASIC",
+  status: "ACTIVE",
+  workType: "",
+  workStartTime: "",
+  workEndTime: "",
+  lunchStartTime: "",
+  lunchEndTime: "",
 };
 
 export default function EmployeesPage() {
@@ -122,11 +145,23 @@ export default function EmployeesPage() {
   const [limit] = useState(10);
   const [loading, setLoading] = useState(false);
 
-  // Filters
+  // Filters (search는 debounce 적용)
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [filterPosition, setFilterPosition] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+
+  // 검색어 debounce (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== search) {
+        setSearch(searchInput);
+        setPage(1);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Dialogs
   const [createOpen, setCreateOpen] = useState(false);
@@ -178,7 +213,7 @@ export default function EmployeesPage() {
         setTotal(data.total);
       }
     } catch {
-      // ignore
+      toast.error('데이터를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -201,7 +236,7 @@ export default function EmployeesPage() {
         setPositions(data.positions || []);
       }
     } catch {
-      // ignore
+      toast.error('데이터를 불러오는 중 오류가 발생했습니다.');
     }
   }, []);
 
@@ -219,8 +254,8 @@ export default function EmployeesPage() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSearch(searchInput);
     setPage(1);
-    fetchEmployees();
   };
 
   const handleCreate = async () => {
@@ -272,6 +307,12 @@ export default function EmployeesPage() {
       positionId: emp.positionId,
       hireDate: emp.hireDate.split("T")[0],
       role: emp.role,
+      status: emp.status,
+      workType: emp.workType || "",
+      workStartTime: emp.workStartTime || "",
+      workEndTime: emp.workEndTime || "",
+      lunchStartTime: emp.lunchStartTime || "",
+      lunchEndTime: emp.lunchEndTime || "",
     });
     setFormError("");
     setEditOpen(true);
@@ -291,6 +332,12 @@ export default function EmployeesPage() {
         positionId: form.positionId,
         hireDate: form.hireDate,
         role: form.role,
+        status: form.status,
+        workType: form.workType,
+        workStartTime: form.workStartTime,
+        workEndTime: form.workEndTime,
+        lunchStartTime: form.lunchStartTime,
+        lunchEndTime: form.lunchEndTime,
       };
       if (form.password) body.password = form.password;
 
@@ -328,11 +375,33 @@ export default function EmployeesPage() {
         setDeleteOpen(false);
         setSelectedEmployee(null);
         fetchEmployees();
+      } else {
+        const data = await res.json();
+        toast.error(data.message || '직원 처리 중 오류가 발생했습니다.');
       }
     } catch {
-      // ignore
+      toast.error('직원 처리 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleApprove = async (emp: Employee) => {
+    try {
+      const res = await fetch(`/api/employees/${emp.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+      if (res.ok) {
+        toast.success(`${emp.name}님이 승인되었습니다.`);
+        fetchEmployees();
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "승인 처리 중 오류가 발생했습니다.");
+      }
+    } catch {
+      toast.error("승인 처리 중 오류가 발생했습니다.");
     }
   };
 
@@ -383,7 +452,7 @@ export default function EmployeesPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      // ignore
+      toast.error('데이터를 불러오는 중 오류가 발생했습니다.');
     }
   };
 
@@ -513,23 +582,78 @@ export default function EmployeesPage() {
           </Select>
         </div>
       </div>
-      <div className="space-y-2">
-        <Label>권한</Label>
-        <Select
-          value={form.role}
-          onValueChange={(v) => setForm((prev) => ({ ...prev, role: v }))}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ROLE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>권한</Label>
+          <Select
+            value={form.role}
+            onValueChange={(v) => setForm((prev) => ({ ...prev, role: v }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ROLE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {editOpen && (
+          <div className="space-y-2">
+            <Label>상태</Label>
+            <Select
+              value={form.status}
+              onValueChange={(v) => setForm((prev) => ({ ...prev, status: v }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">재직</SelectItem>
+                <SelectItem value="ON_LEAVE">휴직</SelectItem>
+                <SelectItem value="RESIGNED">퇴직</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+      {/* 근무시간 설정 */}
+      <div className="border-t pt-4 mt-2">
+        <p className="text-sm font-medium text-gray-700 mb-3">근무시간 설정 (미입력시 부서/회사 설정 사용)</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>근무유형</Label>
+            <Select value={form.workType || 'default'} onValueChange={(v) => setForm(prev => ({...prev, workType: v === 'default' ? '' : v}))}>
+              <SelectTrigger><SelectValue placeholder="회사 기본" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">회사 기본</SelectItem>
+                <SelectItem value="FIXED">고정근무</SelectItem>
+                <SelectItem value="FLEXIBLE">자율근무</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3">
+          <div className="space-y-2">
+            <Label>출근시간</Label>
+            <Input type="time" value={form.workStartTime} onChange={(e) => setForm(prev => ({...prev, workStartTime: e.target.value}))} />
+          </div>
+          <div className="space-y-2">
+            <Label>퇴근시간</Label>
+            <Input type="time" value={form.workEndTime} onChange={(e) => setForm(prev => ({...prev, workEndTime: e.target.value}))} />
+          </div>
+          <div className="space-y-2">
+            <Label>점심 시작</Label>
+            <Input type="time" value={form.lunchStartTime} onChange={(e) => setForm(prev => ({...prev, lunchStartTime: e.target.value}))} />
+          </div>
+          <div className="space-y-2">
+            <Label>점심 종료</Label>
+            <Input type="time" value={form.lunchEndTime} onChange={(e) => setForm(prev => ({...prev, lunchEndTime: e.target.value}))} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -595,8 +719,8 @@ export default function EmployeesPage() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="이름, 사번, 이메일 검색"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="pl-9"
                 />
               </div>
@@ -659,6 +783,7 @@ export default function EmployeesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">전체</SelectItem>
+                  <SelectItem value="PENDING">승인대기</SelectItem>
                   <SelectItem value="ACTIVE">재직</SelectItem>
                   <SelectItem value="ON_LEAVE">휴직</SelectItem>
                   <SelectItem value="RESIGNED">퇴직</SelectItem>
@@ -728,6 +853,16 @@ export default function EmployeesPage() {
                       <td className="py-3 px-3 text-gray-500 hidden md:table-cell truncate max-w-[200px]">{emp.email}</td>
                       <td className="py-3 px-3 text-right">
                         <div className="flex justify-end gap-1">
+                          {emp.status === "PENDING" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleApprove(emp)}
+                              title="승인"
+                            >
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"

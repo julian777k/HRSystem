@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { getWalletBalance } from '@/lib/time-wallet';
+import { getWorkSettings, getDailyWorkHours, isWorkday as checkIsWorkday, buildDateTime } from '@/lib/attendance-utils';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function GET() {
   try {
@@ -10,18 +12,89 @@ export async function GET() {
       return NextResponse.json({ message: '인증 필요' }, { status: 401 });
     }
 
+    const tenantId = await getTenantId();
     const currentYear = new Date().getFullYear();
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // 1. Leave balance (remaining annual leave)
-    const leaveBalances = await prisma.leaveBalance.findMany({
-      where: {
-        employeeId: user.id,
-        year: currentYear,
-      },
-    });
+    const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
+
+    // Run independent queries in parallel
+    const [
+      leaveBalances,
+      pendingApprovals,
+      deptMembers,
+      overtimeRequests,
+      recentLeaves,
+      pendingItems,
+      timeWallet,
+      welfareResults,
+    ] = await Promise.all([
+      // 1. Leave balance
+      prisma.leaveBalance.findMany({
+        where: { employeeId: user.id, year: currentYear },
+      }),
+      // 2. Pending approvals count
+      prisma.approval.count({
+        where: { approverId: user.id, action: 'PENDING' },
+      }),
+      // 3. Department headcount
+      prisma.employee.count({
+        where: { departmentId: user.departmentId, status: 'ACTIVE' },
+      }),
+      // 4. Monthly overtime
+      prisma.overtimeRequest.findMany({
+        where: {
+          employeeId: user.id,
+          date: { gte: monthStart, lte: monthEnd },
+          status: 'APPROVED',
+        },
+      }),
+      // 5. Recent leave requests
+      prisma.leaveRequest.findMany({
+        where: { employeeId: user.id },
+        include: { leaveType: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      // 6. Pending approval items
+      prisma.approval.findMany({
+        where: { approverId: user.id, action: 'PENDING' },
+        include: {
+          leaveRequest: {
+            include: {
+              employee: { select: { name: true, employeeNumber: true } },
+              leaveType: { select: { name: true } },
+            },
+          },
+          overtime: {
+            include: {
+              employee: { select: { name: true, employeeNumber: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      // 7. Time wallet balance
+      getWalletBalance(user.id, currentYear),
+      // 2b. Pending welfare requests (admin only)
+      isAdmin
+        ? Promise.all([
+            prisma.welfareRequest.count({ where: { status: 'PENDING' } }),
+            prisma.welfareRequest.findMany({
+              where: { status: 'PENDING' },
+              include: {
+                employee: { select: { name: true, employeeNumber: true } },
+                item: { select: { name: true, category: { select: { name: true } } } },
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 5,
+            }),
+          ])
+        : Promise.resolve([0, []] as [number, any[]]),
+    ]);
 
     const totalRemain = leaveBalances.reduce(
       (sum, b) => sum + b.totalRemain,
@@ -38,107 +111,16 @@ export async function GET() {
       };
     }
 
-    // 2. Pending approvals count (approvals where current user is approver and action is PENDING)
-    const pendingApprovals = await prisma.approval.count({
-      where: {
-        approverId: user.id,
-        action: 'PENDING',
-      },
-    });
-
-    // 2b. Pending welfare requests (admin only)
-    const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
-
-    let pendingWelfareCount = 0;
-    let pendingWelfareItems: any[] = [];
-
-    if (isAdmin) {
-      pendingWelfareCount = await prisma.welfareRequest.count({
-        where: { status: 'PENDING' },
-      });
-
-      pendingWelfareItems = await prisma.welfareRequest.findMany({
-        where: { status: 'PENDING' },
-        include: {
-          employee: { select: { name: true, employeeNumber: true } },
-          item: { select: { name: true, category: { select: { name: true } } } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-      });
-    }
-
-    // 3. Department headcount
-    const deptMembers = await prisma.employee.count({
-      where: {
-        departmentId: user.departmentId,
-        status: 'ACTIVE',
-      },
-    });
-
-    // 4. Monthly overtime hours
-    const overtimeRequests = await prisma.overtimeRequest.findMany({
-      where: {
-        employeeId: user.id,
-        date: { gte: monthStart, lte: monthEnd },
-        status: 'APPROVED',
-      },
-    });
-
     const monthlyOvertime = overtimeRequests.reduce(
       (sum, o) => sum + o.hours,
       0
     );
 
-    // 5. Recent leave requests (last 5 by current user)
-    const recentLeaves = await prisma.leaveRequest.findMany({
-      where: { employeeId: user.id },
-      include: {
-        leaveType: { select: { name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
-
-    // 6. Pending approval items for the user to process
-    const pendingItems = await prisma.approval.findMany({
-      where: {
-        approverId: user.id,
-        action: 'PENDING',
-      },
-      include: {
-        leaveRequest: {
-          include: {
-            employee: { select: { name: true, employeeNumber: true } },
-            leaveType: { select: { name: true } },
-          },
-        },
-        overtime: {
-          include: {
-            employee: { select: { name: true, employeeNumber: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
-
-    // 7. Time wallet balance (시간 지갑 잔액)
-    const timeWallet = await getWalletBalance(user.id, currentYear);
+    const [pendingWelfareCount, pendingWelfareItems] = welfareResults;
 
     // 8. Today's attendance (auto-record system compatible)
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dayOfWeek = today.getDay(); // 0=Sun, 6=Sat
-    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-
-    // Check if today is a holiday
-    const todayEnd = new Date(today);
-    todayEnd.setHours(23, 59, 59, 999);
-    const isHoliday = await prisma.holiday.count({
-      where: { date: { gte: today, lte: todayEnd } },
-    }) > 0;
-
-    const isWorkday = isWeekday && !isHoliday;
+    const isWorkday = await checkIsWorkday(today, user.departmentId);
 
     let todayAttendance: any;
     if (!isWorkday) {
@@ -146,37 +128,31 @@ export async function GET() {
     } else {
       // Auto-create attendance if not exists (same logic as /api/attendance/today)
       let attendance = await prisma.attendance.findUnique({
-        where: { employeeId_date: { employeeId: user.id, date: today } },
+        where: { tenantId_employeeId_date: { tenantId, employeeId: user.id, date: today } },
       });
 
       if (!attendance) {
-        // Get work settings
-        const configs = await prisma.systemConfig.findMany({
-          where: { key: { in: ['work_start_time', 'work_end_time'] } },
-        });
-        const configMap = new Map(configs.map(c => [c.key, c.value]));
-        const workStart = configMap.get('work_start_time') || '09:00';
-        const workEnd = configMap.get('work_end_time') || '18:00';
+        // Get work settings (Employee → Department → Company priority)
+        const workSettings = await getWorkSettings(user.id);
+        const dailyHours = await getDailyWorkHours();
 
-        const policy = await prisma.compensationPolicy.findFirst({ where: { isActive: true } });
-        const dailyHours = policy?.dailyWorkHours ?? 8;
-
-        const [sh, sm] = workStart.split(':').map(Number);
-        const [eh, em] = workEnd.split(':').map(Number);
-        const clockIn = new Date(today); clockIn.setHours(sh, sm, 0, 0);
-        const clockOut = new Date(today); clockOut.setHours(eh, em, 0, 0);
+        const clockIn = buildDateTime(today, workSettings.workStartTime);
+        const clockOut = buildDateTime(today, workSettings.workEndTime);
 
         attendance = await prisma.attendance.create({
           data: { employeeId: user.id, date: today, clockIn, clockOut, workHours: dailyHours, overtimeHours: 0, status: 'NORMAL' },
         });
       }
 
+      // Determine actual status: if current time is before clockOut, user is still working
+      const attendanceStatus = (attendance.clockOut && now < attendance.clockOut) ? 'CLOCKED_IN' : 'CLOCKED_OUT';
+
       todayAttendance = {
         clockIn: attendance.clockIn,
-        clockOut: attendance.clockOut,
-        workHours: attendance.workHours,
+        clockOut: attendanceStatus === 'CLOCKED_IN' ? null : attendance.clockOut,
+        workHours: attendanceStatus === 'CLOCKED_IN' ? null : attendance.workHours,
         overtimeHours: attendance.overtimeHours,
-        status: 'CLOCKED_OUT',
+        status: attendanceStatus,
         isWorkday: true,
       };
     }

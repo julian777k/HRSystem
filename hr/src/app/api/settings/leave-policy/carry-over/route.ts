@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function GET() {
   try {
@@ -51,6 +52,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
     }
 
+    const tenantId = await getTenantId();
     const body = await request.json();
     const { enabled, maxDays, expiryMonths } = body;
 
@@ -62,7 +64,7 @@ export async function PUT(request: NextRequest) {
 
     for (const s of settings) {
       await prisma.systemConfig.upsert({
-        where: { key: s.key },
+        where: { tenantId_key: { tenantId, key: s.key } },
         create: { key: s.key, value: s.value, group: s.group },
         update: { value: s.value },
       });

@@ -16,7 +16,15 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, date, isRecurring } = body;
+    const { name, date, isRecurring, type, targetId } = body;
+
+    if (type !== undefined && !['PUBLIC', 'COMPANY', 'DEPARTMENT'].includes(type)) {
+      return NextResponse.json({ message: '유효하지 않은 유형입니다.' }, { status: 400 });
+    }
+
+    if (type === 'DEPARTMENT' && !targetId) {
+      return NextResponse.json({ message: '부서 휴무일은 부서를 지정해야 합니다.' }, { status: 400 });
+    }
 
     const holiday = await prisma.holiday.update({
       where: { id },
@@ -24,6 +32,8 @@ export async function PUT(
         ...(name !== undefined && { name }),
         ...(date !== undefined && { date: new Date(date) }),
         ...(isRecurring !== undefined && { isRecurring }),
+        ...(type !== undefined && { type }),
+        ...(type !== undefined && { targetId: type === 'DEPARTMENT' ? targetId : null }),
       },
     });
 

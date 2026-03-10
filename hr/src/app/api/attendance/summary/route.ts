@@ -1,50 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-
-async function getCompanyWorkSettings() {
-  const configs = await prisma.systemConfig.findMany({
-    where: { group: 'company' },
-  });
-  const settings: Record<string, string> = {};
-  for (const cfg of configs) {
-    settings[cfg.key] = cfg.value;
-  }
-  return {
-    workStartTime: settings['work_start_time'] || '09:00',
-    workEndTime: settings['work_end_time'] || '18:00',
-  };
-}
-
-async function getDailyWorkHours(): Promise<number> {
-  const policy = await prisma.compensationPolicy.findFirst({
-    where: { isActive: true },
-  });
-  return policy?.dailyWorkHours ?? 8;
-}
-
-async function getHolidaysInRange(start: Date, end: Date): Promise<Set<string>> {
-  const holidays = await prisma.holiday.findMany({
-    where: {
-      date: { gte: start, lte: end },
-    },
-  });
-  const set = new Set<string>();
-  for (const h of holidays) {
-    const d = new Date(h.date);
-    set.add(dateKey(d));
-  }
-  return set;
-}
-
-function isWeekday(date: Date): boolean {
-  const day = date.getDay();
-  return day >= 1 && day <= 5;
-}
-
-function dateKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
+import { getDailyWorkHours, getHolidaysInRange, isWeekday, dateKey } from '@/lib/attendance-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // 자동 근태: DB에 없는 근무일도 기본 근무시간으로 카운트
     const dailyWorkHours = await getDailyWorkHours();
-    const holidays = await getHolidaysInRange(startDate, endDate);
+    const holidays = await getHolidaysInRange(startDate, endDate, user.departmentId);
 
     const existingDates = new Set<string>();
     for (const att of attendances) {

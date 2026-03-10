@@ -6,37 +6,112 @@ datasource db {
   provider = "postgresql"
 }
 
+// ============================================================
+// SaaS Multi-tenant Models
+// ============================================================
+
+model Tenant {
+  id            String   @id @default(cuid())
+  name          String
+  subdomain     String   @unique
+  customDomain  String?
+  plan          String   @default("standard")
+  maxEmployees  Int      @default(50)
+  ownerEmail    String
+  bizNumber     String?
+  status          String    @default("active")
+  trialExpiresAt  DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([subdomain])
+  @@index([status])
+  @@map("tenants")
+}
+
+model TenantSetting {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([tenantId, key])
+  @@map("tenant_settings")
+}
+
+model SuperAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("SUPER_ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@map("super_admins")
+}
+
+model TenantUsageLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  date      DateTime
+  apiCalls  Int      @default(0)
+  dbReads   Int      @default(0)
+  dbWrites  Int      @default(0)
+  createdAt DateTime @default(now())
+  @@unique([tenantId, date])
+  @@index([tenantId])
+  @@map("tenant_usage_logs")
+}
+
+// ============================================================
+// Core Models (with tenantId for multi-tenant isolation)
+// ============================================================
+
 model Department {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  code        String       @unique
-  parentId    String?
-  parent      Department?  @relation("DeptTree", fields: [parentId], references: [id])
-  children    Department[] @relation("DeptTree")
-  sortOrder   Int          @default(0)
-  isActive    Boolean      @default(true)
-  employees   Employee[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  tenantId       String       @default("")
+  name           String
+  code           String
+  parentId       String?
+  parent         Department?  @relation("DeptTree", fields: [parentId], references: [id])
+  children       Department[] @relation("DeptTree")
+  sortOrder      Int          @default(0)
+  isActive       Boolean      @default(true)
+  workStartTime  String?                        // 부서 기본 출근 시간 (HH:mm)
+  workEndTime    String?                        // 부서 기본 퇴근 시간
+  lunchStartTime String?                        // 점심 시작
+  lunchEndTime   String?                        // 점심 종료
+  employees      Employee[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@index([tenantId])
   @@map("departments")
 }
 
 model Position {
   id         String     @id @default(cuid())
-  name       String     @unique
-  level      Int        @unique
+  tenantId   String     @default("")
+  name       String
+  level      Int
   isActive   Boolean    @default(true)
   employees  Employee[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
+  @@unique([tenantId, name])
+  @@unique([tenantId, level])
+  @@index([tenantId])
   @@map("positions")
 }
 
 model Employee {
   id              String    @id @default(cuid())
-  employeeNumber  String    @unique
+  tenantId        String    @default("")
+  employeeNumber  String
   name            String
-  email           String    @unique
+  email           String
   passwordHash    String
   phone           String?
   departmentId    String
@@ -49,6 +124,11 @@ model Employee {
   role            SystemRole     @default(BASIC)
   profileImage    String?
   customPermissions  String?
+  workType        String?                        // "FIXED" | "FLEXIBLE" | null(회사기본)
+  workStartTime   String?                        // 개인 출근 시간 (HH:mm)
+  workEndTime     String?                        // 개인 퇴근 시간
+  lunchStartTime  String?                        // 점심 시작
+  lunchEndTime    String?                        // 점심 종료
   leaveRequests      LeaveRequest[]
   leaveBalances      LeaveBalance[]
   leaveGrants        LeaveGrant[]
@@ -64,6 +144,9 @@ model Employee {
   attendances        Attendance[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  @@unique([tenantId, email])
+  @@unique([tenantId, employeeNumber])
+  @@index([tenantId])
   @@index([departmentId])
   @@index([positionId])
   @@index([status])
@@ -86,10 +169,12 @@ enum SystemRole {
 
 model ViewPermission {
   id          String     @id @default(cuid())
+  tenantId    String     @default("")
   employeeId  String
   scope       ViewScope
   createdAt   DateTime   @default(now())
-  @@unique([employeeId, scope])
+  @@unique([tenantId, employeeId, scope])
+  @@index([tenantId])
   @@map("view_permissions")
 }
 
@@ -100,13 +185,15 @@ enum ViewScope {
 
 model Session {
   id           String   @id @default(cuid())
+  tenantId     String   @default("")
   employeeId   String
-  employee     Employee @relation(fields: [employeeId], references: [id])
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   token        String   @unique
   expiresAt    DateTime
   ipAddress    String?
   userAgent    String?
   createdAt    DateTime @default(now())
+  @@index([tenantId])
   @@index([employeeId])
   @@index([expiresAt])
   @@map("sessions")
@@ -114,8 +201,9 @@ model Session {
 
 model LeaveType {
   id             String   @id @default(cuid())
-  name           String   @unique
-  code           String   @unique
+  tenantId       String   @default("")
+  name           String
+  code           String
   isPaid         Boolean  @default(true)
   isAnnualDeduct Boolean  @default(false)
   maxDays        Float?
@@ -126,11 +214,15 @@ model LeaveType {
   leavePolicies  LeavePolicy[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@index([tenantId])
   @@map("leave_types")
 }
 
 model LeavePolicy {
   id              String    @id @default(cuid())
+  tenantId        String    @default("")
   leaveTypeId     String
   leaveType       LeaveType @relation(fields: [leaveTypeId], references: [id])
   name            String
@@ -142,6 +234,7 @@ model LeavePolicy {
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  @@index([tenantId])
   @@index([leaveTypeId])
   @@map("leave_policies")
 }
@@ -154,8 +247,9 @@ enum GrantType {
 
 model LeaveGrant {
   id            String    @id @default(cuid())
+  tenantId      String    @default("")
   employeeId    String
-  employee      Employee  @relation(fields: [employeeId], references: [id])
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   leaveTypeCode String
   grantDays     Float
   usedDays      Float     @default(0)
@@ -166,6 +260,7 @@ model LeaveGrant {
   isExpired     Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  @@index([tenantId])
   @@index([employeeId])
   @@index([periodEnd])
   @@map("leave_grants")
@@ -173,20 +268,24 @@ model LeaveGrant {
 
 model LeaveBalance {
   id            String   @id @default(cuid())
+  tenantId      String   @default("")
   employeeId    String
-  employee      Employee @relation(fields: [employeeId], references: [id])
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   year          Int
   leaveTypeCode String
   totalGranted  Float    @default(0)
   totalUsed     Float    @default(0)
   totalRemain   Float    @default(0)
+  createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  @@unique([employeeId, year, leaveTypeCode])
+  @@unique([tenantId, employeeId, year, leaveTypeCode])
+  @@index([tenantId])
   @@map("leave_balances")
 }
 
 model LeaveRequest {
   id              String        @id @default(cuid())
+  tenantId        String        @default("")
   employeeId      String
   employee        Employee      @relation(fields: [employeeId], references: [id])
   leaveTypeId     String
@@ -207,6 +306,7 @@ model LeaveRequest {
   approvals       Approval[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  @@index([tenantId])
   @@index([employeeId])
   @@index([status])
   @@index([startDate, endDate])
@@ -230,6 +330,7 @@ enum LeaveStatus {
 
 model ApprovalLine {
   id          String          @id @default(cuid())
+  tenantId    String          @default("")
   name        String
   type        ApprovalLineType
   isDefault   Boolean         @default(false)
@@ -237,6 +338,7 @@ model ApprovalLine {
   steps       ApprovalStep[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  @@index([tenantId])
   @@map("approval_lines")
 }
 
@@ -248,6 +350,7 @@ enum ApprovalLineType {
 
 model ApprovalStep {
   id              String       @id @default(cuid())
+  tenantId        String       @default("")
   approvalLineId  String
   approvalLine    ApprovalLine @relation(fields: [approvalLineId], references: [id], onDelete: Cascade)
   stepOrder       Int
@@ -256,7 +359,8 @@ model ApprovalStep {
   approverRole    ApproverRole
   actionType      ApprovalActionType
   positionLevel   Int?
-  @@unique([approvalLineId, stepOrder])
+  @@unique([tenantId, approvalLineId, stepOrder])
+  @@index([tenantId])
   @@map("approval_steps")
 }
 
@@ -276,6 +380,7 @@ enum ApprovalActionType {
 
 model Approval {
   id              String          @id @default(cuid())
+  tenantId        String          @default("")
   leaveRequestId  String?
   leaveRequest    LeaveRequest?   @relation(fields: [leaveRequestId], references: [id])
   overtimeId      String?
@@ -287,9 +392,11 @@ model Approval {
   comment         String?
   processedAt     DateTime?
   createdAt       DateTime        @default(now())
+  @@index([tenantId])
   @@index([leaveRequestId])
   @@index([overtimeId])
   @@index([approverId])
+  @@index([approverId, action])
   @@map("approvals")
 }
 
@@ -302,6 +409,7 @@ enum ApprovalAction {
 
 model OvertimeRequest {
   id            String          @id @default(cuid())
+  tenantId      String          @default("")
   employeeId    String
   employee      Employee        @relation(fields: [employeeId], references: [id])
   date          DateTime
@@ -314,8 +422,10 @@ model OvertimeRequest {
   approvals     Approval[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  @@index([tenantId])
   @@index([employeeId])
   @@index([date])
+  @@index([status])
   @@map("overtime_requests")
 }
 
@@ -328,6 +438,7 @@ enum OvertimeType {
 
 model OvertimePolicy {
   id              String   @id @default(cuid())
+  tenantId        String   @default("")
   maxWeeklyHours  Float    @default(12)
   maxMonthlyHours Float    @default(52)
   nightStartTime  String   @default("22:00")
@@ -338,11 +449,13 @@ model OvertimePolicy {
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  @@index([tenantId])
   @@map("overtime_policies")
 }
 
 model ExternalIntegration {
   id           String   @id @default(cuid())
+  tenantId     String   @default("")
   employeeId   String
   service      String
   accessToken  String
@@ -351,20 +464,23 @@ model ExternalIntegration {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  @@unique([employeeId, service])
+  @@unique([tenantId, employeeId, service])
+  @@index([tenantId])
   @@map("external_integrations")
 }
 
 model AuditLog {
   id          String   @id @default(cuid())
+  tenantId    String   @default("")
   employeeId  String?
   action      String
   target      String
   targetId    String
-  before      Json?
-  after       Json?
+  before      String?
+  after       String?
   ipAddress   String?
   createdAt   DateTime @default(now())
+  @@index([tenantId])
   @@index([employeeId])
   @@index([target, targetId])
   @@index([createdAt])
@@ -374,38 +490,51 @@ model AuditLog {
 // IMPORTANT: SystemConfig for setup wizard settings
 model SystemConfig {
   id        String   @id @default(cuid())
-  key       String   @unique
+  tenantId  String   @default("")
+  key       String
   value     String
   group     String   @default("general")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  @@unique([tenantId, key])
+  @@index([tenantId])
   @@map("system_configs")
 }
 
 model Holiday {
   id          String   @id @default(cuid())
+  tenantId    String   @default("")
   name        String
   date        DateTime
   isRecurring Boolean  @default(false)
+  type        String   @default("PUBLIC")        // "PUBLIC" | "COMPANY" | "DEPARTMENT"
+  targetId    String?                             // type=DEPARTMENT일 때 departmentId
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  @@index([tenantId])
+  @@index([date])
+  @@index([type])
   @@map("holidays")
 }
 
 model PasswordReset {
   id        String    @id @default(cuid())
+  tenantId  String    @default("")
   email     String
   token     String    @unique
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+  @@index([tenantId])
+  @@index([email])
   @@map("password_resets")
 }
 
 model Notification {
   id         String   @id @default(cuid())
+  tenantId   String   @default("")
   employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   type       String
   title      String
   message    String
@@ -413,6 +542,7 @@ model Notification {
   link       String?
   createdAt  DateTime @default(now())
 
+  @@index([tenantId])
   @@index([employeeId, isRead])
   @@map("notifications")
 }
@@ -428,8 +558,9 @@ enum TimeWalletType {
 
 model TimeWallet {
   id          String         @id @default(cuid())
+  tenantId    String         @default("")
   employeeId  String
-  employee    Employee       @relation(fields: [employeeId], references: [id])
+  employee    Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   type        TimeWalletType
   year        Int
   totalEarned Float          @default(0)
@@ -437,13 +568,15 @@ model TimeWallet {
   totalRemain Float          @default(0)
   updatedAt   DateTime       @updatedAt
 
-  @@unique([employeeId, year, type])
+  @@unique([tenantId, employeeId, year, type])
+  @@index([tenantId])
   @@index([employeeId])
   @@map("time_wallets")
 }
 
 model TimeDeduction {
   id             String         @id @default(cuid())
+  tenantId       String         @default("")
   employeeId     String
   employee       Employee       @relation(fields: [employeeId], references: [id])
   leaveRequestId String?
@@ -452,6 +585,7 @@ model TimeDeduction {
   description    String
   createdAt      DateTime       @default(now())
 
+  @@index([tenantId])
   @@index([employeeId])
   @@index([leaveRequestId])
   @@map("time_deductions")
@@ -459,6 +593,7 @@ model TimeDeduction {
 
 model CompTimeAccrual {
   id                String   @id @default(cuid())
+  tenantId          String   @default("")
   employeeId        String
   employee          Employee @relation(fields: [employeeId], references: [id])
   overtimeRequestId String?
@@ -467,6 +602,7 @@ model CompTimeAccrual {
   earnedHours       Float
   createdAt         DateTime @default(now())
 
+  @@index([tenantId])
   @@index([employeeId])
   @@index([overtimeRequestId])
   @@map("comp_time_accruals")
@@ -474,6 +610,7 @@ model CompTimeAccrual {
 
 model CompensationPolicy {
   id                String  @id @default(cuid())
+  tenantId          String  @default("")
   compensationType  String  @default("COMP_TIME")
   weekdayMultiplier Float   @default(1.5)
   nightMultiplier   Float   @default(2.0)
@@ -487,6 +624,7 @@ model CompensationPolicy {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  @@index([tenantId])
   @@map("compensation_policies")
 }
 
@@ -496,7 +634,8 @@ model CompensationPolicy {
 
 model WelfareCategory {
   id          String        @id @default(cuid())
-  name        String        @unique
+  tenantId    String        @default("")
+  name        String
   description String?
   icon        String?
   sortOrder   Int           @default(0)
@@ -504,11 +643,14 @@ model WelfareCategory {
   items       WelfareItem[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  @@unique([tenantId, name])
+  @@index([tenantId])
   @@map("welfare_categories")
 }
 
 model WelfareItem {
   id          String            @id @default(cuid())
+  tenantId    String            @default("")
   categoryId  String
   category    WelfareCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name        String
@@ -517,17 +659,19 @@ model WelfareItem {
   amount      Float?
   unit        String            @default("원")
   maxPerYear  Int?
-  formFields  Json?
+  formFields  String?
   requireApproval Boolean       @default(true)
   isActive    Boolean           @default(true)
   requests    WelfareRequest[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  @@index([tenantId])
   @@map("welfare_items")
 }
 
 model WelfareRequest {
   id          String      @id @default(cuid())
+  tenantId    String      @default("")
   employeeId  String
   employee    Employee    @relation(fields: [employeeId], references: [id])
   itemId      String
@@ -535,22 +679,25 @@ model WelfareRequest {
   status      String      @default("PENDING")
   amount      Float?
   note        String?
-  formValues  Json?
+  formValues  String?
   approvedBy  String?
   approvedAt  DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  @@index([tenantId])
   @@index([employeeId])
   @@index([status])
+  @@index([itemId])
   @@map("welfare_requests")
 }
 
 model Attendance {
   id            String    @id @default(cuid())
+  tenantId      String    @default("")
   employeeId    String
-  employee      Employee  @relation(fields: [employeeId], references: [id])
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   date          DateTime
-  clockIn       DateTime
+  clockIn       DateTime?
   clockOut      DateTime?
   workHours     Float?
   overtimeHours Float?    @default(0)
@@ -559,7 +706,8 @@ model Attendance {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@unique([employeeId, date])
+  @@unique([tenantId, employeeId, date])
+  @@index([tenantId])
   @@index([employeeId])
   @@index([date])
   @@map("attendances")

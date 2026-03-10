@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isSetupComplete } from '@/lib/setup-config';
+import { getTenantId } from '@/lib/tenant-context';
 
 const departments = [
   { name: '경영지원', code: 'MGMT', sortOrder: 1 },
@@ -31,8 +32,17 @@ const leaveTypes = [
   { name: '공가', code: 'PUBLIC', isPaid: true, requiresDoc: true, isAnnualDeduct: false, sortOrder: 8 },
 ];
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // Setup secret check
+    const setupSecret = process.env.SETUP_SECRET;
+    if (setupSecret && request.headers.get('x-setup-secret') !== setupSecret) {
+      return NextResponse.json(
+        { success: false, message: '설정 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     // Guard: block if setup already completed
     if (await isSetupComplete()) {
       return NextResponse.json(
@@ -41,10 +51,12 @@ export async function POST() {
       );
     }
 
+    const tenantId = await getTenantId();
+
     // === Departments (Prisma upsert - works on both PG and SQLite) ===
     for (const dept of departments) {
       await prisma.department.upsert({
-        where: { code: dept.code },
+        where: { tenantId_code: { tenantId, code: dept.code } },
         update: { name: dept.name },
         create: dept,
       });
@@ -52,10 +64,10 @@ export async function POST() {
 
     // === Positions ===
     for (const pos of positions) {
-      const byLevel = await prisma.position.findUnique({ where: { level: pos.level } });
+      const byLevel = await prisma.position.findFirst({ where: { level: pos.level } });
       if (byLevel) {
         if (byLevel.name !== pos.name) {
-          const conflicting = await prisma.position.findUnique({ where: { name: pos.name } });
+          const conflicting = await prisma.position.findFirst({ where: { name: pos.name } });
           if (conflicting && conflicting.id !== byLevel.id) {
             await prisma.employee.updateMany({
               where: { positionId: conflicting.id },
@@ -71,7 +83,7 @@ export async function POST() {
         continue;
       }
 
-      const byName = await prisma.position.findUnique({ where: { name: pos.name } });
+      const byName = await prisma.position.findFirst({ where: { name: pos.name } });
       if (byName) {
         await prisma.position.update({
           where: { id: byName.id },
@@ -88,7 +100,7 @@ export async function POST() {
     // === Leave Types (Prisma upsert) ===
     for (const lt of leaveTypes) {
       await prisma.leaveType.upsert({
-        where: { code: lt.code },
+        where: { tenantId_code: { tenantId, code: lt.code } },
         update: { name: lt.name },
         create: {
           name: lt.name,
@@ -120,10 +132,10 @@ export async function POST() {
     }
 
     // === Leave Policies (병가, 경조사, 공가) ===
-    const sickType = await prisma.leaveType.findUnique({ where: { code: 'SICK' } });
-    const familyType = await prisma.leaveType.findUnique({ where: { code: 'FAMILY' } });
-    const publicType = await prisma.leaveType.findUnique({ where: { code: 'PUBLIC' } });
-    const annualType = await prisma.leaveType.findUnique({ where: { code: 'ANNUAL' } });
+    const sickType = await prisma.leaveType.findFirst({ where: { code: 'SICK' } });
+    const familyType = await prisma.leaveType.findFirst({ where: { code: 'FAMILY' } });
+    const publicType = await prisma.leaveType.findFirst({ where: { code: 'PUBLIC' } });
+    const annualType = await prisma.leaveType.findFirst({ where: { code: 'ANNUAL' } });
 
     const defaultPolicies: { leaveTypeId: string; name: string; description: string; yearFrom: number; yearTo: number | null; grantDays: number; grantType: 'YEARLY' | 'MONTHLY' | 'ONCE' }[] = [];
 
@@ -162,10 +174,9 @@ export async function POST() {
       leaveTypes: ltCount,
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : '알 수 없는 오류';
     console.error('Seed error:', error);
     return NextResponse.json(
-      { success: false, message: `기본 데이터 생성 실패: ${msg}` },
+      { success: false, message: '기본 데이터 생성 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

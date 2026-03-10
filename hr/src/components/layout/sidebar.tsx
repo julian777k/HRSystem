@@ -183,48 +183,75 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         );
         if (visibleItems.length === 0) return null;
 
+        const isOpen = openGroups[group.group];
+        const hasActivePath = visibleItems.some(
+          (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+        );
+
         return (
-          <div key={group.group}>
+          <div
+            key={group.group}
+            className={cn(
+              "rounded-lg transition-all duration-200",
+              isOpen
+                ? "bg-slate-50/80 shadow-sm ring-1 ring-slate-200/60 mb-1.5"
+                : "mb-0.5"
+            )}
+          >
             <button
               onClick={() => toggleGroup(group.group)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-blue-50/60 hover:text-blue-700 hover:scale-[1.06] rounded-md transition-all duration-150 origin-left"
+              className={cn(
+                "w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all duration-150",
+                isOpen
+                  ? "text-blue-700 bg-blue-50/60"
+                  : hasActivePath
+                    ? "text-blue-600 hover:bg-blue-50/60"
+                    : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+              )}
             >
               <div className="flex items-center gap-2">
-                <group.icon className="w-3.5 h-3.5" />
+                <group.icon className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  isOpen ? "text-blue-600" : hasActivePath ? "text-blue-500" : "text-gray-400"
+                )} />
                 {group.group}
               </div>
-              {openGroups[group.group] ? (
-                <ChevronDown className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5" />
-              )}
+              <ChevronDown className={cn(
+                "w-3.5 h-3.5 transition-transform duration-200",
+                isOpen ? "rotate-0" : "-rotate-90"
+              )} />
             </button>
             <div
               className={cn(
                 "overflow-hidden transition-all duration-200",
-                openGroups[group.group]
+                isOpen
                   ? "max-h-96 opacity-100"
                   : "max-h-0 opacity-0"
               )}
             >
-              <ul className="mt-1 space-y-0.5">
-                {visibleItems.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150",
-                        pathname === item.href ||
-                          pathname.startsWith(item.href + "/")
-                          ? "bg-blue-50 text-blue-700 font-medium border-l-[3px] border-blue-600"
-                          : "text-gray-600 hover:bg-blue-50/60 hover:text-blue-700 hover:translate-x-0.5"
-                      )}
-                    >
-                      <item.icon className="w-4 h-4 shrink-0" />
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
+              <ul className="pb-2 px-1 space-y-0.5">
+                {visibleItems.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2.5 pl-5 pr-3 py-2 text-sm rounded-md transition-all duration-150 ml-2 border-l-2",
+                          isActive
+                            ? "bg-blue-100/70 text-blue-700 font-medium border-blue-500"
+                            : "text-gray-600 border-transparent hover:bg-white hover:text-blue-700 hover:border-blue-300"
+                        )}
+                      >
+                        <item.icon className={cn(
+                          "w-4 h-4 shrink-0",
+                          isActive ? "text-blue-600" : "text-gray-400"
+                        )} />
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>

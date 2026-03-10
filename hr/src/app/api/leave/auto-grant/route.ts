@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     let totalGranted = 0;
     let totalSkipped = 0;
+    let totalSupplemented = 0;
     const errors: string[] = [];
     const grantedByType: Record<string, number> = {};
 
@@ -108,23 +109,7 @@ export async function POST(request: NextRequest) {
 
       for (const [typeCode, typePolicies] of policyByType) {
         try {
-          // [FIX] 중복 체크: periodStart 정확 일치 + startsWith 패턴으로 견고하게
-          const existingGrant = await prisma.leaveGrant.findFirst({
-            where: {
-              employeeId: emp.id,
-              leaveTypeCode: typeCode,
-              periodStart,
-              periodEnd,
-              grantReason: { startsWith: `${year}년` , endsWith: '자동부여' },
-            },
-          });
-
-          if (existingGrant) {
-            totalSkipped++;
-            continue;
-          }
-
-          // 근속연수 조건에 맞는 정책 필터링
+          // [STEP 1] 정책 기반 부여일수 계산 (중복 체크 이전에 수행)
           const matchingPolicies = typePolicies.filter(
             (p) => yearsWorked >= p.yearFrom && (p.yearTo === null || yearsWorked < p.yearTo)
           );
@@ -134,13 +119,10 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // 매칭되는 정책 중 가장 높은 grantDays 적용
           let grantDays = Math.max(...matchingPolicies.map((p) => p.grantDays));
 
           // ANNUAL 타입: 근로기준법 법정 최소일수 보장
           if (typeCode === 'ANNUAL') {
-            // periodEnd(12/31) 기준으로 계산하여 해당 연도 전체 근무 개월수 반영
-            // (referenceDate=1/1 사용 시 연중 입사자의 근무월수가 0으로 계산됨)
             const legalDays = calculateAnnualLeave(emp.hireDate, periodEnd);
             grantDays = Math.max(grantDays, legalDays);
           }
@@ -152,7 +134,72 @@ export async function POST(request: NextRequest) {
 
           const leaveTypeName = typePolicies[0].leaveType.name;
 
-          // [FIX] 트랜잭션으로 grant + balance를 원자적으로 처리 (race condition 방지)
+          // [STEP 2] 기존 부여 확인 — 부족분 보충 지원
+          const existingGrant = await prisma.leaveGrant.findFirst({
+            where: {
+              employeeId: emp.id,
+              leaveTypeCode: typeCode,
+              periodStart,
+              periodEnd,
+              grantReason: { startsWith: `${year}년`, endsWith: '자동부여' },
+            },
+          });
+
+          if (existingGrant) {
+            if (existingGrant.grantDays >= grantDays) {
+              // 이미 충분히 부여됨 → 스킵
+              totalSkipped++;
+              continue;
+            }
+
+            // [FIX] 부족분 보충: 기존 부여가 계산값보다 적으면 차액만큼 보충
+            const diff = grantDays - existingGrant.grantDays;
+
+            await prisma.$transaction(async (tx) => {
+              // 기존 grant 업데이트
+              await tx.leaveGrant.update({
+                where: { id: existingGrant.id },
+                data: {
+                  grantDays,
+                  remainDays: { increment: diff },
+                },
+              });
+
+              // balance 보충
+              await tx.leaveBalance.upsert({
+                where: {
+                  tenantId_employeeId_year_leaveTypeCode: {
+                    tenantId,
+                    employeeId: emp.id,
+                    year,
+                    leaveTypeCode: typeCode,
+                  },
+                },
+                create: {
+                  employeeId: emp.id,
+                  year,
+                  leaveTypeCode: typeCode,
+                  totalGranted: grantDays,
+                  totalUsed: 0,
+                  totalRemain: grantDays,
+                },
+                update: {
+                  totalGranted: { increment: diff },
+                  totalRemain: { increment: diff },
+                },
+              });
+            });
+
+            if (typeCode === 'ANNUAL') {
+              await initAnnualWallet(emp.id, year, grantDays * compensationPolicy.dailyWorkHours);
+            }
+
+            totalSupplemented++;
+            grantedByType[typeCode] = (grantedByType[typeCode] || 0) + 1;
+            continue;
+          }
+
+          // [STEP 3] 신규 부여 — 트랜잭션으로 grant + balance 원자적 처리
           await prisma.$transaction(async (tx) => {
             // 트랜잭션 내 이중 체크 (동시 요청 방어)
             const doubleCheck = await tx.leaveGrant.findFirst({
@@ -165,7 +212,31 @@ export async function POST(request: NextRequest) {
               },
             });
             if (doubleCheck) {
-              throw new Error('SKIP_DUPLICATE');
+              if (doubleCheck.grantDays >= grantDays) {
+                throw new Error('SKIP_DUPLICATE');
+              }
+              // 동시 요청으로 부족하게 생성된 경우 보충
+              const diff = grantDays - doubleCheck.grantDays;
+              await tx.leaveGrant.update({
+                where: { id: doubleCheck.id },
+                data: { grantDays, remainDays: { increment: diff } },
+              });
+              await tx.leaveBalance.upsert({
+                where: {
+                  tenantId_employeeId_year_leaveTypeCode: {
+                    tenantId, employeeId: emp.id, year, leaveTypeCode: typeCode,
+                  },
+                },
+                create: {
+                  employeeId: emp.id, year, leaveTypeCode: typeCode,
+                  totalGranted: grantDays, totalUsed: 0, totalRemain: grantDays,
+                },
+                update: {
+                  totalGranted: { increment: diff },
+                  totalRemain: { increment: diff },
+                },
+              });
+              return;
             }
 
             // Grant 생성
@@ -181,7 +252,7 @@ export async function POST(request: NextRequest) {
               },
             });
 
-            // [FIX] Balance upsert로 변경 (findUnique+create race condition 해소)
+            // Balance upsert
             await tx.leaveBalance.upsert({
               where: {
                 tenantId_employeeId_year_leaveTypeCode: {
@@ -206,7 +277,7 @@ export async function POST(request: NextRequest) {
             });
           });
 
-          // ANNUAL에만 TimeWallet 초기화 (트랜잭션 외부 - initAnnualWallet이 내부에서 prisma 직접 사용)
+          // ANNUAL에만 TimeWallet 초기화
           if (typeCode === 'ANNUAL') {
             await initAnnualWallet(emp.id, year, grantDays * compensationPolicy.dailyWorkHours);
           }
@@ -214,7 +285,6 @@ export async function POST(request: NextRequest) {
           totalGranted++;
           grantedByType[typeCode] = (grantedByType[typeCode] || 0) + 1;
         } catch (err) {
-          // 트랜잭션 내 이중 체크에서 발생한 중복은 스킵 처리
           if (err instanceof Error && err.message === 'SKIP_DUPLICATE') {
             totalSkipped++;
             continue;
@@ -229,9 +299,11 @@ export async function POST(request: NextRequest) {
       .map(([code, count]) => `${code}: ${count}건`)
       .join(', ');
 
+    const supplementMsg = totalSupplemented > 0 ? `, ${totalSupplemented}건 보충` : '';
     return NextResponse.json({
-      message: `자동부여 완료: ${totalGranted}건 부여, ${totalSkipped}건 스킵`,
+      message: `자동부여 완료: ${totalGranted}건 부여${supplementMsg}, ${totalSkipped}건 스킵`,
       granted: totalGranted,
+      supplemented: totalSupplemented,
       skipped: totalSkipped,
       grantedByType,
       errors,

@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeystoneHR 크몽 판매 종합 사업계획서 v3.1</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard', -apple-system, 'Noto Sans KR', sans-serif; background: #fff; color: #1a1a2e; line-height: 1.8; }
+
+  /* 표지 */
+  .cover { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; }
+  .cover h1 { font-size: 42px; font-weight: 900; margin-bottom: 16px; line-height: 1.3; }
+  .cover .sub { font-size: 20px; opacity: 0.8; margin-bottom: 40px; }
+  .cover .meta { font-size: 14px; opacity: 0.5; }
+  .cover .badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); padding: 6px 20px; border-radius: 24px; font-size: 14px; margin-bottom: 24px; }
+
+  /* 레이아웃 */
+  .container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+  .chapter { padding: 56px 0; border-bottom: 1px solid #e5e7eb; }
+  .chapter:last-child { border-bottom: none; }
+
+  /* 제목 */
+  .ch-num { display: inline-block; background: #4338ca; color: #fff; font-size: 12px; font-weight: 800; padding: 3px 12px; border-radius: 4px; margin-bottom: 10px; }
+  .ch-num.red { background: #dc2626; }
+  .ch-num.green { background: #16a34a; }
+  .ch-num.orange { background: #ea580c; }
+  h2 { font-size: 26px; font-weight: 800; margin-bottom: 20px; }
+  h3 { font-size: 18px; font-weight: 700; color: #4338ca; margin: 28px 0 12px; }
+  h4 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; }
+
+  /* 테이블 */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th { background: #f8f9fa; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #e5e7eb; }
+  td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; }
+  tr:hover { background: #fafafe; }
+  .highlight-row { background: #f0f0ff !important; }
+  .highlight-row td { font-weight: 600; color: #4338ca; }
+
+  /* 카드 */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+  .card { background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
+  .card .card-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .card .card-desc { font-size: 13.5px; color: #555; }
+
+  /* 콜아웃 */
+  .callout { border-left: 4px solid #4338ca; background: #f0f0ff; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .callout.green { border-color: #22c55e; background: #f0fdf4; }
+  .callout.orange { border-color: #f59e0b; background: #fffbeb; }
+  .callout.red { border-color: #ef4444; background: #fef2f2; }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  /* 리스트 */
+  ul, ol { margin: 8px 0 8px 20px; }
+  li { margin: 4px 0; }
+
+  /* 그래프 바 */
+  .bar-chart { margin: 16px 0; }
+  .bar-row { display: flex; align-items: center; margin: 8px 0; }
+  .bar-label { width: 140px; font-size: 13px; font-weight: 600; }
+  .bar-track { flex: 1; background: #e5e7eb; border-radius: 6px; height: 24px; position: relative; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; color: #fff; font-weight: 700; }
+  .bar-fill.purple { background: linear-gradient(90deg, #4338ca, #6366f1); }
+  .bar-fill.gray { background: #94a3b8; }
+  .bar-fill.blue { background: #3b82f6; }
+  .bar-fill.green { background: #22c55e; }
+  .bar-fill.red { background: #ef4444; }
+
+  /* 타임라인 */
+  .timeline { margin: 20px 0; }
+  .tl-item { display: flex; margin-bottom: 16px; }
+  .tl-marker { width: 60px; text-align: center; flex-shrink: 0; }
+  .tl-dot { width: 12px; height: 12px; background: #4338ca; border-radius: 50%; margin: 6px auto 4px; }
+  .tl-week { font-size: 12px; color: #4338ca; font-weight: 700; }
+  .tl-content { flex: 1; background: #f8f9fa; border-radius: 8px; padding: 12px 16px; margin-left: 12px; font-size: 14px; }
+
+  /* 트롤링 섹션 */
+  .troll-box { background: #1e1e2e; color: #e2e8f0; border-radius: 14px; padding: 24px; margin: 20px 0; }
+  .troll-box .troll-title { color: #f87171; font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+  .troll-box .troll-sub { color: #94a3b8; font-size: 14px; }
+  .troll-box .troll-highlight { color: #fbbf24; font-weight: 700; }
+  .troll-box table { color: #e2e8f0; }
+  .troll-box th { background: #2d2d44; color: #a78bfa; border-bottom-color: #3d3d5c; }
+  .troll-box td { border-bottom-color: #2d2d44; }
+  .troll-box .our-col { color: #34d399; font-weight: 700; }
+
+  /* 프린트 */
+  @media print {
+    .cover { min-height: auto; padding: 60px 40px; page-break-after: always; }
+    .chapter { page-break-inside: avoid; }
+  }
+
+  /* 반응형 */
+  @media (max-width: 700px) {
+    .cover h1 { font-size: 28px; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================== 표지 ============================== -->
+<div class="cover">
+  <div class="badge">Internal Document — 비공개</div>
+  <h1>KeystoneHR<br>크몽 판매 종합 사업계획서</h1>
+  <p class="sub">
+    클라우드 HR SaaS — 1회 구매, 10년 사용의 파격 모델
+  </p>
+  <p class="meta">
+    작성일: 2026-03-13 &nbsp;|&nbsp; 버전: v3.1<br>
+    제품: KeystoneHR (keystonehr.app) &nbsp;|&nbsp; 플랫폼: 크몽 (kmong.com)<br>
+    이전 버전 대비: 웹훅/메신저 연동 추가, 엔터프라이즈급 보안 강화, 복리후생 고도화
+  </p>
+</div>
+
+<div class="container">
+
+<!-- ============================== 목차 ============================== -->
+<div class="chapter" style="padding-top:40px;">
+  <h2>목차</h2>
+  <ol style="font-size:15px; line-height:2.4;">
+    <li>시장 분석</li>
+    <li>경쟁 환경 & SaaS 가격 비교</li>
+    <li>제품 포지셔닝 & 차별화</li>
+    <li style="color:#dc2626; font-weight:700;">트롤링 마케팅 전략 (NEW)</li>
+    <li>가격 전략 — 10년 사용권 모델</li>
+    <li style="color:#dc2626; font-weight:700;">비즈니스 안전장치 (NEW)</li>
+    <li>크몽 상품 구성</li>
+    <li>멀티 채널 전략</li>
+    <li>런칭 로드맵</li>
+    <li>수익 시뮬레이션</li>
+    <li>리스크 & 대응 전략</li>
+    <li>부록: 인프라 비용 분석</li>
+  </ol>
+</div>
+
+<!-- ============================== 1. 시장 분석 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 1</span>
+  <h2>시장 분석</h2>
+
+  <h3>1-1. 타겟 시장</h3>
+  <table>
+    <tr><th>구분</th><th>내용</th></tr>
+    <tr><td>1차 타겟</td><td>직원 5~50명 중소기업, 스타트업 (엑셀로 인사관리 중, SaaS 구독료 부담)</td></tr>
+    <tr><td>2차 타겟</td><td>직원 50~100명 중견기업 (플렉스·시프티 구독 중, 비용 절감 욕구)</td></tr>
+    <tr><td>3차 타겟</td><td>비영리·학원·소규모 법인 (저렴한 HR 솔루션 필요)</td></tr>
+  </table>
+
+  <h3>1-2. 시장 규모</h3>
+  <ul>
+    <li>한국 중소기업 수: 약 400만 개 (전체 사업체의 99.9%)</li>
+    <li>10~100명 규모 기업: 약 30만 개</li>
+    <li>그 중 전문 HR 솔루션 미사용 추정: 80% 이상 (엑셀·수기 관리)</li>
+    <li>HR SaaS 시장 이탈 수요: SaaS 구독 후 1년 내 이탈률 약 30~40%</li>
+  </ul>
+
+  <div class="callout">
+    <strong>핵심 인사이트</strong>
+    HR SaaS 시장에는 두 가지 불만족 고객군이 존재한다:<br>
+    ① "엑셀은 한계인데 SaaS는 비싸다" — 미진입 고객<br>
+    ② "SaaS 쓰고 있는데 매달 나가는 돈이 아깝다" — 이탈 예정 고객<br>
+    KeystoneHR의 "1회 구매 10년 사용" 모델은 이 두 고객군 모두를 타겟한다.
+  </div>
+
+  <h3>1-3. 크몽 플랫폼 현황</h3>
+  <table>
+    <tr><th>항목</th><th>수치</th></tr>
+    <tr><td>IT·프로그래밍 카테고리 전체 서비스</td><td>~53,000건</td></tr>
+    <tr><td>"HR 시스템" 검색 결과</td><td>매우 적음 (10건 미만)</td></tr>
+    <tr><td>클라우드 HR SaaS 1회 구매</td><td>0건 (사실상 공백)</td></tr>
+  </table>
+
+  <div class="callout green">
+    <strong>블루 오션</strong>
+    크몽에서 "구독료 없는 HR SaaS" 카테고리는 완전한 공백 상태.
+    설치형도, SaaS형도 아닌 "1회 구매 클라우드 HR"이라는 새로운 카테고리를 개척한다.
+  </div>
+</div>
+
+<!-- ============================== 2. 경쟁 환경 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 2</span>
+  <h2>경쟁 환경 & SaaS 가격 비교</h2>
+
+  <h3>2-1. 국내 HR SaaS 가격 비교 (50명 기준)</h3>
+  <table>
+    <tr>
+      <th>서비스</th>
+      <th>과금 방식</th>
+      <th>월 비용 (50명)</th>
+      <th>연 비용</th>
+      <th>10년 누적</th>
+    </tr>
+    <tr>
+      <td>시프티 (Shiftee)</td>
+      <td>인당 2,000~4,000원/월</td>
+      <td>10~20만</td>
+      <td>120~240만</td>
+      <td style="color:#dc2626; font-weight:700;">1,200~2,400만</td>
+    </tr>
+    <tr>
+      <td>플렉스 (flex)</td>
+      <td>기본 7만 + 인당 7,000원/월</td>
+      <td>~42만</td>
+      <td>~504만</td>
+      <td style="color:#dc2626; font-weight:700;">~5,040만</td>
+    </tr>
+    <tr>
+      <td>원티드스페이스</td>
+      <td>인당 5,000~6,000원/월</td>
+      <td>25~30만</td>
+      <td>300~360만</td>
+      <td style="color:#dc2626; font-weight:700;">3,000~3,600만</td>
+    </tr>
+    <tr>
+      <td>유니포스트</td>
+      <td>기본 2만 + 인당 1,000원/월</td>
+      <td>~6만</td>
+      <td>~72만</td>
+      <td style="color:#dc2626;">~720만</td>
+    </tr>
+    <tr class="highlight-row">
+      <td>KeystoneHR (우리)</td>
+      <td>1회 구매 (인원 50명 포함)</td>
+      <td>0원</td>
+      <td>0원</td>
+      <td style="color:#22c55e; font-weight:700;">49만 (1회 끝)</td>
+    </tr>
+  </table>
+
+  <div class="callout red">
+    <strong>10년 비용 차이의 충격</strong>
+    플렉스 50명 10년 = <strong>5,040만원</strong> vs KeystoneHR 10년 = <strong>49만원</strong><br>
+    차이: <strong>4,991만원</strong>. 이 숫자 자체가 마케팅이다.
+  </div>
+
+  <h3>2-2. v2.0 대비 변경된 포지션</h3>
+  <table>
+    <tr><th>항목</th><th>v2.0 (설치형)</th><th>v3.0 (SaaS)</th></tr>
+    <tr><td>배포 방식</td><td>exe/zip 납품</td><td>클라우드 SaaS (keystonehr.app)</td></tr>
+    <tr><td>설치</td><td>고객 PC에 직접 설치</td><td>설치 불필요, 가입 즉시 사용</td></tr>
+    <tr><td>접속 주소</td><td>사내 Wi-Fi or Cloudflare Tunnel</td><td>회사명.keystonehr.app (즉시 발급)</td></tr>
+    <tr><td>데이터 저장</td><td>고객 PC 로컬</td><td>Cloudflare 글로벌 엣지 (D1)</td></tr>
+    <tr><td>서버 관리</td><td>고객이 PC 켜둬야 함</td><td>우리가 관리 (24/7 무중단)</td></tr>
+    <tr><td>업데이트</td><td>수동 (파일 교체)</td><td>자동 (즉시 반영)</td></tr>
+    <tr><td>도메인</td><td>STANDARD 이상 유료 포함</td><td>모든 고객에게 서브도메인 자동 발급</td></tr>
+    <tr><td>가격 모델</td><td>3단계 (49/129/249만)</td><td>단일 플랜 49만원 (10년)</td></tr>
+  </table>
+
+  <div class="callout green">
+    <strong>SaaS 전환의 판매 이점</strong>
+    설치형의 최대 난관이었던 "설치 지원 인건비"가 완전히 사라짐.<br>
+    고객은 가입 즉시 사용 시작 → 납품 프로세스 1영업일 → 수 분으로 단축.<br>
+    원격 설치 대행, 교육 등의 부가 서비스가 불필요 → 순이익률 대폭 상승.
+  </div>
+</div>
+
+<!-- ============================== 3. 포지셔닝 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 3</span>
+  <h2>제품 포지셔닝 & 차별화</h2>
+
+  <h3>3-1. 포지셔닝 맵</h3>
+  <div style="background:#f8f9fa; border-radius:12px; padding:24px; margin:16px 0; text-align:center; font-family: monospace; font-size:14px; line-height:2;">
+    <pre style="display:inline-block; text-align:left;">
+    비용 높음 (연 200만+)
+        │
+        │   ● 플렉스 (~504만/년)  ● 원티드스페이스
+        │
+        │         ● 시프티 (~180만/년)
+        │
+        ├─────────────────────────────── 기능 많음
+        │
+        │  ● 유니포스트 (~72만/년)
+        │  ● 이카운트(ERP)
+        │
+        │
+        │
+    비용 낮음
+        │         ★ KeystoneHR
+        │            49만원/10년 = 연 4.9만원
+        │            SaaS인데 구독료 0원
+        │
+    ────┴────────────────────────────── 기능 적음
+    </pre>
+  </div>
+
+  <h3>3-2. 핵심 차별화 포인트</h3>
+  <div class="card-grid">
+    <div class="card" style="border-color:#dc2626; background:#fef2f2;">
+      <div class="card-title">1. SaaS인데 구독료 0원</div>
+      <div class="card-desc">업계 최초. 클라우드 HR인데 월 비용이 없다. "SaaS의 편리함 + 설치형의 가격"이라는 새 카테고리.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">2. 1회 구매 10년 사용</div>
+      <div class="card-desc">49만원 한 번이면 10년간 사용. 연 4.9만원 = 월 4,083원. 시프티 3일치 비용.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">3. 설치 불필요, 즉시 시작</div>
+      <div class="card-desc">가입 후 회사명.keystonehr.app 즉시 발급. exe 설치, 서버 세팅 전혀 없음. 5분 만에 시작.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">4. 인원 제한 없는 기본 50명</div>
+      <div class="card-desc">기본 50명 포함. 추가 인원 확장 저렴. SaaS처럼 인당 과금이 늘어나지 않음.</div>
+    </div>
+    <div class="card" style="border-color:#22c55e; background:#f0fdf4;">
+      <div class="card-title">5. 복리후생 풀 워크플로우 (독점 기능)</div>
+      <div class="card-desc">시프티·플렉스에 없는 기능. 경조사비, 자기개발비 등 복지 항목 자유 생성→신청→결재→현황. 예산 추적, 자동 승인 옵션까지 풀 워크플로우 제공.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">6. 24/7 무중단 운영</div>
+      <div class="card-desc">Cloudflare 글로벌 엣지 기반. PC를 켜둘 필요 없음. 전 세계 어디서든 접속 가능.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">7. 자동 업데이트</div>
+      <div class="card-desc">새 기능·버그 수정이 자동 반영. 파일 교체나 재설치 없음.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">8. 서비스 종속 없음</div>
+      <div class="card-desc">데이터 내보내기(Excel/CSV) 언제든 가능. SaaS 벤더 종속 없이 데이터 주권 보장.</div>
+    </div>
+    <div class="card" style="border-color:#dc2626; background:#fef2f2;">
+      <div class="card-title">9. 메신저 연동 — Slack/카카오워크/Teams (독점 기능)</div>
+      <div class="card-desc">웹훅 기반 Slack, 카카오워크, Microsoft Teams 연동 내장. 일간/주간 휴무 현황을 팀 채널에 자동 발송. 경쟁사는 별도 요금 또는 외부 연동 필요.</div>
+    </div>
+    <div class="card" style="border-color:#4338ca; background:#f0f0ff;">
+      <div class="card-title">10. 엔터프라이즈급 보안</div>
+      <div class="card-desc">사용자/관리자 JWT 이중 분리(토큰 재사용 공격 차단), 최초 로그인 시 비밀번호 강제 변경, Rate Limiting, 비밀번호 최대 길이 제한, 보안 헤더 적용.</div>
+    </div>
+  </div>
+
+  <h3>3-3. 기능 비교표 (경쟁사 대비)</h3>
+  <table>
+    <tr>
+      <th>기능</th>
+      <th>KeystoneHR</th>
+      <th>시프티</th>
+      <th>플렉스</th>
+      <th>원티드스페이스</th>
+    </tr>
+    <tr>
+      <td>출퇴근/근태 관리</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td>O</td>
+      <td>O</td>
+      <td>O</td>
+    </tr>
+    <tr>
+      <td>휴가/연차 관리</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td>O</td>
+      <td>O</td>
+      <td>O</td>
+    </tr>
+    <tr>
+      <td>결재/승인 워크플로우</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td>O</td>
+      <td>O</td>
+      <td>O</td>
+    </tr>
+    <tr>
+      <td>연장근무 관리</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td>O</td>
+      <td>O</td>
+      <td>O</td>
+    </tr>
+    <tr>
+      <td>복리후생 커스텀 (풀 워크플로우)</td>
+      <td style="color:#22c55e; font-weight:700;">O (예산추적/자동승인)</td>
+      <td style="color:#dc2626;">X</td>
+      <td style="color:#dc2626;">X</td>
+      <td style="color:#dc2626;">X</td>
+    </tr>
+    <tr class="highlight-row">
+      <td>메신저 연동 (Slack/카카오워크/Teams)</td>
+      <td style="color:#22c55e; font-weight:700;">O (내장, 무료)</td>
+      <td style="color:#f59e0b;">유료 추가</td>
+      <td style="color:#f59e0b;">별도 연동</td>
+      <td style="color:#dc2626;">X</td>
+    </tr>
+    <tr class="highlight-row">
+      <td>휴무 현황 자동 발송 (일간/주간)</td>
+      <td style="color:#22c55e; font-weight:700;">O (내장)</td>
+      <td style="color:#dc2626;">X</td>
+      <td style="color:#dc2626;">X</td>
+      <td style="color:#dc2626;">X</td>
+    </tr>
+    <tr>
+      <td>사용자/관리자 JWT 분리</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td>비공개</td>
+      <td>비공개</td>
+      <td>비공개</td>
+    </tr>
+    <tr>
+      <td>최초 로그인 비밀번호 강제 변경</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td style="color:#dc2626;">X</td>
+      <td style="color:#dc2626;">X</td>
+      <td style="color:#dc2626;">X</td>
+    </tr>
+    <tr>
+      <td>Rate Limiting / 보안 헤더</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td>일부</td>
+      <td>일부</td>
+      <td>일부</td>
+    </tr>
+    <tr>
+      <td>1회 구매 (구독료 0원)</td>
+      <td style="color:#22c55e; font-weight:700;">O</td>
+      <td style="color:#dc2626;">X (월 구독)</td>
+      <td style="color:#dc2626;">X (월 구독)</td>
+      <td style="color:#dc2626;">X (월 구독)</td>
+    </tr>
+  </table>
+
+  <div class="callout green">
+    <strong>메신저 연동 = 최대 차별화 포인트</strong>
+    Slack/카카오워크/Teams 웹훅 연동과 휴무 현황 자동 발송은 경쟁사가 별도 요금을 받거나 아예 제공하지 않는 기능이다.<br>
+    KeystoneHR에서는 <strong>기본 포함, 추가 비용 없음</strong>. 이것 하나만으로도 "49만원에 이게 된다고?" 반응을 이끌어낼 수 있다.
+  </div>
+</div>
+
+<!-- ============================== 4. 트롤링 마케팅 ============================== -->
+<div class="chapter">
+  <span class="ch-num red">CHAPTER 4 — NEW</span>
+  <h2>트롤링 마케팅 전략</h2>
+
+  <div class="callout red">
+    <strong>전략 핵심</strong>
+    경쟁사의 "월 N,000원"이라는 가격 표기를 역이용한다.<br>
+    고객은 "월 7,000원"이 싸다고 느끼지만, 50명 × 12개월 × 10년 = 수천만원이라는 사실을 모른다.<br>
+    이 "인지 격차"를 폭로하는 것이 트롤링 마케팅의 핵심이다.
+  </div>
+
+  <h3>4-1. 경쟁사별 트롤링 포인트</h3>
+
+  <div class="troll-box">
+    <div class="troll-title">vs 플렉스 (flex) — "인당 7,000원"의 진실</div>
+    <table>
+      <tr><th>항목</th><th>플렉스가 말하는 것</th><th>플렉스가 말하지 않는 것</th></tr>
+      <tr>
+        <td>가격</td>
+        <td>"인당 월 7,000원"</td>
+        <td class="our-col">기본료 7만원 + 인당 7,000원 = 50명이면 월 42만원</td>
+      </tr>
+      <tr>
+        <td>연 비용</td>
+        <td>표시 안 함</td>
+        <td class="our-col">504만원/년</td>
+      </tr>
+      <tr>
+        <td>3년 비용</td>
+        <td>표시 안 함</td>
+        <td class="our-col">1,512만원</td>
+      </tr>
+      <tr>
+        <td>10년 비용</td>
+        <td>표시 안 함</td>
+        <td class="our-col">5,040만원</td>
+      </tr>
+      <tr>
+        <td>해지하면?</td>
+        <td>"언제든 해지 가능"</td>
+        <td class="our-col">해지하면 데이터 접근 불가. 지금까지 낸 돈 = 매몰 비용</td>
+      </tr>
+      <tr>
+        <td>메신저 연동</td>
+        <td>"연동 가능" (별도 설정)</td>
+        <td class="our-col">별도 연동 필요. KeystoneHR은 Slack/카카오워크/Teams 웹훅이 기본 내장, 휴무 현황 자동 발송까지 무료</td>
+      </tr>
+    </table>
+    <p class="troll-sub" style="margin-top:12px;">
+      → 마케팅 카피: <span class="troll-highlight">"플렉스 '인당 7,000원'의 정체: 50명이면 연 504만원. 10년이면 5,040만원. 그리고 해지하면 0원으로 돌아갑니다. 메신저 연동? 그것도 별도입니다."</span>
+    </p>
+  </div>
+
+  <div class="troll-box">
+    <div class="troll-title">vs 시프티 (Shiftee) — "2,000원부터"의 함정</div>
+    <table>
+      <tr><th>항목</th><th>시프티가 말하는 것</th><th>시프티가 말하지 않는 것</th></tr>
+      <tr>
+        <td>가격</td>
+        <td>"인당 월 2,000원~"</td>
+        <td class="our-col">필수 기능 쓰려면 4,000원 플랜 필요. 50명 = 월 20만원</td>
+      </tr>
+      <tr>
+        <td>연 비용</td>
+        <td>표시 안 함</td>
+        <td class="our-col">240만원/년 (상위 플랜 기준)</td>
+      </tr>
+      <tr>
+        <td>직원 증가 시</td>
+        <td>"합리적 인당 과금"</td>
+        <td class="our-col">직원 100명 되면 월 40만원 → 연 480만원으로 2배</td>
+      </tr>
+      <tr>
+        <td>복리후생</td>
+        <td>"파트너 연동"</td>
+        <td class="our-col">별도 서비스 가입 + 추가 비용 필요</td>
+      </tr>
+      <tr>
+        <td>메신저 연동</td>
+        <td>"추가 요금으로 제공"</td>
+        <td class="our-col">Slack/카카오워크/Teams 연동하려면 별도 과금. KeystoneHR은 기본 내장</td>
+      </tr>
+    </table>
+    <p class="troll-sub" style="margin-top:12px;">
+      → 마케팅 카피: <span class="troll-highlight">"시프티 '2,000원부터'? 실제로 50명이 쓰면 월 20만원. Slack 연동은 또 별도 과금. KeystoneHR은 49만원이면 10년, 메신저 연동까지 포함."</span>
+    </p>
+  </div>
+
+  <div class="troll-box">
+    <div class="troll-title">vs 원티드스페이스 — "올인원"의 가격표</div>
+    <table>
+      <tr><th>항목</th><th>원티드스페이스</th><th>KeystoneHR</th></tr>
+      <tr>
+        <td>월 비용 (50명)</td>
+        <td>~30만원</td>
+        <td class="our-col">0원 (1회 구매 완료)</td>
+      </tr>
+      <tr>
+        <td>3년 누적</td>
+        <td>~1,080만원</td>
+        <td class="our-col">49만원</td>
+      </tr>
+      <tr>
+        <td>기능 범위</td>
+        <td>HR + 채용 (하지만 채용이 필요 없는 회사에게는 과잉)</td>
+        <td class="our-col">HR 핵심 기능 집중 (필요한 것만)</td>
+      </tr>
+      <tr>
+        <td>메신저 연동</td>
+        <td>미제공</td>
+        <td class="our-col">Slack/카카오워크/Teams 웹훅 내장 + 휴무 현황 자동 발송</td>
+      </tr>
+      <tr>
+        <td>복리후생 관리</td>
+        <td>미제공</td>
+        <td class="our-col">예산 추적, 자동 승인까지 풀 워크플로우</td>
+      </tr>
+    </table>
+  </div>
+
+  <h3>4-2. "구독료 낭비 계산기" 마케팅</h3>
+  <div class="callout red">
+    <strong>핵심 컨셉: "지금까지 SaaS에 얼마를 쓰셨나요?"</strong>
+    <p style="margin-top:8px;">
+      블로그/상품 페이지에 인터랙티브 계산기를 삽입.<br>
+      사용자가 ① 현재 SaaS 서비스 ② 직원 수 ③ 사용 기간을 입력하면<br>
+      → "지금까지 쓴 금액" vs "KeystoneHR이었다면?" 비교 결과가 나온다.
+    </p>
+  </div>
+
+  <p><strong>계산기 예시 (50명, 시프티 2년 사용 가정):</strong></p>
+  <div style="background:#1e1e2e; border-radius:12px; padding:20px; margin:12px 0; color:#e2e8f0; font-family:monospace; font-size:14px; line-height:2;">
+    ┌─────────────────────────────────────┐<br>
+    │ 시프티 2년 사용 비용&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    │ 월 15만원 × 24개월 = <span style="color:#f87171; font-weight:700;">360만원</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    │ KeystoneHR로 전환했다면?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    │ 1회 구매 = <span style="color:#34d399; font-weight:700;">49만원</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    │ <span style="color:#fbbf24; font-weight:700;">절약: 311만원</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    │ (그리고 앞으로 8년 더 무료)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+    └─────────────────────────────────────┘
+  </div>
+
+  <h3>4-3. SNS/블로그 트롤링 카피 모음</h3>
+  <table>
+    <tr><th>타입</th><th>카피</th><th>용도</th></tr>
+    <tr>
+      <td>숫자 충격</td>
+      <td><strong>"플렉스 10년 = 5,040만원. KeystoneHR 10년 = 49만원. 같은 HR 시스템입니다."</strong></td>
+      <td>블로그 제목, SNS</td>
+    </tr>
+    <tr>
+      <td>질문형</td>
+      <td><strong>"월 7,000원 × 50명 × 12개월 = 연 504만원. 이걸 '합리적'이라고 부를 수 있나요?"</strong></td>
+      <td>블로그 도입부</td>
+    </tr>
+    <tr>
+      <td>비교형</td>
+      <td><strong>"시프티 3개월치 = KeystoneHR 10년. 어디에 쓰시겠습니까?"</strong></td>
+      <td>크몽 상품 설명</td>
+    </tr>
+    <tr>
+      <td>손실 강조</td>
+      <td><strong>"지금 이 순간에도 월 42만원이 자동결제되고 있습니다. 멈출 수 있습니다."</strong></td>
+      <td>광고 카피</td>
+    </tr>
+    <tr>
+      <td>도발형</td>
+      <td><strong>"HR SaaS 업체가 절대 알려주지 않는 숫자: '인당 월 7,000원'의 10년 합계"</strong></td>
+      <td>블로그 제목</td>
+    </tr>
+    <tr>
+      <td>사회적 증거</td>
+      <td><strong>"대기업은 연 수천만원 HR에 써도 됩니다. 당신의 30명 회사도 그래야 할까요?"</strong></td>
+      <td>네이버 블로그</td>
+    </tr>
+    <tr>
+      <td>FOMO</td>
+      <td><strong>"아직도 매달 HR 구독료 내시는 분? 2026년에 그러실 필요 없습니다."</strong></td>
+      <td>SNS 광고</td>
+    </tr>
+    <tr>
+      <td>희소성</td>
+      <td><strong>"초기 50사 한정 파운더스 플랜. 1회 결제 49만원에 10년. 50사 이후에는 이 가격 없습니다."</strong></td>
+      <td>크몽 상품 설명, SNS</td>
+    </tr>
+    <tr>
+      <td>긴급성</td>
+      <td><strong>"남은 자리: ??/50. 마감되면 월 구독 모델로 전환됩니다."</strong></td>
+      <td>상품 페이지 상단</td>
+    </tr>
+    <tr>
+      <td>기능 차별</td>
+      <td><strong>"Slack/카카오워크/Teams에 오늘 누가 쉬는지 자동으로 알려줍니다. 경쟁사는 별도 요금입니다."</strong></td>
+      <td>블로그, 크몽 상품 설명</td>
+    </tr>
+    <tr>
+      <td>보안 강조</td>
+      <td><strong>"49만원짜리가 엔터프라이즈급 보안? JWT 이중 분리, Rate Limiting, 강제 비밀번호 변경까지. 네, 됩니다."</strong></td>
+      <td>블로그, SNS</td>
+    </tr>
+  </table>
+
+  <h3>4-4. 블로그 콘텐츠 전략 (트롤링 기반)</h3>
+  <table>
+    <tr><th>#</th><th>제목</th><th>트롤링 포인트</th></tr>
+    <tr>
+      <td>1</td>
+      <td>"플렉스 vs 시프티 vs KeystoneHR — 10년 비용 비교하면 충격"</td>
+      <td>10년 누적 비용 계산, 그래프로 시각화</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>"HR SaaS '인당 과금'의 함정 — 당신이 실제로 내는 금액"</td>
+      <td>"인당 7,000원"을 월/연/10년으로 환산</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>"중소기업이 플렉스 대신 선택한 49만원짜리 HR 시스템"</td>
+      <td>가상 사례 기반 비교 리뷰</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>"SaaS 구독을 끊으면 일어나는 일 — 데이터는 어디로?"</td>
+      <td>SaaS 해지 시 데이터 소멸 문제 폭로</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>"시프티 월 2,000원? 실제 비용 계산해보니..."</td>
+      <td>최저 플랜의 기능 제한 + 실제 필요 플랜 비용</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>"구독료 없는 HR 시스템이 존재합니다 (SaaS인데요)"</td>
+      <td>KeystoneHR 소개 + 비용 비교</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>"Slack/카카오워크에 '오늘 누가 쉬는지' 자동 알림 — 49만원짜리 HR이 해줍니다"</td>
+      <td>메신저 연동 기능 소개 + 경쟁사 별도 요금 비교</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>"HR 시스템 보안 체크리스트 — 당신의 인사 데이터는 안전한가요?"</td>
+      <td>JWT 분리, Rate Limiting 등 보안 기능 강조 + 경쟁사 비교</td>
+    </tr>
+  </table>
+
+  <h3>4-5. 크몽 상품 설명 내 트롤링 삽입 포인트</h3>
+  <div class="callout orange">
+    <strong>주의사항</strong>
+    크몽 상품 설명에서 경쟁사 이름을 직접 언급하는 것은 정책 위반 리스크가 있음.<br>
+    → 상품 설명에서는 <strong>"국내 유명 HR SaaS A사", "인당 과금형 B사"</strong> 등으로 간접 표기.<br>
+    → 블로그/SNS에서는 직접 비교 가능 (비교 광고는 사실에 기반하면 합법).<br>
+    → 숫자(가격)는 공개 정보이므로 인용 가능.
+  </div>
+
+  <h3>4-6. 가격 심리 전략 (행동경제학 활용)</h3>
+  <table>
+    <tr><th>전략</th><th>원리</th><th>적용</th></tr>
+    <tr>
+      <td><strong>앵커 역전</strong></td>
+      <td>경쟁사 비용을 먼저 보여주고 우리 가격을 나중에</td>
+      <td>"A사 10년 = 5,040만원" 보여준 후 "KeystoneHR 10년 = 49만원"</td>
+    </tr>
+    <tr>
+      <td><strong>손실 프레이밍</strong></td>
+      <td>"절약"보다 "새는 돈"이 2배 강하게 느껴짐</td>
+      <td>"매달 42만원이 빠져나가고 있습니다. 멈출 수 있습니다."</td>
+    </tr>
+    <tr>
+      <td><strong>가격 프레이밍</strong></td>
+      <td>같은 금액을 작은 단위로 쪼개 표시</td>
+      <td>"49만원" → "하루 134원 (10년)" / "월 4,083원"</td>
+    </tr>
+    <tr>
+      <td><strong>매몰비용 자극</strong></td>
+      <td>"이미 쓴 돈"에 대한 후회를 불러일으킴</td>
+      <td>"지금까지 SaaS에 쓴 금액, 돌려받을 수 없습니다. 하지만 앞으로는 멈출 수 있습니다."</td>
+    </tr>
+    <tr>
+      <td><strong>무료 체험</strong></td>
+      <td>SaaS니까 실제 무료 체험 가능 (소유 효과 발동)</td>
+      <td>14일 무료 체험 → "내 것" 느낌 → 구매 전환</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================== 5. 가격 전략 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 5</span>
+  <h2>가격 전략 — 10년 사용권 모델</h2>
+
+  <h3>5-1. 가격 구조 — "파운더스 플랜" (Founders Plan)</h3>
+
+  <div class="callout green">
+    <strong>핵심 포지셔닝</strong>
+    "왜 SaaS인데 구독료가 없나요?" → "초기 50사 한정 특별 혜택입니다."<br>
+    인프라 비용이 싸다는 내부 사정을 노출하지 않고,<br>
+    "초기 고객에 대한 감사 + 피드백 파트너십"으로 프레이밍한다.<br>
+    50사 이후에는 월 구독 모델로 전환 예정이라는 메시지로 <strong>희소성 + 긴급성</strong>을 동시에 확보.
+  </div>
+
+  <table>
+    <tr><th>항목</th><th>내용</th></tr>
+    <tr><td><strong>플랜명</strong></td><td><strong>Founders Plan (파운더스 플랜)</strong> — 초기 50사 한정</td></tr>
+    <tr><td><strong>가격</strong></td><td><strong>₩490,000</strong> (VAT 별도) — 1회 결제, 10년 사용</td></tr>
+    <tr><td>포함 인원</td><td>50명</td></tr>
+    <tr><td>포함 기능</td><td>모든 기능 (출퇴근·휴가·결재·연장근무·복지·직원관리·대시보드·알림·<strong>메신저 연동(Slack/카카오워크/Teams)</strong>·휴무 현황 자동 발송)</td></tr>
+    <tr><td>접속 주소</td><td>회사명.keystonehr.app (즉시 발급)</td></tr>
+    <tr><td>서비스 기간</td><td>결제일로부터 10년</td></tr>
+    <tr><td>데이터 내보내기</td><td>Excel/CSV 무제한</td></tr>
+    <tr><td>자동 업데이트</td><td>10년간 포함</td></tr>
+    <tr><td><strong>가격 동결 보장</strong></td><td>향후 요금 변경과 무관하게 파운더스 플랜 조건 10년간 유지</td></tr>
+  </table>
+
+  <h3>5-2. 확장 옵션 (별도 구매)</h3>
+  <table>
+    <tr><th>옵션</th><th>가격</th><th>설명</th></tr>
+    <tr><td>직원 100명 확장</td><td>+₩150,000 (1회)</td><td>기본 50명 → 100명으로 확장</td></tr>
+    <tr><td>직원 무제한 확장</td><td>+₩300,000 (1회)</td><td>인원 제한 해제</td></tr>
+    <tr><td>10년 갱신</td><td>₩99,000 (만료 시)</td><td>10년 후 갱신 비용 (기존 고객 혜택)</td></tr>
+    <tr><td>유료 기술지원</td><td>₩200,000/년</td><td>전담 지원 (업무일 4시간 내 응대)</td></tr>
+    <tr><td>커스텀 기능 개발</td><td>별도 견적</td><td>고객 요청 기능 추가 개발</td></tr>
+  </table>
+
+  <h3>5-3. 가격 설정 근거</h3>
+  <table>
+    <tr><th>항목</th><th>금액</th><th>설명</th></tr>
+    <tr><td>판매가</td><td>490,000</td><td>경쟁사 대비 압도적 가격 경쟁력</td></tr>
+    <tr><td>크몽 수수료 (16.4%+3.3%)</td><td>~96,500</td><td>70만 이하 구간</td></tr>
+    <tr><td>인프라 비용 10년</td><td>~100,000</td><td>Cloudflare D1/Workers/R2 (월 ~₩800)</td></tr>
+    <tr><td><strong>실수익</strong></td><td><strong>~293,500</strong></td><td>수익률 ~60%</td></tr>
+  </table>
+
+  <h3>5-4. 경쟁사 대비 손익분기 (고객 관점)</h3>
+  <p>50명 기준, KeystoneHR 49만원 vs SaaS 월 구독:</p>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label">vs 시프티</div>
+      <div class="bar-track"><div class="bar-fill purple" style="width:27%;">2.5~3개월</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">vs 플렉스</div>
+      <div class="bar-track"><div class="bar-fill blue" style="width:12%;">1.2개월</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">vs 원티드스페이스</div>
+      <div class="bar-track"><div class="bar-fill green" style="width:18%;">1.6개월</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">vs 유니포스트</div>
+      <div class="bar-track"><div class="bar-fill gray" style="width:70%;">~7개월</div></div>
+    </div>
+  </div>
+  <p style="font-size:13px; color:#888;">※ 바 길이 = 손익분기까지 걸리는 기간. 짧을수록 우리 제품이 유리.<br>※ 플렉스 대비 1.2개월이면 손익분기 → 이후 9년 10개월은 순이득.</p>
+
+  <h3>5-5. 런칭 프로모션</h3>
+  <div class="callout green">
+    <strong>선착순 20명 Early Bird</strong>
+    <ul>
+      <li>기본 플랜: 49만 → <strong>29만원</strong> (41% 할인)</li>
+      <li>100명 확장: 15만 → <strong>9만원</strong></li>
+    </ul>
+    목적: 초기 리뷰 확보. 크몽에서는 리뷰 수가 상품 노출 순위에 직접적 영향.<br>
+    29만원에도 수익률 ~40% (인프라 비용 10년 ~10만 + 수수료 ~5.7만 = ~15.7만 원가)
+  </div>
+
+  <h3>5-6. "무료 체험" — SaaS의 최대 장점 활용</h3>
+  <div class="callout">
+    <strong>설치형에서는 불가능했던 무료 체험이 SaaS에서는 가능</strong>
+    <ul>
+      <li>14일 무료 체험 (Trial) 기능 이미 구현됨</li>
+      <li>가입 즉시 모든 기능 사용 가능, 신용카드 불필요</li>
+      <li>체험 후 구매하지 않으면 자동 만료 (데이터 90일 보관 후 삭제)</li>
+      <li>체험 → 구매 전환률: SaaS 업계 평균 15~25%</li>
+    </ul>
+    이것은 설치형 모델(v2.0)에서 가장 큰 약점이었던 "구매 전 체험 불가" 문제를 완전히 해결한다.
+  </div>
+</div>
+
+<!-- ============================== 6. 비즈니스 안전장치 ============================== -->
+<div class="chapter">
+  <span class="ch-num red">CHAPTER 6 — NEW</span>
+  <h2>비즈니스 안전장치</h2>
+
+  <div class="callout red">
+    <strong>핵심 리스크</strong>
+    SaaS를 1회 판매하면, 고객이 10년간 사용하는 동안 인프라 비용이 계속 발생한다.<br>
+    이 모델이 지속 가능하려면 반드시 아래 안전장치가 필요하다.
+  </div>
+
+  <h3>6-1. 사용량 제한 (기술적 보호)</h3>
+  <table>
+    <tr><th>항목</th><th>기본 제한</th><th>초과 시</th><th>구현 상태</th></tr>
+    <tr><td>직원 수</td><td>50명</td><td>등록 차단, 확장 옵션 안내</td><td style="color:#22c55e;">구현됨 (maxEmployees)</td></tr>
+    <tr><td>저장 용량</td><td>1GB</td><td>경고 → 업로드 차단</td><td style="color:#f59e0b;">구현 필요</td></tr>
+    <tr><td>일 API 호출</td><td>10만 건</td><td>Rate limit (429 응답)</td><td style="color:#22c55e;">구현됨 (rate-limit.ts)</td></tr>
+    <tr><td>파일 업로드</td><td>100MB (로고 등)</td><td>업로드 차단</td><td style="color:#f59e0b;">구현 필요</td></tr>
+    <tr><td>사용량 로그</td><td>—</td><td>—</td><td style="color:#22c55e;">구현됨 (TenantUsageLog)</td></tr>
+  </table>
+
+  <h3>6-2. 이용약관 필수 조항</h3>
+  <table>
+    <tr><th>조항</th><th>내용</th><th>목적</th></tr>
+    <tr>
+      <td><strong>서비스 기간</strong></td>
+      <td>"서비스 이용 기간은 결제일로부터 10년입니다"</td>
+      <td>무제한 의무 방지</td>
+    </tr>
+    <tr>
+      <td><strong>서비스 변경권</strong></td>
+      <td>"서비스 내용은 30일 전 고지 후 변경될 수 있습니다"</td>
+      <td>기능 변경 자유도 확보</td>
+    </tr>
+    <tr>
+      <td><strong>서비스 종료</strong></td>
+      <td>"서비스 종료 시 최소 6개월 전 고지 + 데이터 내보내기 기간 90일 제공"</td>
+      <td>사업 정리 시 법적 보호</td>
+    </tr>
+    <tr>
+      <td><strong>합리적 사용</strong></td>
+      <td>"정상적 업무 목적 외 사용(크롤링, API 남용, 봇) 시 서비스 제한 가능"</td>
+      <td>인프라 남용 방지</td>
+    </tr>
+    <tr>
+      <td><strong>1사 1라이선스</strong></td>
+      <td>"구매한 법인/사업자에 한해 사용. 제3자 양도·공유·재판매 금지"</td>
+      <td>1개 구매 다수 사용 방지</td>
+    </tr>
+    <tr>
+      <td><strong>불가항력</strong></td>
+      <td>"인프라 제공자(Cloudflare 등)의 정책 변경에 의한 서비스 변경은 면책"</td>
+      <td>외부 요인 리스크 전가</td>
+    </tr>
+    <tr>
+      <td><strong>데이터 보관</strong></td>
+      <td>"서비스 만료/종료 후 90일간 데이터 보관, 이후 영구 삭제"</td>
+      <td>무한 보관 의무 방지</td>
+    </tr>
+    <tr>
+      <td><strong>SLA (가용성)</strong></td>
+      <td>"월 99% 가용성 목표 (보장이 아닌 목표)"</td>
+      <td>다운타임 배상 의무 방지</td>
+    </tr>
+  </table>
+
+  <h3>6-3. 악용 방지 시나리오</h3>
+  <table>
+    <tr><th>시나리오</th><th>대응</th></tr>
+    <tr>
+      <td>1개 구매 후 여러 법인이 사용</td>
+      <td>사업자번호 1:1 바인딩 + 이용약관 위반 시 서비스 정지</td>
+    </tr>
+    <tr>
+      <td>구매 후 즉시 환불 요구</td>
+      <td>"계정 생성 완료 후 환불 불가" 명시, 무료 체험 기간으로 사전 검증 유도</td>
+    </tr>
+    <tr>
+      <td>경쟁사가 구매 후 역공학</td>
+      <td>SaaS라 소스코드 미노출 + 이용약관에 역공학 금지 조항</td>
+    </tr>
+    <tr>
+      <td>고객사 급성장 (5명→500명)</td>
+      <td>maxEmployees 기본 50명 제한 + 유료 확장 옵션</td>
+    </tr>
+    <tr>
+      <td>대량 데이터 저장/API 남용</td>
+      <td>사용량 모니터링 (TenantUsageLog) + Rate Limit + 저장 용량 제한</td>
+    </tr>
+  </table>
+
+  <h3>6-4. 수익 보호 장치 (장기 매출 확보)</h3>
+  <table>
+    <tr><th>장치</th><th>설명</th><th>예상 매출</th></tr>
+    <tr>
+      <td><strong>직원 수 확장</strong></td>
+      <td>50명 초과 시 유료 확장</td>
+      <td>건당 15~30만원</td>
+    </tr>
+    <tr>
+      <td><strong>10년 갱신</strong></td>
+      <td>만료 후 갱신 (기존 고객 할인)</td>
+      <td>건당 9.9만원</td>
+    </tr>
+    <tr>
+      <td><strong>프리미엄 기능</strong></td>
+      <td>향후 고급 기능 (API 연동, SSO, 감사 리포트 등) 유료 추가</td>
+      <td>월 or 1회 과금</td>
+    </tr>
+    <tr>
+      <td><strong>유료 기술지원</strong></td>
+      <td>전담 지원 서비스</td>
+      <td>연 20만원</td>
+    </tr>
+    <tr>
+      <td><strong>커스텀 개발</strong></td>
+      <td>고객 요청 기능 개발</td>
+      <td>건당 50~200만원</td>
+    </tr>
+  </table>
+
+  <div class="callout green">
+    <strong>LTV (고객 생애 가치) 시나리오</strong>
+    <ul>
+      <li>최소 LTV: 49만원 (기본 구매만)</li>
+      <li>평균 LTV: 49 + 15(확장) + 9.9(갱신) = ~74만원</li>
+      <li>최대 LTV: 49 + 30(무제한) + 20(지원) × 5년 + 커스텀 = ~200만원+</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================== 7. 크몽 상품 구성 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 7</span>
+  <h2>크몽 상품 구성</h2>
+
+  <h3>7-1. 상품 제목 (확정)</h3>
+  <div class="callout green">
+    <strong>유명 HR SaaS 3개월치로 10년 쓰는 인사관리 — 구독료 영원히 0원</strong>
+  </div>
+  <div class="callout">
+    <strong>서브: [선착순 50사 한정] 초기 도입 기업만을 위한 파격 혜택 — 파운더스 플랜</strong>
+  </div>
+
+  <h3>7-2. 한줄 소개</h3>
+  <p>"선착순 50사 한정! 유명 HR SaaS 3개월 비용이면 10년 사용. 가입 즉시 시작되는 클라우드 인사관리 — 구독료 영원히 0원, 초기 도입 기업 특별 혜택."</p>
+
+  <h3>7-3. 카테고리 & 태그</h3>
+  <p>카테고리: IT·프로그래밍 → PC·웹 프로그램 → 업무 자동화</p>
+  <p>태그: HR시스템, 인사관리, 휴가관리, 근태관리, 중소기업, 클라우드HR, 결재시스템, 직원관리, 복리후생, 구독료없는SaaS, Slack연동, 카카오워크, Teams연동, 메신저알림</p>
+
+  <h3>7-4. 패키지 구성 (크몽 등록) — 파운더스 플랜</h3>
+  <table>
+    <tr><th>항목</th><th>Founders 50명<br>49만원</th><th>Founders 100명<br>64만원</th><th>Founders 무제한<br>79만원</th></tr>
+    <tr><td>10년 사용권</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>모든 기능</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>전용 서브도메인</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>HTTPS/DDoS 방어</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>자동 업데이트</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>데이터 내보내기</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>메신저 연동 (Slack/카카오워크/Teams)</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>휴무 현황 자동 발송</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>엔터프라이즈 보안 (JWT 분리/Rate Limit)</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>직원 수 한도</td><td>50명</td><td style="color:#4338ca; font-weight:700;">100명</td><td style="color:#4338ca; font-weight:700;">무제한</td></tr>
+    <tr><td>무상 지원</td><td>1개월</td><td>1개월</td><td>3개월</td></tr>
+  </table>
+
+  <h3>7-5. 필요 이미지</h3>
+  <ol>
+    <li>대표 썸네일 (1280×960px, 보라 그라디언트 + 대시보드 목업)</li>
+    <li>대시보드 스크린샷</li>
+    <li>휴가 신청/승인 화면</li>
+    <li>직원 관리 목록</li>
+    <li>복리후생 관리 화면</li>
+    <li><strong>메신저 연동 설정 화면 (Slack/카카오워크/Teams 웹훅)</strong></li>
+    <li><strong>비용 비교 인포그래픽 (트롤링 핵심 이미지)</strong> — 경쟁사 10년 비용 vs KeystoneHR</li>
+    <li>모바일 접속 화면 (반응형 UI)</li>
+    <li>"가입 후 5분 만에 시작" 프로세스 다이어그램</li>
+  </ol>
+</div>
+
+<!-- ============================== 8. 멀티 채널 전략 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 8</span>
+  <h2>멀티 채널 전략</h2>
+
+  <h3>8-1. 채널별 역할</h3>
+  <table>
+    <tr><th>단계</th><th>채널</th><th>역할</th><th>시기</th></tr>
+    <tr>
+      <td>1단계</td>
+      <td>크몽 + 무료 체험</td>
+      <td>초기 판매 + 리뷰 확보 + 시장 검증. 무료 체험으로 유입 후 크몽에서 결제</td>
+      <td>즉시</td>
+    </tr>
+    <tr>
+      <td>1단계</td>
+      <td>트롤링 블로그</td>
+      <td>경쟁사 비교 콘텐츠로 SEO 유입. "플렉스 vs 시프티 vs KeystoneHR" 검색 장악</td>
+      <td>동시</td>
+    </tr>
+    <tr>
+      <td>2단계</td>
+      <td>keystonehr.app 직접 결제</td>
+      <td>크몽 수수료 절감 (16~20% → 카드 수수료 3%만). 랜딩페이지 이미 존재</td>
+      <td>3개월 후</td>
+    </tr>
+    <tr>
+      <td>3단계</td>
+      <td>네이버 스마트스토어</td>
+      <td>네이버 검색 노출 + "인사관리 프로그램" 키워드 장악</td>
+      <td>6개월 후</td>
+    </tr>
+  </table>
+
+  <h3>8-2. SEO 트롤링 키워드</h3>
+  <table>
+    <tr><th>키워드</th><th>의도</th><th>경쟁 강도</th></tr>
+    <tr><td>"플렉스 가격" / "시프티 요금"</td><td>경쟁사 비용 검색 → 비교 콘텐츠로 유입</td><td>중</td></tr>
+    <tr><td>"HR SaaS 비교"</td><td>비교 검색 → 10년 비용 비교표로 충격</td><td>중</td></tr>
+    <tr><td>"중소기업 인사관리 프로그램"</td><td>직접 수요 → KeystoneHR 소개</td><td>낮음</td></tr>
+    <tr><td>"구독료 없는 HR"</td><td>비용 불만 고객 → 우리 상품으로 전환</td><td>매우 낮음</td></tr>
+    <tr><td>"시프티 대안" / "플렉스 대안"</td><td>이탈 고객 → 대안으로 포지셔닝</td><td>낮음</td></tr>
+    <tr><td>"무료 인사관리 시스템"</td><td>무료 검색 → 14일 체험 후 전환</td><td>높음</td></tr>
+    <tr><td>"HR Slack 연동" / "인사관리 카카오워크"</td><td>메신저 연동 검색 → 기본 내장 무료 강조</td><td>낮음</td></tr>
+    <tr><td>"HR 시스템 보안" / "인사관리 보안"</td><td>보안 관심 고객 → 엔터프라이즈급 보안 강조</td><td>낮음</td></tr>
+  </table>
+</div>
+
+<!-- ============================== 9. 런칭 로드맵 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 9</span>
+  <h2>런칭 로드맵</h2>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-marker">
+        <div class="tl-dot"></div>
+        <div class="tl-week">W1</div>
+      </div>
+      <div class="tl-content">
+        <strong>준비</strong><br>
+        데모 데이터 셋업 → demo.keystonehr.app 오픈 → 스크린샷 촬영 → 비용 비교 인포그래픽 제작 → 크몽 전문가 등록
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker">
+        <div class="tl-dot"></div>
+        <div class="tl-week">W2</div>
+      </div>
+      <div class="tl-content">
+        <strong>크몽 등록</strong><br>
+        상품 페이지 작성 (트롤링 카피 포함) → Early Bird 프로모션 → 등록 완료
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker">
+        <div class="tl-dot"></div>
+        <div class="tl-week">W2~4</div>
+      </div>
+      <div class="tl-content">
+        <strong>트롤링 블로그 폭격</strong><br>
+        네이버 블로그 10건 (경쟁사 비교 시리즈) → "플렉스 10년 비용" 등 SEO 키워드 장악 → 중소기업 커뮤니티 공유
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker">
+        <div class="tl-dot"></div>
+        <div class="tl-week">M2~3</div>
+      </div>
+      <div class="tl-content">
+        <strong>첫 고객 + 리뷰</strong><br>
+        Early Bird 고객 대응 → 리뷰 요청 → 피드백 반영 → 상품 설명 개선
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker">
+        <div class="tl-dot"></div>
+        <div class="tl-week">M4~6</div>
+      </div>
+      <div class="tl-content">
+        <strong>확장</strong><br>
+        keystonehr.app 직접 결제 오픈 → 정가 판매 전환 → 무료 체험 퍼널 최적화
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== 10. 수익 시뮬레이션 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 10</span>
+  <h2>수익 시뮬레이션</h2>
+
+  <h3>10-1. 보수적 시나리오 (6개월)</h3>
+  <table>
+    <tr><th>월</th><th>기본(49만)</th><th>100명(64만)</th><th>무제한(79만)</th><th>무료체험</th><th>월 매출</th><th>누적</th></tr>
+    <tr><td>M1</td><td>1건</td><td>0건</td><td>0건</td><td>~20명</td><td>49만</td><td>49만</td></tr>
+    <tr><td>M2</td><td>2건</td><td>1건</td><td>0건</td><td>~30명</td><td>162만</td><td>211만</td></tr>
+    <tr><td>M3</td><td>3건</td><td>1건</td><td>0건</td><td>~40명</td><td>211만</td><td>422만</td></tr>
+    <tr><td>M4</td><td>2건</td><td>1건</td><td>1건</td><td>~50명</td><td>241만</td><td>663만</td></tr>
+    <tr><td>M5</td><td>3건</td><td>2건</td><td>0건</td><td>~60명</td><td>275만</td><td>938만</td></tr>
+    <tr><td>M6</td><td>3건</td><td>2건</td><td>1건</td><td>~80명</td><td>354만</td><td>1,292만</td></tr>
+  </table>
+  <p style="font-size:13px; color:#888;">※ 무료 체험 → 구매 전환율 15% 가정</p>
+
+  <h3>10-2. 수수료 차감 후 실수익</h3>
+  <table>
+    <tr><th>6개월 합계</th><th>금액</th></tr>
+    <tr><td>총 매출 (크몽 기준)</td><td>~1,292만</td></tr>
+    <tr><td>크몽 수수료 (평균 ~18%)</td><td>~233만</td></tr>
+    <tr><td>인프라 비용 (tenant 23개 × 6개월)</td><td>~11만</td></tr>
+    <tr><td><strong>실수익</strong></td><td><strong>~1,048만</strong></td></tr>
+    <tr><td>월 평균</td><td>~175만</td></tr>
+  </table>
+
+  <div class="callout green">
+    <strong>SaaS 모델의 수익 우위</strong>
+    설치형(v2.0) 대비 인건비가 대폭 절감됨:<br>
+    - 원격 설치 대행: 불필요 (설치가 없으므로)<br>
+    - 교육: 불필요 (셀프 서비스)<br>
+    - 도메인 등록: 불필요 (서브도메인 자동 발급)<br>
+    → 고객당 투입 시간: ~2시간 → ~10분으로 단축<br>
+    → 동시 처리 가능 고객 수: 5배 이상 증가
+  </div>
+</div>
+
+<!-- ============================== 11. 리스크 ============================== -->
+<div class="chapter">
+  <span class="ch-num">CHAPTER 11</span>
+  <h2>리스크 & 대응 전략</h2>
+
+  <table>
+    <tr><th>리스크</th><th>영향</th><th>대응</th></tr>
+    <tr>
+      <td>Cloudflare 요금 인상</td>
+      <td>높음</td>
+      <td>현재 tenant당 월 ~₩800. 5배 인상(₩4,000)에도 10년 ₩48만 = 수익 유지 가능. 이용약관에 불가항력 조항.</td>
+    </tr>
+    <tr>
+      <td>SaaS 대비 기능 부족 인식</td>
+      <td>중</td>
+      <td>"핵심 기능에 집중" 포지셔닝 + 복리후생 풀 워크플로우·메신저 연동(Slack/카카오워크/Teams)·엔터프라이즈급 보안 등 독점 기능 강조. 무료 체험으로 사전 검증.</td>
+    </tr>
+    <tr>
+      <td>크몽 초기 노출 부족</td>
+      <td>높음</td>
+      <td>Early Bird + 트롤링 블로그 SEO + 무료 체험 퍼널. 크몽 외 직접 유입 병행.</td>
+    </tr>
+    <tr>
+      <td>악의적 리뷰 / 환불 분쟁</td>
+      <td>중</td>
+      <td>14일 무료 체험 의무화 → "충분히 써보고 구매"를 강조. 환불 정책 명확 기재.</td>
+    </tr>
+    <tr>
+      <td>"10년 후 어떻게 되나요?" 우려</td>
+      <td>중</td>
+      <td>FAQ에 명시: "10년 후 ₩9.9만원에 갱신 가능. 갱신하지 않으면 데이터 내보내기 후 90일간 보관."</td>
+    </tr>
+    <tr>
+      <td>경쟁사의 가격 인하 대응</td>
+      <td>낮음</td>
+      <td>SaaS 구독 모델 자체가 월 과금이므로, 1회 구매 모델과 직접 가격 경쟁 어려움. 우리의 모델 자체가 방어막.</td>
+    </tr>
+    <tr>
+      <td>서비스 장애/다운타임</td>
+      <td>높음</td>
+      <td>Cloudflare Workers = 전 세계 엣지 배포, 단일 서버 장애 없음. SLA "목표 99%"로 법적 리스크 최소화.</td>
+    </tr>
+    <tr>
+      <td>번들 사이즈 한계 (3MB)</td>
+      <td>중</td>
+      <td>현재 3,059KB/3,072KB. 기능 추가 시 코드 최적화 또는 Workers 분리 배포 필요.</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================== 부록 ============================== -->
+<div class="chapter">
+  <span class="ch-num">부록</span>
+  <h2>인프라 비용 상세 분석</h2>
+
+  <h3>A. Cloudflare 비용 구조 (2026년 기준)</h3>
+  <table>
+    <tr><th>서비스</th><th>무료 티어</th><th>유료 단가</th><th>tenant당 예상</th></tr>
+    <tr><td>Workers (요청)</td><td>10만 건/일</td><td>$5/10M 요청</td><td>~$0.50/월</td></tr>
+    <tr><td>D1 (저장)</td><td>5GB</td><td>$0.75/GB/월</td><td>~$0.07/월</td></tr>
+    <tr><td>D1 (읽기)</td><td>5M 행/일</td><td>$0.001/M 행</td><td>~$0.03/월</td></tr>
+    <tr><td>D1 (쓰기)</td><td>100K 행/일</td><td>$0.001/M 행</td><td>~$0.02/월</td></tr>
+    <tr><td>R2 (파일)</td><td>10GB</td><td>$0.015/GB/월</td><td>~$0.01/월</td></tr>
+    <tr><td>KV (캐시)</td><td>100K 읽기/일</td><td>$0.50/M 읽기</td><td>~$0.01/월</td></tr>
+    <tr class="highlight-row"><td><strong>합계</strong></td><td></td><td></td><td><strong>~$0.64/월 ≈ ₩850</strong></td></tr>
+  </table>
+
+  <h3>B. 규모별 인프라 비용 시뮬레이션</h3>
+  <table>
+    <tr><th>tenant 수</th><th>월 인프라 비용</th><th>연 인프라 비용</th><th>누적 매출 (49만×)</th><th>인프라 비율</th></tr>
+    <tr><td>10개</td><td>~₩8,500</td><td>~₩102,000</td><td>490만</td><td>2%</td></tr>
+    <tr><td>50개</td><td>~₩42,500</td><td>~₩510,000</td><td>2,450만</td><td>2%</td></tr>
+    <tr><td>100개</td><td>~₩85,000</td><td>~₩1,020,000</td><td>4,900만</td><td>2%</td></tr>
+    <tr><td>500개</td><td>~₩425,000</td><td>~₩5,100,000</td><td>24,500만</td><td>2%</td></tr>
+  </table>
+
+  <div class="callout green">
+    <strong>핵심 결론</strong>
+    인프라 비용 비율은 규모와 무관하게 약 <strong>2%</strong>로 일정.<br>
+    10년간 tenant당 인프라 비용 ~₩10만원 vs 판매가 49만원 → 인프라 마진 충분.<br>
+    1회 판매 + 10년 사용권 모델은 경제적으로 지속 가능하다.
+  </div>
+</div>
+
+<!-- ============================== 문서 정보 ============================== -->
+<div class="chapter" style="padding-bottom:80px;">
+  <h2>문서 정보</h2>
+  <table>
+    <tr><td>문서명</td><td>KeystoneHR 크몽 판매 종합 사업계획서</td></tr>
+    <tr><td>버전</td><td>v3.1 (웹훅/메신저 연동 + 엔터프라이즈 보안 + 복리후생 고도화)</td></tr>
+    <tr><td>작성일</td><td>2026-03-13</td></tr>
+    <tr><td>이전 버전</td><td>v3.0 (2026-03-12, SaaS 전환 + 트롤링 마케팅 + 비즈니스 안전장치)<br>v2.0 (2026-02-17, 설치형 기준) — 폐기</td></tr>
+    <tr><td>관련 문서</td><td>
+      <code>크몽_상품페이지_초안.html</code> — 크몽 등록용 상세 초안 (v3.0)<br>
+      <code>keystonehr.app</code> — 실제 서비스 랜딩페이지
+    </td></tr>
+  </table>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

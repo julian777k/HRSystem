@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { basePrismaClient } from '@/lib/prisma';
-import { verifySuperAdmin } from '@/lib/super-admin-auth';
+import { verifySuperAdmin, requirePasswordChanged } from '@/lib/super-admin-auth';
 import { seedTenantData } from '@/lib/tenant-seed';
 import { containsFilter } from '@/lib/db-utils';
 
@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     if (!admin) {
       return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
     }
+    const pwBlock = requirePasswordChanged(admin);
+    if (pwBlock) return pwBlock;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -90,6 +92,8 @@ export async function POST(request: NextRequest) {
     if (!admin) {
       return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
     }
+    const pwBlock2 = requirePasswordChanged(admin);
+    if (pwBlock2) return pwBlock2;
 
     const { name, subdomain, plan, ownerEmail, bizNumber, maxEmployees, adminPassword, adminName, status: initialStatus, trialExpiresAt } = await request.json();
 

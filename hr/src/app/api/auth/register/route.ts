@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hashPassword } from '@/lib/password';
+import { hashPassword, validatePasswordPolicy } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
-
-function validatePassword(password: string): string | null {
-  if (password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
-  return null;
-}
 
 /**
  * POST /api/auth/register - 직원 자체 회원가입
@@ -16,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limit: 5 registrations per IP per hour
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    const rateLimitResult = checkRateLimit(`register:${ip}`, 5, 60 * 60 * 1000);
+    const rateLimitResult = await checkRateLimit(`register:${ip}`, 5, 60 * 60 * 1000);
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { message: '회원가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.' },
@@ -34,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pwError = validatePassword(password);
+    const pwError = validatePasswordPolicy(password);
     if (pwError) {
       return NextResponse.json({ message: pwError }, { status: 400 });
     }
@@ -51,10 +46,17 @@ export async function POST(request: NextRequest) {
     // 사원번호 처리 (입력값 또는 자동생성)
     let finalEmployeeNumber = employeeNumber?.trim();
     if (!finalEmployeeNumber) {
-      // 자동생성: EMP + 년도 + 순번
+      // 자동생성: EMP + 년도 + 순번 (기존 최대값 기반으로 충돌 방지)
       const year = new Date().getFullYear().toString().slice(-2);
-      const count = await prisma.employee.count();
-      finalEmployeeNumber = `EMP${year}${String(count + 1).padStart(4, '0')}`;
+      const prefix = `EMP${year}`;
+      const lastEmp = await prisma.employee.findFirst({
+        where: { employeeNumber: { startsWith: prefix } },
+        orderBy: { employeeNumber: 'desc' },
+      });
+      const seq = lastEmp
+        ? parseInt(lastEmp.employeeNumber.slice(prefix.length), 10) + 1
+        : 1;
+      finalEmployeeNumber = `${prefix}${String(seq).padStart(4, '0')}`;
     }
 
     // 사원번호 중복 확인

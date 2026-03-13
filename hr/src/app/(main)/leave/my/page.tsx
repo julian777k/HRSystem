@@ -183,6 +183,7 @@ export default function MyLeavePage() {
     setError('');
     try {
       const res = await fetch('/api/leave/my');
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (res.ok) {
         const data = await res.json();
         setSummary(data.summary);
@@ -619,7 +620,7 @@ export default function MyLeavePage() {
           </DialogHeader>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setConfirmDialog(prev => ({...prev, open: false}))}>취소</Button>
-            <Button variant="destructive" onClick={() => { confirmDialog.action(); setConfirmDialog(prev => ({...prev, open: false})); }}>확인</Button>
+            <Button variant="destructive" onClick={async () => { await confirmDialog.action(); setConfirmDialog(prev => ({...prev, open: false})); }}>확인</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

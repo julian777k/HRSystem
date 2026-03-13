@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { basePrismaClient } from '@/lib/prisma';
-import { verifySuperAdmin } from '@/lib/super-admin-auth';
+import { verifySuperAdmin, requirePasswordChanged } from '@/lib/super-admin-auth';
 
 export async function GET(
   request: NextRequest,
@@ -11,6 +11,8 @@ export async function GET(
     if (!admin) {
       return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
     }
+    const pwBlock = requirePasswordChanged(admin);
+    if (pwBlock) return pwBlock;
 
     const { id } = await params;
 

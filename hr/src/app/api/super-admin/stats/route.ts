@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { basePrismaClient } from '@/lib/prisma';
-import { verifySuperAdmin } from '@/lib/super-admin-auth';
+import { verifySuperAdmin, requirePasswordChanged } from '@/lib/super-admin-auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     if (!admin) {
       return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
     }
+    const pwBlock = requirePasswordChanged(admin);
+    if (pwBlock) return pwBlock;
 
     // Total tenants by status
     const tenantsByStatus = await basePrismaClient.tenant.groupBy({
@@ -41,10 +43,17 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Check mustChangePassword flag
+    const adminRecord = await basePrismaClient.superAdmin.findUnique({
+      where: { id: admin.id },
+      select: { mustChangePassword: true },
+    });
+
     return NextResponse.json({
       totalTenants,
       tenantsByStatus: statusMap,
       recentSignups,
+      mustChangePassword: adminRecord?.mustChangePassword ?? false,
     });
   } catch (error) {
     console.error('Get stats error:', error);

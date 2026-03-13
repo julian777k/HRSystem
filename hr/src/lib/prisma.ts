@@ -11,24 +11,52 @@ const globalForPrisma = globalThis as unknown as {
 
 // ─── Local Development Client (module-level singleton) ───
 
-// Dynamic require helper — created lazily to avoid 'new Function()' at module
-// level, which triggers EvalError in Cloudflare Workers (no unsafe-eval).
-function getDynamicRequire(): NodeRequire {
-  return new Function('m', 'return require(m)') as NodeRequire
-}
-
-function createLocalPrismaClient() {
-  const _require = getDynamicRequire()
+async function createLocalPrismaClientAsync(): Promise<PrismaClient> {
   if (isSQLite) {
-    const { PrismaBetterSqlite3 } = _require('@prisma/adapter-better-sqlite3')
+    const { PrismaBetterSqlite3 } = await import('@prisma/adapter-better-sqlite3')
     const adapter = new PrismaBetterSqlite3({
       url: process.env.DATABASE_URL || 'file:./keystonehr.db',
     })
     return new PrismaClient({ adapter })
   }
-  const { PrismaPg } = _require('@prisma/adapter-pg')
+  const { PrismaPg } = await import('@prisma/adapter-pg')
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
   return new PrismaClient({ adapter })
+}
+
+let _localClient: PrismaClient | null = null
+async function getLocalClient(): Promise<PrismaClient> {
+  if (!_localClient) {
+    _localClient = await createLocalPrismaClientAsync()
+  }
+  return _localClient
+}
+
+/** Synchronous proxy for local dev — lazily initializes on first DB call */
+function createLocalProxy(): PrismaClient {
+  return new Proxy({} as PrismaClient, {
+    get(_target, prop: string | symbol) {
+      if (typeof prop === 'symbol') return undefined
+      if (prop === 'then') return undefined
+
+      if (prop.startsWith('$')) {
+        return async (...args: any[]) => {
+          const client = await getLocalClient()
+          return (client as any)[prop](...args)
+        }
+      }
+
+      return new Proxy({}, {
+        get(_modelTarget, methodName: string | symbol) {
+          if (typeof methodName === 'symbol') return undefined
+          return async (...args: any[]) => {
+            const client = await getLocalClient()
+            return (client as any)[prop][methodName](...args)
+          }
+        },
+      })
+    },
+  })
 }
 
 // ─── Cloudflare D1 Client (lightweight SQL, no WASM) ───
@@ -106,7 +134,7 @@ function createCloudflareProxy(useTenantScope: boolean): PrismaClient {
 /** Base Prisma client (no tenant filtering) — used by super-admin */
 export const basePrismaClient: PrismaClient = isCloudflare
   ? createCloudflareProxy(false)
-  : (globalForPrisma.prisma ?? createLocalPrismaClient())
+  : (globalForPrisma.prisma ?? createLocalProxy())
 
 if (!isCloudflare && process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = basePrismaClient

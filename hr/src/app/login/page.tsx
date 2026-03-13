@@ -143,6 +143,11 @@ export default function LoginPage() {
               <p className="text-xs text-gray-400">
                 비밀번호 분실 시 관리자에게 문의해주세요.
               </p>
+              <p className="text-xs text-gray-400">
+                <a href="/privacy" className="hover:text-gray-500 underline">개인정보처리방침</a>
+                {' · '}
+                <a href="/terms" className="hover:text-gray-500 underline">이용약관</a>
+              </p>
             </div>
           </form>
         </CardContent>

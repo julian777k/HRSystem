@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { basePrismaClient } from '@/lib/prisma';
-import { verifySuperAdmin } from '@/lib/super-admin-auth';
+import { verifySuperAdmin, requirePasswordChanged } from '@/lib/super-admin-auth';
 
 const isCloudflare = process.env.DEPLOY_TARGET === 'cloudflare';
 const MAX_SIZE = 50 * 1024; // 50KB
@@ -15,6 +15,8 @@ export async function GET(
     if (!admin) {
       return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
     }
+    const pwBlock = requirePasswordChanged(admin);
+    if (pwBlock) return pwBlock;
 
     const { id: tenantId } = await params;
 
@@ -64,6 +66,8 @@ export async function POST(
     if (!admin) {
       return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
     }
+    const pwBlock2 = requirePasswordChanged(admin);
+    if (pwBlock2) return pwBlock2;
 
     const { id: tenantId } = await params;
 
@@ -133,6 +137,8 @@ export async function DELETE(
     if (!admin) {
       return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
     }
+    const pwBlock3 = requirePasswordChanged(admin);
+    if (pwBlock3) return pwBlock3;
 
     const { id: tenantId } = await params;
 

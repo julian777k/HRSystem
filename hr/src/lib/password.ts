@@ -6,6 +6,7 @@
 const ITERATIONS = 100000;
 const KEY_LENGTH = 32;
 const SALT_LENGTH = 16;
+const MAX_PASSWORD_LENGTH = 128;
 
 function bufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
@@ -22,6 +23,9 @@ function hexToBuffer(hex: string): Uint8Array {
 }
 
 export async function hashPassword(password: string): Promise<string> {
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new Error('Password exceeds maximum length');
+  }
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -45,6 +49,8 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  if (password.length > MAX_PASSWORD_LENGTH) return false;
+
   // Support legacy bcrypt hashes (start with $2a$ or $2b$)
   if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$')) {
     // Legacy bcrypt hashes — only verifiable in Node.js (self-hosted)
@@ -86,5 +92,26 @@ export async function verifyPassword(password: string, storedHash: string): Prom
     KEY_LENGTH * 8
   );
 
-  return bufferToHex(derivedBits) === expectedHash;
+  const computedHex = bufferToHex(derivedBits);
+  const a = new TextEncoder().encode(computedHex);
+  const b = new TextEncoder().encode(expectedHash);
+  if (a.byteLength !== b.byteLength) return false;
+  return constantTimeEqual(a, b);
+}
+
+function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
+}
+
+export function validatePasswordPolicy(password: string): string | null {
+  if (password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+  if (password.length > 128) return '비밀번호는 128자 이하여야 합니다.';
+  if (!/\d/.test(password)) return '비밀번호에 숫자가 1개 이상 포함되어야 합니다.';
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return '비밀번호에 특수문자가 1개 이상 포함되어야 합니다.';
+  return null;
 }

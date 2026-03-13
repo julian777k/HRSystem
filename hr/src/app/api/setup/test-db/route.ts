@@ -4,7 +4,7 @@ import { isSetupComplete } from '@/lib/setup-config';
 
 export async function POST(request: NextRequest) {
   try {
-    // Setup secret check
+    // Optional setup secret check (if SETUP_SECRET is configured, require it)
     const setupSecret = process.env.SETUP_SECRET;
     if (setupSecret && request.headers.get('x-setup-secret') !== setupSecret) {
       return NextResponse.json(

@@ -15,6 +15,16 @@ export default function SuperAdminLayout({
   const [checking, setChecking] = useState(true);
   const [adminName, setAdminName] = useState('');
 
+  // Password change modal
+  const [showPwModal, setShowPwModal] = useState(false);
+  const [forcePwChange, setForcePwChange] = useState(false); // Can't dismiss
+  const [pwCurrent, setPwCurrent] = useState('');
+  const [pwNew, setPwNew] = useState('');
+  const [pwConfirm, setPwConfirm] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+
   // Login page should not use the sidebar layout
   const isLoginPage = pathname === '/super-admin/login';
 
@@ -29,11 +39,18 @@ export default function SuperAdminLayout({
       .then((res) => {
         if (res.status === 401) {
           router.replace('/super-admin/login');
-        } else if (res.ok) {
-          setChecking(false);
-        } else {
-          // Non-401 error but not OK - still allow rendering to avoid infinite loading
-          setChecking(false);
+          return null;
+        }
+        if (res.ok) return res.json();
+        setChecking(false);
+        return null;
+      })
+      .then((data) => {
+        if (!data) return;
+        setChecking(false);
+        if (data.mustChangePassword) {
+          setForcePwChange(true);
+          setShowPwModal(true);
         }
       })
       .catch(() => {
@@ -52,6 +69,54 @@ export default function SuperAdminLayout({
     document.cookie = 'super_admin_token=; path=/; max-age=0';
     localStorage.removeItem('super_admin_name');
     router.replace('/super-admin/login');
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError('');
+    setPwSuccess('');
+
+    if (pwNew !== pwConfirm) {
+      setPwError('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (pwNew.length < 8) {
+      setPwError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const res = await fetch('/api/super-admin/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPwError(data.message || '비밀번호 변경에 실패했습니다.');
+        return;
+      }
+      setPwSuccess('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
+      setTimeout(() => {
+        document.cookie = 'super_admin_token=; path=/; max-age=0';
+        router.replace('/super-admin/login');
+      }, 2000);
+    } catch {
+      setPwError('서버에 연결할 수 없습니다.');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const closePwModal = () => {
+    setShowPwModal(false);
+    setPwCurrent('');
+    setPwNew('');
+    setPwConfirm('');
+    setPwError('');
+    setPwSuccess('');
   };
 
   if (isLoginPage) {
@@ -130,6 +195,15 @@ export default function SuperAdminLayout({
             <div className="text-xs text-slate-400 mb-2 truncate">{adminName}</div>
           )}
           <button
+            onClick={() => setShowPwModal(true)}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+            </svg>
+            비밀번호 변경
+          </button>
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
@@ -159,6 +233,88 @@ export default function SuperAdminLayout({
         {/* Page content */}
         <main className="p-4 lg:p-6">{children}</main>
       </div>
+
+      {/* Password Change Modal */}
+      {showPwModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">비밀번호 변경</h3>
+
+            {forcePwChange && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm font-medium text-amber-800">초기 비밀번호를 변경해주세요.</p>
+                <p className="text-xs text-amber-600 mt-1">보안을 위해 비밀번호를 변경한 후 서비스를 이용할 수 있습니다.</p>
+              </div>
+            )}
+
+            {pwError && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {pwError}
+              </div>
+            )}
+            {pwSuccess && (
+              <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                {pwSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">현재 비밀번호</label>
+                <input
+                  type="password"
+                  value={pwCurrent}
+                  onChange={(e) => setPwCurrent(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">새 비밀번호</label>
+                <input
+                  type="password"
+                  value={pwNew}
+                  onChange={(e) => setPwNew(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
+                  placeholder="8자 이상, 숫자+특수문자 포함"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">새 비밀번호 확인</label>
+                <input
+                  type="password"
+                  value={pwConfirm}
+                  onChange={(e) => setPwConfirm(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                {!forcePwChange && (
+                  <button
+                    type="button"
+                    onClick={closePwModal}
+                    className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    취소
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={pwLoading}
+                  className="flex-1 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                >
+                  {pwLoading ? '변경 중...' : '변경'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

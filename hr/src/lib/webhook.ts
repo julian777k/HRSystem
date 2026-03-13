@@ -57,18 +57,22 @@ export async function getWebhookConfig(): Promise<WebhookConfig | null> {
 }
 
 function formatPayload(platform: string, event: string, message: string) {
+  // Summary events already contain formatted title — skip event prefix
+  const isSummary = event.includes('SUMMARY');
+  const displayText = isSummary ? message : `[${event}] ${message}`;
+
   switch (platform) {
     case 'slack':
-      return { text: `[${event}] ${message}` };
+      return { text: displayText };
     case 'kakaowork':
-      return { text: `[${event}] ${message}` };
+      return { text: displayText };
     case 'teams':
       return {
         '@type': 'MessageCard',
         '@context': 'http://schema.org/extensions',
         themeColor: '0076D7',
-        summary: `[${event}]`,
-        text: `[${event}] ${message}`,
+        summary: isSummary ? '휴무 현황' : `[${event}]`,
+        text: displayText.replace(/\n/g, '<br>'),
       };
     default:
       return { event, message, timestamp: new Date().toISOString() };

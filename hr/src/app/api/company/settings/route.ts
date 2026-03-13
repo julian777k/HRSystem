@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { getTenantId } from '@/lib/tenant-context';
+import { writeAuditLog } from '@/lib/audit-log';
 
 export async function GET() {
   try {
@@ -21,15 +22,18 @@ export async function GET() {
 
     return NextResponse.json({ settings });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : '알 수 없는 오류';
-    return NextResponse.json({ message: `조회 실패: ${msg}` }, { status: 500 });
+    console.error('Company settings GET error:', error);
+    return NextResponse.json({ message: '회사 설정 조회 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user || (user.role !== 'SYSTEM_ADMIN' && user.role !== 'COMPANY_ADMIN')) {
+    if (!user) {
+      return NextResponse.json({ message: '인증이 필요합니다.' }, { status: 401 });
+    }
+    if (user.role !== 'SYSTEM_ADMIN' && user.role !== 'COMPANY_ADMIN') {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -59,9 +63,11 @@ export async function PUT(request: NextRequest) {
       });
     }
 
+    writeAuditLog({ action: 'UPDATE_SETTINGS', target: 'systemConfig', targetId: 'company', after: settings });
+
     return NextResponse.json({ success: true, message: '설정이 저장되었습니다.' });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : '알 수 없는 오류';
-    return NextResponse.json({ message: `저장 실패: ${msg}` }, { status: 500 });
+    console.error('Company settings PUT error:', error);
+    return NextResponse.json({ message: '회사 설정 저장 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }

@@ -153,7 +153,7 @@ export default function WelfareSettingsPage() {
   const fetchCategories = useCallback(async () => {
     setLoadingCategories(true);
     try {
-      const res = await fetch('/api/welfare/categories');
+      const res = await fetch('/api/welfare/categories?view=admin');
       if (res.ok) {
         const data = await res.json();
         setCategories(data.categories);
@@ -621,7 +621,7 @@ export default function WelfareSettingsPage() {
           </DialogHeader>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setConfirmDialog(prev => ({...prev, open: false}))}>취소</Button>
-            <Button variant="destructive" onClick={() => { confirmDialog.action(); setConfirmDialog(prev => ({...prev, open: false})); }}>확인</Button>
+            <Button variant="destructive" onClick={async () => { await confirmDialog.action(); setConfirmDialog(prev => ({...prev, open: false})); }}>확인</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

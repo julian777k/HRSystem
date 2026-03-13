@@ -90,11 +90,19 @@ export default function WelfareCatalogPage() {
     setLoading(true);
     try {
       const catRes = await fetch('/api/welfare/categories');
+      if (catRes.status === 401) { window.location.href = '/login'; return; }
 
       if (catRes.ok) {
         const catData = await catRes.json();
-        setCategories(catData.categories);
-        setExpandedCategories(new Set(catData.categories.map((c: WelfareCategory) => c.id)));
+        // Client-side defense: filter out inactive categories and inactive items
+        const activeCategories = (catData.categories as WelfareCategory[])
+          .filter((cat) => cat.items !== undefined)
+          .map((cat) => ({
+            ...cat,
+            items: cat.items.filter((item) => item.isActive !== false),
+          }));
+        setCategories(activeCategories);
+        setExpandedCategories(new Set(activeCategories.map((c) => c.id)));
       }
     } catch {
       toast.error('데이터를 불러오지 못했습니다.');

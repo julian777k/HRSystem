@@ -5,18 +5,20 @@ import { parseJson } from '@/lib/json-field';
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ message: '인증 필요' }, { status: 401 });
 
     const isAdmin = ADMIN_ROLES.includes(user.role);
+    const { searchParams } = new URL(request.url);
+    const adminView = searchParams.get('view') === 'admin' && isAdmin;
 
     const categories = await prisma.welfareCategory.findMany({
-      where: isAdmin ? {} : { isActive: true },
+      where: adminView ? undefined : { isActive: true },
       include: {
         items: {
-          where: isAdmin ? {} : { isActive: true },
+          where: adminView ? undefined : { isActive: true },
           orderBy: { createdAt: 'asc' },
         },
       },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { isValidWebhookUrl } from '@/lib/webhook';
+import { checkAndSendScheduled } from '@/lib/notifications';
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
 
@@ -12,14 +13,18 @@ export async function GET() {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
     }
 
-    const configs = await prisma.systemConfig.findMany({
-      where: { group: 'webhook' },
-    });
+    const [webhookConfigs, scheduleConfigs] = await Promise.all([
+      prisma.systemConfig.findMany({ where: { group: 'webhook' } }),
+      prisma.systemConfig.findMany({ where: { group: 'webhook_schedule' } }),
+    ]);
 
     const settings: Record<string, string> = {};
-    for (const c of configs) {
+    for (const c of [...webhookConfigs, ...scheduleConfigs]) {
       settings[c.key] = c.value;
     }
+
+    // Lazy cron: check scheduled summaries on settings page load
+    checkAndSendScheduled().catch(() => {});
 
     return NextResponse.json({ settings });
   } catch (error) {
@@ -36,7 +41,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { enabled, url, platform, events } = body;
+    const { enabled, url, platform, events, schedule } = body;
 
     // URL validation (SSRF prevention)
     if (url && !isValidWebhookUrl(url)) {
@@ -46,16 +51,28 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const entries: { key: string; value: string }[] = [
-      { key: 'webhook_enabled', value: enabled ? 'true' : 'false' },
-      { key: 'webhook_url', value: url || '' },
-      { key: 'webhook_platform', value: platform || 'custom' },
-      { key: 'webhook_events', value: JSON.stringify(events || []) },
+    // Save webhook settings
+    const webhookEntries: { key: string; value: string; group: string }[] = [
+      { key: 'webhook_enabled', value: enabled ? 'true' : 'false', group: 'webhook' },
+      { key: 'webhook_url', value: url || '', group: 'webhook' },
+      { key: 'webhook_platform', value: platform || 'custom', group: 'webhook' },
+      { key: 'webhook_events', value: JSON.stringify(events || []), group: 'webhook' },
     ];
 
-    for (const entry of entries) {
+    // Save schedule settings if provided
+    if (schedule) {
+      webhookEntries.push(
+        { key: 'schedule_daily_enabled', value: schedule.dailyEnabled ? 'true' : 'false', group: 'webhook_schedule' },
+        { key: 'schedule_daily_time', value: schedule.dailyTime || '09:00', group: 'webhook_schedule' },
+        { key: 'schedule_weekly_enabled', value: schedule.weeklyEnabled ? 'true' : 'false', group: 'webhook_schedule' },
+        { key: 'schedule_weekly_day', value: String(schedule.weeklyDay ?? 1), group: 'webhook_schedule' },
+        { key: 'schedule_weekly_time', value: schedule.weeklyTime || '09:00', group: 'webhook_schedule' },
+      );
+    }
+
+    for (const entry of webhookEntries) {
       const existing = await prisma.systemConfig.findFirst({
-        where: { key: entry.key, group: 'webhook' },
+        where: { key: entry.key, group: entry.group },
       });
 
       if (existing) {
@@ -65,7 +82,7 @@ export async function PUT(request: NextRequest) {
         });
       } else {
         await prisma.systemConfig.create({
-          data: { key: entry.key, value: entry.value, group: 'webhook' },
+          data: { key: entry.key, value: entry.value, group: entry.group },
         });
       }
     }

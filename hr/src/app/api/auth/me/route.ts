@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCurrentUserWithRefresh, clearAuthCookie, setAuthCookie } from '@/lib/auth-actions';
 import { signToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { checkAndSendScheduled } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -35,6 +36,9 @@ export async function GET() {
       const newToken = await signToken(user);
       await setAuthCookie(newToken);
     }
+
+    // Lazy cron: check scheduled webhook summaries (fire-and-forget)
+    checkAndSendScheduled().catch(() => {});
 
     return NextResponse.json({
       user: {

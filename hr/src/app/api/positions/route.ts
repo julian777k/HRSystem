@@ -10,10 +10,11 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const all = searchParams.get('all') === 'true';
+    const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
+    const showAll = searchParams.get('all') === 'true' && isAdmin;
 
     const positions = await prisma.position.findMany({
-      where: all ? {} : { isActive: true },
+      where: showAll ? undefined : { isActive: true },
       include: { _count: { select: { employees: true } } },
       orderBy: { level: 'asc' },
     });
@@ -55,10 +56,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ position }, { status: 201 });
   } catch (error) {
     console.error('Position create error:', error);
-    const message =
-      error instanceof Error && error.message.includes('Unique constraint')
-        ? '이미 존재하는 직급명 또는 레벨입니다.'
-        : '직급 생성 중 오류가 발생했습니다.';
-    return NextResponse.json({ message }, { status: 500 });
+    if (error instanceof Error && error.message.toLowerCase().includes('unique constraint')) {
+      return NextResponse.json(
+        { message: '이미 존재하는 직급명 또는 레벨입니다.' },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { message: '직급 생성 중 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

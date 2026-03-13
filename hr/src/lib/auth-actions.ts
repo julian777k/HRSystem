@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
 import { COOKIE_NAME, verifyToken, type AuthUser } from './auth';
 import { basePrismaClient } from './prisma';
+import { getTenantIdSafe } from './tenant-context';
+import { isSaaSMode } from './deploy-config';
 
 export async function setAuthCookie(token: string) {
   const cookieStore = await cookies();
@@ -31,6 +33,14 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const result = await verifyToken(token);
   if (!result) return null;
 
+  // JWT tenantId cross-validation in SaaS mode
+  if (isSaaSMode()) {
+    const subdomainTenantId = await getTenantIdSafe();
+    if (subdomainTenantId && result.user.tenantId !== subdomainTenantId) {
+      return null; // JWT tenant doesn't match subdomain tenant
+    }
+  }
+
   // Verify the employee still exists and is active in the database
   const employee = await basePrismaClient.employee.findFirst({
     where: { id: result.user.id, status: 'ACTIVE' },
@@ -48,6 +58,14 @@ export async function getCurrentUserWithRefresh(): Promise<{ user: AuthUser; sho
   if (!token) return null;
   const result = await verifyToken(token);
   if (!result) return null;
+
+  // JWT tenantId cross-validation in SaaS mode
+  if (isSaaSMode()) {
+    const subdomainTenantId = await getTenantIdSafe();
+    if (subdomainTenantId && result.user.tenantId !== subdomainTenantId) {
+      return null; // JWT tenant doesn't match subdomain tenant
+    }
+  }
 
   const employee = await basePrismaClient.employee.findFirst({
     where: { id: result.user.id, status: 'ACTIVE' },

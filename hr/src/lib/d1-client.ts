@@ -9,6 +9,9 @@
 
 // ─── Model → Table name mapping (from Prisma @@map) ───
 
+// Tables that are global (no tenant filtering in relation subqueries)
+const GLOBAL_TABLES = new Set(['tenants', 'tenant_settings', 'super_admins', 'tenant_usage_logs']);
+
 const MODEL_TABLE_MAP: Record<string, string> = {
   tenant: 'tenants',
   tenantSetting: 'tenant_settings',
@@ -216,6 +219,7 @@ function toSqlValue(value: unknown): unknown {
 const BOOLEAN_FIELDS = new Set([
   'isActive', 'isPaid', 'isAnnualDeduct', 'requiresDoc', 'isDefault',
   'isRecurring', 'isExpired', 'isRead', 'requireApproval', 'autoSplitDeduct',
+  'mustChangePassword',
 ]);
 
 function fromSqlRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -266,11 +270,12 @@ function buildWhere(where: Record<string, unknown> | undefined, params: unknown[
     if (value === undefined) continue;
 
     if (key === 'OR' && Array.isArray(value)) {
-      const orConditions = value.map((orItem: Record<string, unknown>) => {
-        const sub = buildWhere(orItem, params, contextModel);
+      const orConditions: string[] = [];
+      for (const orItem of value) {
+        const sub = buildWhere(orItem as Record<string, unknown>, params, contextModel);
         params = sub.params;
-        return `(${sub.sql})`;
-      });
+        if (sub.sql) orConditions.push(`(${sub.sql})`);
+      }
       if (orConditions.length > 0) {
         conditions.push(`(${orConditions.join(' OR ')})`);
       }
@@ -278,11 +283,12 @@ function buildWhere(where: Record<string, unknown> | undefined, params: unknown[
     }
 
     if (key === 'AND' && Array.isArray(value)) {
-      const andConditions = value.map((andItem: Record<string, unknown>) => {
-        const sub = buildWhere(andItem, params, contextModel);
+      const andConditions: string[] = [];
+      for (const andItem of value) {
+        const sub = buildWhere(andItem as Record<string, unknown>, params, contextModel);
         params = sub.params;
-        return `(${sub.sql})`;
-      });
+        if (sub.sql) andConditions.push(`(${sub.sql})`);
+      }
       if (andConditions.length > 0) {
         conditions.push(`(${andConditions.join(' AND ')})`);
       }
@@ -312,7 +318,7 @@ function buildWhere(where: Record<string, unknown> | undefined, params: unknown[
         const modelRelations = RELATIONS[contextModel];
         if (modelRelations && modelRelations[key] && modelRelations[key].type === 'belongsTo') {
           const relMeta = modelRelations[key];
-          const nestedWhere = buildWhere(ops, params);
+          const nestedWhere = buildWhere(ops, params, relMeta.targetModel);
           params = nestedWhere.params;
           if (nestedWhere.sql) {
             conditions.push(`"${relMeta.foreignKey}" IN (SELECT "id" FROM "${relMeta.targetTable}" WHERE ${nestedWhere.sql})`);
@@ -334,14 +340,23 @@ function buildWhere(where: Record<string, unknown> | undefined, params: unknown[
         }
       }
       if ('in' in ops && Array.isArray(ops.in)) {
-        const placeholders = ops.in.map(() => '?').join(', ');
-        params.push(...ops.in.map(toSqlValue));
-        conditions.push(`"${key}" IN (${placeholders})`);
+        if (ops.in.length === 0) {
+          // Empty IN always matches nothing
+          conditions.push('0=1');
+        } else {
+          const placeholders = ops.in.map(() => '?').join(', ');
+          params.push(...ops.in.map(toSqlValue));
+          conditions.push(`"${key}" IN (${placeholders})`);
+        }
       }
       if ('notIn' in ops && Array.isArray(ops.notIn)) {
-        const placeholders = ops.notIn.map(() => '?').join(', ');
-        params.push(...ops.notIn.map(toSqlValue));
-        conditions.push(`"${key}" NOT IN (${placeholders})`);
+        if (ops.notIn.length === 0) {
+          // Empty NOT IN always matches everything — no condition needed
+        } else {
+          const placeholders = ops.notIn.map(() => '?').join(', ');
+          params.push(...ops.notIn.map(toSqlValue));
+          conditions.push(`"${key}" NOT IN (${placeholders})`);
+        }
       }
       if ('contains' in ops) {
         const mode = (ops as Record<string, unknown>).mode;
@@ -386,9 +401,19 @@ function buildWhere(where: Record<string, unknown> | undefined, params: unknown[
   }
 
   return {
-    sql: conditions.length > 0 ? conditions.join(' AND ') : '1=1',
+    sql: conditions.length > 0 ? conditions.join(' AND ') : '',
     params,
   };
+}
+
+// ─── ORDER BY direction sanitizer ───
+
+function sanitizeDirection(dir: string): string {
+  const upper = dir.toUpperCase();
+  if (upper !== 'ASC' && upper !== 'DESC') {
+    throw new Error(`Invalid ORDER BY direction: ${dir}`);
+  }
+  return upper;
 }
 
 // ─── ORDER BY builder (supports nested relation ordering) ───
@@ -407,10 +432,10 @@ function buildOrderBy(orderBy: unknown, modelName?: string): string {
         if (relMeta && relMeta.type === 'belongsTo') {
           const [nestedField, nestedDir] = Object.entries(dir as Record<string, string>)[0];
           const fkRef = outerTable ? `"${outerTable}"."${relMeta.foreignKey}"` : `"${relMeta.foreignKey}"`;
-          return `(SELECT "${nestedField}" FROM "${relMeta.targetTable}" WHERE "id" = ${fkRef}) ${nestedDir.toUpperCase()}`;
+          return `(SELECT "${nestedField}" FROM "${relMeta.targetTable}" WHERE "id" = ${fkRef}) ${sanitizeDirection(nestedDir)}`;
         }
       }
-      return `"${field}" ${(dir as string).toUpperCase()}`;
+      return `"${field}" ${sanitizeDirection(dir as string)}`;
     });
     return ` ORDER BY ${parts.join(', ')}`;
   }
@@ -425,10 +450,10 @@ function buildOrderBy(orderBy: unknown, modelName?: string): string {
           if (relMeta && relMeta.type === 'belongsTo') {
             const [nestedField, nestedDir] = Object.entries(dir as Record<string, string>)[0];
             const fkRef = outerTable ? `"${outerTable}"."${relMeta.foreignKey}"` : `"${relMeta.foreignKey}"`;
-            return `(SELECT "${nestedField}" FROM "${relMeta.targetTable}" WHERE "id" = ${fkRef}) ${nestedDir.toUpperCase()}`;
+            return `(SELECT "${nestedField}" FROM "${relMeta.targetTable}" WHERE "id" = ${fkRef}) ${sanitizeDirection(nestedDir)}`;
           }
         }
-        return `"${field}" ${(dir as string).toUpperCase()}`;
+        return `"${field}" ${sanitizeDirection(dir as string)}`;
       });
       return ` ORDER BY ${parts.join(', ')}`;
     }
@@ -533,6 +558,7 @@ async function resolveRelations(
   modelName: string,
   rows: Record<string, unknown>[],
   include: Record<string, unknown> | undefined,
+  tenantId?: string,
 ): Promise<Record<string, unknown>[]> {
   if (!include || rows.length === 0) return rows;
 
@@ -556,10 +582,14 @@ async function resolveRelations(
             countResult[countRel] = 0;
             continue;
           }
-          const countStmt = db.prepare(
-            `SELECT COUNT(*) as cnt FROM "${countRelMeta.targetTable}" WHERE "${countRelMeta.foreignKey}" = ?`
-          );
-          const countRes = await countStmt.bind(row.id).first<{ cnt: number }>();
+          let countSql = `SELECT COUNT(*) as cnt FROM "${countRelMeta.targetTable}" WHERE "${countRelMeta.foreignKey}" = ?`;
+          const countParams: unknown[] = [row.id];
+          if (tenantId && !GLOBAL_TABLES.has(countRelMeta.targetTable)) {
+            countSql += ` AND "tenantId" = ?`;
+            countParams.push(tenantId);
+          }
+          const countStmt = db.prepare(countSql);
+          const countRes = await countStmt.bind(...countParams).first<{ cnt: number }>();
           countResult[countRel] = countRes?.cnt || 0;
         }
         (row as Record<string, unknown>)._count = countResult;
@@ -586,7 +616,7 @@ async function resolveRelations(
       : undefined;
 
     if (relMeta.type === 'belongsTo') {
-      const fkValues = [...new Set(rows.map(r => r[relMeta.foreignKey]).filter(Boolean))];
+      const fkValues = Array.from(new Set(rows.map(r => r[relMeta.foreignKey]).filter(Boolean)));
       if (fkValues.length === 0) {
         for (const row of rows) {
           (row as Record<string, unknown>)[relName] = null;
@@ -608,13 +638,19 @@ async function resolveRelations(
         }
       }
 
+      // Tenant scoping for relation subqueries
+      if (tenantId && !GLOBAL_TABLES.has(relMeta.targetTable)) {
+        sql += ` AND "tenantId" = ?`;
+        bindParams.push(tenantId);
+      }
+
       const stmt = db.prepare(sql);
       const result = await stmt.bind(...bindParams).all();
       let relatedRows = (result.results || []).map(r => fromSqlRow(r as Record<string, unknown>));
 
       // Resolve nested includes
       if (nestedInclude) {
-        relatedRows = await resolveRelations(db, relMeta.targetModel, relatedRows, nestedInclude);
+        relatedRows = await resolveRelations(db, relMeta.targetModel, relatedRows, nestedInclude, tenantId);
       }
 
       const relMap = new Map(relatedRows.map(r => [r.id as string, r]));
@@ -631,10 +667,18 @@ async function resolveRelations(
       const bindParams: unknown[] = [...parentIds];
       let sql = `SELECT ${cols} FROM "${relMeta.targetTable}" WHERE "${relMeta.foreignKey}" IN (${placeholders})`;
 
+      // Tenant scoping for relation subqueries
+      if (tenantId && !GLOBAL_TABLES.has(relMeta.targetTable)) {
+        sql += ` AND "tenantId" = ?`;
+        bindParams.push(tenantId);
+      }
+
       // Apply nested where filter to hasMany children
       if (nestedWhere) {
         const nw = buildWhere(nestedWhere, bindParams);
-        sql += ` AND ${nw.sql}`;
+        if (nw.sql) {
+          sql += ` AND ${nw.sql}`;
+        }
       }
 
       // Apply nested orderBy to hasMany children
@@ -647,7 +691,7 @@ async function resolveRelations(
       let relatedRows = (result.results || []).map(r => fromSqlRow(r as Record<string, unknown>));
 
       if (nestedInclude) {
-        relatedRows = await resolveRelations(db, relMeta.targetModel, relatedRows, nestedInclude);
+        relatedRows = await resolveRelations(db, relMeta.targetModel, relatedRows, nestedInclude, tenantId);
       }
 
       const grouped = new Map<string, Record<string, unknown>[]>();
@@ -723,7 +767,8 @@ function createModelDelegate(db: D1Database, modelName: string) {
       ).all();
 
       let rows = (result.results || []).map(r => fromSqlRow(r as Record<string, unknown>));
-      rows = await resolveRelations(db, modelName, rows, mergedInclude);
+      const tenantId = where?.tenantId as string | undefined;
+      rows = await resolveRelations(db, modelName, rows, mergedInclude, tenantId);
       return rows;
     },
 
@@ -844,7 +889,14 @@ function createModelDelegate(db: D1Database, modelName: string) {
       if (!NO_UPDATED_AT.has(table) && !data.updatedAt) data.updatedAt = new Date().toISOString();
 
       const setResult = buildSetClause(data);
+      if (!setResult.sql) {
+        // Nothing to update — return existing record
+        return this.findFirst({ where: resolvedWhere, include: args.include, select: args.select });
+      }
       const whereResult = buildWhere(resolvedWhere, [], modelName);
+      if (!whereResult.sql) {
+        throw new Error(`Cannot update without WHERE clause on model ${modelName}`);
+      }
 
       const sql = `UPDATE "${table}" SET ${setResult.sql} WHERE ${whereResult.sql}`;
       const allParams = [...setResult.params, ...whereResult.params];
@@ -866,11 +918,19 @@ function createModelDelegate(db: D1Database, modelName: string) {
       if (!NO_UPDATED_AT.has(table) && !data.updatedAt) data.updatedAt = new Date().toISOString();
 
       const setResult = buildSetClause(data);
+      if (!setResult.sql) {
+        return { count: 0 };
+      }
       const whereResult = buildWhere(args.where, [], modelName);
 
-      const sql = `UPDATE "${table}" SET ${setResult.sql} WHERE ${whereResult.sql}`;
+      let sql = `UPDATE "${table}" SET ${setResult.sql}`;
+      if (whereResult.sql) sql += ` WHERE ${whereResult.sql}`;
+
       const allParams = [...setResult.params, ...whereResult.params];
-      const result = await db.prepare(sql).bind(...allParams).run();
+      const result = await (allParams.length > 0
+        ? db.prepare(sql).bind(...allParams)
+        : db.prepare(sql)
+      ).run();
 
       return { count: result.meta?.changes || 0 };
     },
@@ -882,6 +942,9 @@ function createModelDelegate(db: D1Database, modelName: string) {
       const existing = await this.findFirst({ where: resolvedWhere });
 
       const whereResult = buildWhere(resolvedWhere, [], modelName);
+      if (!whereResult.sql) {
+        throw new Error(`Cannot delete without WHERE clause on model ${modelName}`);
+      }
       const sql = `DELETE FROM "${table}" WHERE ${whereResult.sql}`;
       await (whereResult.params.length > 0
         ? db.prepare(sql).bind(...whereResult.params)
@@ -1107,7 +1170,14 @@ export function withD1TenantScope(
 
           return async (...args: any[]) => {
             const tenantId = await getTenantIdFn();
-            if (!tenantId) return original.apply(dt, args);
+            if (!tenantId) {
+              // In SaaS mode, tenant ID must be present for non-global models
+              const { isSaaSMode: checkSaaS } = await import('./deploy-config');
+              if (checkSaaS()) {
+                throw new Error(`Tenant context required in SaaS mode for model: ${prop as string}`);
+              }
+              return original.apply(dt, args);
+            }
 
             const a = args[0] ? { ...args[0] } : {};
             switch (method) {

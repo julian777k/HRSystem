@@ -6,6 +6,7 @@ import { setAuthCookie } from '@/lib/auth-actions';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getTenantIdSafe } from '@/lib/tenant-context';
 import { cleanupExpiredSessions } from '@/lib/session-cleanup';
+import { writeAuditLog } from '@/lib/audit-log';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 5 attempts per email per 15 minutes
-    const rateLimitResult = checkRateLimit(`login:${email}`, 5, 900 * 1000);
+    const rateLimitResult = await checkRateLimit(`login:${email}`, 5, 900 * 1000);
     if (!rateLimitResult.success) {
       const retrySeconds = Math.ceil((rateLimitResult.retryAfterMs || 0) / 1000);
       return NextResponse.json(
@@ -89,6 +90,8 @@ export async function POST(request: NextRequest) {
 
     // Fire-and-forget: clean up expired sessions
     cleanupExpiredSessions().catch(() => {});
+
+    writeAuditLog({ action: 'LOGIN', target: 'employee', targetId: employee.id, ipAddress: request.headers.get('x-forwarded-for') || 'unknown' });
 
     return NextResponse.json({
       message: '로그인 성공',

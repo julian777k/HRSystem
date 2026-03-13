@@ -283,6 +283,7 @@ export default function EmployeesPage() {
       if (res.ok) {
         setCreateOpen(false);
         setForm(emptyForm);
+        toast.success('직원이 등록되었습니다.');
         fetchEmployees();
       } else {
         const data = await res.json();
@@ -422,12 +423,11 @@ export default function EmployeesPage() {
       });
 
       const data = await res.json();
-      setImportResult(data.message || "가져오기 완료");
+      let result = data.message || '가져오기 완료';
       if (data.errors?.length > 0) {
-        setImportResult(
-          (prev) => prev + "\n" + data.errors.slice(0, 5).join("\n")
-        );
+        result += '\n' + data.errors.slice(0, 5).join('\n');
       }
+      setImportResult(result);
       fetchEmployees();
     } catch {
       setImportResult("가져오기 중 오류가 발생했습니다.");

@@ -25,6 +25,9 @@ export async function GET(request: NextRequest) {
       if (status) where.status = status;
     }
 
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+
     const requests = await prisma.welfareRequest.findMany({
       where,
       include: {
@@ -36,6 +39,8 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
     const parsed = requests.map(req => ({

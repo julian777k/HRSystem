@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Link2, Loader2, Send, CheckCircle, XCircle } from 'lucide-react';
+import { Link2, Loader2, Send, CheckCircle, XCircle, Calendar, CalendarDays, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,8 @@ const EVENTS = [
   { value: 'LEAVE_REQUEST', label: '휴가 신청', enabled: true },
   { value: 'LEAVE_APPROVED', label: '휴가 승인', enabled: true },
   { value: 'LEAVE_REJECTED', label: '휴가 반려', enabled: true },
+  { value: 'DAILY_LEAVE_SUMMARY', label: '오늘의 휴무 현황', enabled: true },
+  { value: 'WEEKLY_LEAVE_SUMMARY', label: '이번 주 휴무 현황', enabled: true },
   { value: 'OVERTIME_REQUEST', label: '연장근무 신청 (준비중)', enabled: false },
   { value: 'ATTENDANCE_LATE', label: '지각 알림 (준비중)', enabled: false },
 ];
@@ -31,6 +33,8 @@ export default function IntegrationPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [sendingDaily, setSendingDaily] = useState(false);
+  const [sendingWeekly, setSendingWeekly] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
 
@@ -38,6 +42,13 @@ export default function IntegrationPage() {
   const [url, setUrl] = useState('');
   const [platform, setPlatform] = useState('slack');
   const [events, setEvents] = useState<string[]>([]);
+
+  // Schedule settings
+  const [dailyScheduleEnabled, setDailyScheduleEnabled] = useState(false);
+  const [dailyTime, setDailyTime] = useState('09:00');
+  const [weeklyScheduleEnabled, setWeeklyScheduleEnabled] = useState(false);
+  const [weeklyDay, setWeeklyDay] = useState(1);
+  const [weeklyTime, setWeeklyTime] = useState('09:00');
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => { if (r.status === 401) { window.location.href = '/login'; return null; } return r.ok ? r.json() : null; }).then(d => {
@@ -66,6 +77,12 @@ export default function IntegrationPage() {
         } catch {
           setEvents([]);
         }
+        // Schedule settings
+        setDailyScheduleEnabled(s.schedule_daily_enabled === 'true');
+        setDailyTime(s.schedule_daily_time || '09:00');
+        setWeeklyScheduleEnabled(s.schedule_weekly_enabled === 'true');
+        setWeeklyDay(parseInt(s.schedule_weekly_day || '1', 10));
+        setWeeklyTime(s.schedule_weekly_time || '09:00');
       }
     } catch {
       // ignore
@@ -81,7 +98,16 @@ export default function IntegrationPage() {
       const res = await fetch('/api/settings/webhooks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled, url, platform, events }),
+        body: JSON.stringify({
+          enabled, url, platform, events,
+          schedule: {
+            dailyEnabled: dailyScheduleEnabled,
+            dailyTime,
+            weeklyEnabled: weeklyScheduleEnabled,
+            weeklyDay,
+            weeklyTime,
+          },
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -117,6 +143,32 @@ export default function IntegrationPage() {
       setMessageType('error');
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleSendSummary = async (type: 'daily' | 'weekly') => {
+    const setter = type === 'daily' ? setSendingDaily : setSendingWeekly;
+    setter(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/webhooks/leave-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage(data.message);
+        setMessageType('success');
+      } else {
+        setMessage(data.message || '전송 실패');
+        setMessageType('error');
+      }
+    } catch {
+      setMessage('서버 오류');
+      setMessageType('error');
+    } finally {
+      setter(false);
     }
   };
 
@@ -253,6 +305,130 @@ export default function IntegrationPage() {
               {testing ? '전송 중...' : '테스트 발송'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Leave Summary Schedule & Manual Send */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-slate-600" />
+            <div>
+              <CardTitle className="text-lg">휴무 현황 자동 전송</CardTitle>
+              <CardDescription>
+                설정한 시간에 자동으로 휴무 인원 목록을 메신저로 전송합니다.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Daily Schedule */}
+          <div className="p-4 rounded-lg border border-gray-100 bg-gray-50/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm font-medium text-gray-800">매일 휴무 현황</span>
+                <p className="text-xs text-gray-500">매일 지정 시간에 오늘의 휴무자를 전송합니다.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={dailyScheduleEnabled}
+                  onChange={(e) => setDailyScheduleEnabled(e.target.checked)}
+                  className="sr-only peer"
+                  aria-label="매일 휴무 현황 자동 전송"
+                />
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            {dailyScheduleEnabled && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">전송 시간</span>
+                <input
+                  type="time"
+                  value={dailyTime}
+                  onChange={(e) => setDailyTime(e.target.value)}
+                  className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Weekly Schedule */}
+          <div className="p-4 rounded-lg border border-gray-100 bg-gray-50/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm font-medium text-gray-800">주간 휴무 현황</span>
+                <p className="text-xs text-gray-500">매주 지정 요일/시간에 이번 주 휴무자를 전송합니다.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={weeklyScheduleEnabled}
+                  onChange={(e) => setWeeklyScheduleEnabled(e.target.checked)}
+                  className="sr-only peer"
+                  aria-label="주간 휴무 현황 자동 전송"
+                />
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            {weeklyScheduleEnabled && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600">매주</span>
+                <select
+                  value={weeklyDay}
+                  onChange={(e) => setWeeklyDay(parseInt(e.target.value, 10))}
+                  className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value={1}>월요일</option>
+                  <option value={2}>화요일</option>
+                  <option value={3}>수요일</option>
+                  <option value={4}>목요일</option>
+                  <option value={5}>금요일</option>
+                  <option value={6}>토요일</option>
+                  <option value={0}>일요일</option>
+                </select>
+                <input
+                  type="time"
+                  value={weeklyTime}
+                  onChange={(e) => setWeeklyTime(e.target.value)}
+                  className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs text-gray-400">
+            * 자동 전송은 위 설정 저장 후 적용됩니다. 이벤트 목록에서 해당 항목도 체크해야 합니다.
+          </p>
+
+          {/* Manual Send */}
+          <div className="pt-3 border-t border-gray-100">
+            <Label className="text-sm text-gray-600 mb-2 block">즉시 전송</Label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="outline"
+                onClick={() => handleSendSummary('daily')}
+                disabled={sendingDaily || !enabled || !url}
+                className="gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                {sendingDaily ? '전송 중...' : '오늘 휴무 현황 전송'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleSendSummary('weekly')}
+                disabled={sendingWeekly || !enabled || !url}
+                className="gap-2"
+              >
+                <CalendarDays className="w-4 h-4" />
+                {sendingWeekly ? '전송 중...' : '이번 주 휴무 현황 전송'}
+              </Button>
+            </div>
+          </div>
+
+          {!enabled && (
+            <p className="text-xs text-amber-600 mt-2">웹훅을 활성화하고 설정을 저장한 후 사용할 수 있습니다.</p>
+          )}
         </CardContent>
       </Card>
     </div>

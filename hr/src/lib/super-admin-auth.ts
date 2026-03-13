@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
 import { basePrismaClient } from '@/lib/prisma';
 import { isSaaSMode } from '@/lib/deploy-config';
@@ -14,18 +14,23 @@ function getSuperAdminJwtSecret(): Uint8Array {
     }
     return new TextEncoder().encode(secret);
   }
-  // Self-hosted: use separate secret if available, fallback to shared
-  const secret = process.env.SUPER_ADMIN_JWT_SECRET || process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-  if (!secret) {
+  // Self-hosted: use separate secret if available, derive from base secret otherwise
+  const superAdminSecret = process.env.SUPER_ADMIN_JWT_SECRET;
+  if (superAdminSecret) {
+    return new TextEncoder().encode(superAdminSecret);
+  }
+  const baseSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!baseSecret) {
     throw new Error('JWT_SECRET 또는 NEXTAUTH_SECRET 환경변수가 설정되지 않았습니다.');
   }
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(baseSecret + '_super_admin');
 }
 
 export interface SuperAdminUser {
   id: string;
   email: string;
   name: string;
+  mustChangePassword?: boolean;
 }
 
 export async function verifySuperAdmin(request: NextRequest): Promise<SuperAdminUser | null> {
@@ -46,10 +51,25 @@ export async function verifySuperAdmin(request: NextRequest): Promise<SuperAdmin
       id: payload.sub!,
       email: payload.email as string,
       name: payload.name as string,
+      mustChangePassword: !!(admin as Record<string, unknown>).mustChangePassword,
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Helper: returns a 403 response if the super admin must change their password.
+ * Use this in all super admin API routes except login and change-password.
+ */
+export function requirePasswordChanged(admin: SuperAdminUser): NextResponse | null {
+  if (admin.mustChangePassword) {
+    return NextResponse.json(
+      { message: '비밀번호를 먼저 변경해야 합니다.', mustChangePassword: true },
+      { status: 403 }
+    );
+  }
+  return null;
 }
 
 export async function signSuperAdminToken(admin: { id: string; email: string; name: string }): Promise<string> {

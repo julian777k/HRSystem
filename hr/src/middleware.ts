@@ -70,6 +70,21 @@ async function selfHostedMiddleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Super admin routes: separate auth flow
+  if (pathname.startsWith('/super-admin') || pathname.startsWith('/api/super-admin')) {
+    if (pathname === '/super-admin/login' || isPublicApiRoute(pathname)) {
+      return NextResponse.next();
+    }
+    const superAdminToken = request.cookies.get('super_admin_token')?.value;
+    if (!superAdminToken) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ message: '인증 필요' }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL('/super-admin/login', request.url));
+    }
+    return NextResponse.next();
+  }
+
   // JWT authentication check
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const user = token ? (await verifyToken(token))?.user ?? null : null;
@@ -85,8 +100,8 @@ async function selfHostedMiddleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public pages: login, register
-  if (['/login', '/register'].includes(pathname)) {
+  // Public pages: login, register, legal
+  if (['/login', '/register', '/privacy', '/terms'].includes(pathname)) {
     if (user && pathname === '/login') {
       const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
       return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/dashboard', request.url));
@@ -130,8 +145,8 @@ async function saasMiddleware(request: NextRequest) {
 
   // Super admin routes: skip tenant check but verify super_admin_token cookie
   if (pathname.startsWith('/super-admin') || pathname.startsWith('/api/super-admin')) {
-    // Allow public super-admin API routes without auth (e.g., login)
-    if (isPublicApiRoute(pathname)) {
+    // Allow login page and public API routes without auth
+    if (pathname === '/super-admin/login' || isPublicApiRoute(pathname)) {
       return NextResponse.next();
     }
     // Basic gate: require super_admin_token cookie (actual JWT verification in route handlers)
@@ -156,8 +171,8 @@ async function saasMiddleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Allow landing page routes
-    if (pathname.startsWith('/(landing)') || pathname === '/') {
+    // Allow landing page routes (including privacy, terms)
+    if (pathname.startsWith('/(landing)') || pathname === '/' || pathname === '/privacy' || pathname === '/terms') {
       return NextResponse.next();
     }
 
@@ -183,6 +198,13 @@ async function saasMiddleware(request: NextRequest) {
 
   // Allow setup pages
   if (pathname.startsWith('/setup')) {
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+  }
+
+  // Legal pages: accessible without auth on subdomains too
+  if (pathname === '/privacy' || pathname === '/terms') {
     return NextResponse.next({
       request: { headers: requestHeaders },
     });
@@ -241,6 +263,9 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'");
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   return response;
 }
 

@@ -40,11 +40,10 @@ export async function PUT(
     return NextResponse.json({ position });
   } catch (error) {
     console.error('Position update error:', error);
-    const message =
-      error instanceof Error && error.message.includes('Unique constraint')
-        ? '이미 존재하는 직급명 또는 레벨입니다.'
-        : '직급 수정 중 오류가 발생했습니다.';
-    return NextResponse.json({ message }, { status: 500 });
+    if (error instanceof Error && error.message.toLowerCase().includes('unique constraint')) {
+      return NextResponse.json({ message: '이미 존재하는 직급명 또는 레벨입니다.' }, { status: 409 });
+    }
+    return NextResponse.json({ message: '직급 수정 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }
 

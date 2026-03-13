@@ -9,26 +9,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: '인증 필요' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
+    const showAll = searchParams.get('all') === 'true' && isAdmin;
+    const activeFilter = showAll ? undefined : { isActive: true };
+
     const departments = await prisma.department.findMany({
       include: {
         _count: { select: { employees: true } },
         children: {
+          where: activeFilter,
           include: {
             _count: { select: { employees: true } },
           },
           orderBy: { sortOrder: 'asc' },
         },
       },
-      where: { parentId: null },
+      where: { parentId: null, ...(!showAll ? { isActive: true } : {}) },
       orderBy: { sortOrder: 'asc' },
     });
 
-    const { searchParams } = new URL(request.url);
-    const all = searchParams.get('all') === 'true';
-
     // Also get flat list for selects
     const allDepartments = await prisma.department.findMany({
-      where: all ? {} : { isActive: true },
+      where: activeFilter,
       include: { _count: { select: { employees: true } } },
       orderBy: { sortOrder: 'asc' },
     });
@@ -75,10 +78,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ department }, { status: 201 });
   } catch (error) {
     console.error('Department create error:', error);
-    const message =
-      error instanceof Error && error.message.includes('Unique constraint')
-        ? '이미 존재하는 부서명 또는 부서코드입니다.'
-        : '부서 생성 중 오류가 발생했습니다.';
-    return NextResponse.json({ message }, { status: 500 });
+    if (error instanceof Error && error.message.toLowerCase().includes('unique constraint')) {
+      return NextResponse.json(
+        { message: '이미 존재하는 부서명 또는 부서코드입니다.' },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { message: '부서 생성 중 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

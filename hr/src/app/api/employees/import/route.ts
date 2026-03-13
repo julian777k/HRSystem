@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+import { writeAuditLog } from '@/lib/audit-log';
+
+function generateRandomPassword(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+  const array = crypto.getRandomValues(new Uint8Array(12));
+  return Array.from(array, (b) => chars[b % chars.length]).join('');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +77,7 @@ export async function POST(request: NextRequest) {
     const posMap = new Map(positions.map((p) => [p.name, p.id]));
 
     const results = { success: 0, failed: 0, errors: [] as string[] };
+    const generatedPasswords: { employeeNumber: string; name: string; email: string; password: string }[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -79,7 +87,8 @@ export async function POST(request: NextRequest) {
         const employeeNumber = row['사번'] || row['employeeNumber'] || '';
         const name = row['이름'] || row['name'] || '';
         const email = row['이메일'] || row['email'] || '';
-        const password = row['비밀번호'] || row['password'] || 'default1234';
+        const hasExplicitPassword = !!(row['비밀번호'] || row['password']);
+        const password = row['비밀번호'] || row['password'] || generateRandomPassword();
         const phone = row['전화번호'] || row['phone'] || '';
         const deptName = row['부서'] || row['department'] || '';
         const posName = row['직급'] || row['position'] || '';
@@ -122,11 +131,14 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        if (!hasExplicitPassword) {
+          generatedPasswords.push({ employeeNumber, name, email, password });
+        }
         results.success++;
       } catch (err) {
         results.failed++;
         const message = err instanceof Error ? err.message : '알 수 없는 오류';
-        if (message.includes('Unique constraint')) {
+        if (message.toLowerCase().includes('unique constraint')) {
           results.errors.push(`${rowNum}행: 중복된 사번 또는 이메일`);
         } else {
           results.errors.push(`${rowNum}행: ${message}`);
@@ -134,9 +146,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    writeAuditLog({ action: 'EMPLOYEE_IMPORT', target: 'employee', targetId: 'batch', after: { success: results.success, failed: results.failed } });
+
     return NextResponse.json({
       message: `가져오기 완료: 성공 ${results.success}건, 실패 ${results.failed}건`,
       ...results,
+      generatedPasswords,
     });
   } catch (error) {
     console.error('Employee import error:', error);

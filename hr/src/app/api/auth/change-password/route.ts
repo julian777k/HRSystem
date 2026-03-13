@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hashPassword, verifyPassword } from '@/lib/password';
+import { hashPassword, verifyPassword, validatePasswordPolicy } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-
-function validatePassword(password: string): string | null {
-  if (password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
-  return null;
-}
+import { checkRateLimit } from '@/lib/rate-limit';
+import { writeAuditLog } from '@/lib/audit-log';
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ message: '인증 필요' }, { status: 401 });
+    }
+
+    // Rate limit: 5 attempts per user per 15 minutes
+    const rateResult = await checkRateLimit(`change-password:${user.id}`, 5, 900_000);
+    if (!rateResult.success) {
+      return NextResponse.json(
+        { message: `비밀번호 변경 시도가 너무 많습니다. ${Math.ceil((rateResult.retryAfterMs || 0) / 1000)}초 후 다시 시도해주세요.` },
+        { status: 429 }
+      );
     }
 
     const { currentPassword, newPassword } = await request.json();
@@ -24,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pwError = validatePassword(newPassword);
+    const pwError = validatePasswordPolicy(newPassword);
     if (pwError) {
       return NextResponse.json({ message: pwError }, { status: 400 });
     }
@@ -59,6 +65,8 @@ export async function POST(request: NextRequest) {
     await prisma.session.deleteMany({
       where: { employeeId: user.id },
     });
+
+    writeAuditLog({ action: 'CHANGE_PASSWORD', target: 'employee', targetId: user.id });
 
     return NextResponse.json({
       message: '비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.',

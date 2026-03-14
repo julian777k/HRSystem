@@ -79,22 +79,26 @@ function formatPayload(platform: string, event: string, message: string) {
   }
 }
 
-export async function sendWebhookNotification(event: string, message: string) {
+export async function sendWebhookNotification(event: string, message: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const config = await getWebhookConfig();
-    if (!config) return;
-    if (!config.events.includes(event)) return;
+    if (!config) return { ok: false, error: '웹훅이 비활성화되어 있습니다.' };
+    if (!config.events.includes(event)) return { ok: false, error: `${event} 이벤트가 비활성화되어 있습니다.` };
 
     const payload = formatPayload(config.platform, event, message);
 
-    // Fire-and-forget with timeout
-    fetch(config.url, {
+    const res = await fetch(config.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(5000),
-    }).catch(() => {});
-  } catch {
-    // Silently fail — webhook should never block main flow
+    });
+
+    if (!res.ok) {
+      return { ok: false, error: `웹훅 전송 실패 (HTTP ${res.status})` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '전송 중 오류' };
   }
 }

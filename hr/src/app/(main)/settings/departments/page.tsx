@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, Plus, Pencil, Trash2, ChevronRight, Loader2 } from 'lucide-react';
+import { Building2, Plus, Pencil, Trash2, ChevronRight, ChevronDown, Loader2, Users, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
@@ -49,6 +49,12 @@ export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Expanded department employees
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deptEmployees, setDeptEmployees] = useState<{id: string; employeeNumber: string; name: string; email: string; position?: {name: string}; status: string}[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [changingDeptFor, setChangingDeptFor] = useState<string | null>(null);
 
   // Form
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -104,6 +110,49 @@ export default function DepartmentsPage() {
       fetchDepartments();
     }
   }, [fetchDepartments, roleLoaded, userRole]);
+
+  const toggleExpand = async (deptId: string) => {
+    if (expandedId === deptId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(deptId);
+    setLoadingEmployees(true);
+    try {
+      const res = await fetch(`/api/employees?department=${deptId}&limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        setDeptEmployees(data.employees || []);
+      }
+    } catch {
+      toast.error('직원 목록을 불러오지 못했습니다.');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const handleChangeDepartment = async (employeeId: string, newDeptId: string) => {
+    setChangingDeptFor(employeeId);
+    try {
+      const res = await fetch(`/api/employees/${employeeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ departmentId: newDeptId }),
+      });
+      if (res.ok) {
+        toast.success('부서가 변경되었습니다.');
+        fetchDepartments();
+        if (expandedId) toggleExpand(expandedId);
+      } else {
+        const data = await res.json();
+        toast.error(data.message || '부서 변경에 실패했습니다.');
+      }
+    } catch {
+      toast.error('부서 변경 중 오류가 발생했습니다.');
+    } finally {
+      setChangingDeptFor(null);
+    }
+  };
 
   const openCreateDialog = () => {
     setEditingDept(null);
@@ -241,44 +290,103 @@ export default function DepartmentsPage() {
   };
 
   const renderDepartmentRows = (depts: Department[], depth = 0): React.ReactNode => {
-    return depts.map((dept) => (
-      <Fragment key={dept.id}>
-        <tr className="border-b last:border-0 hover:bg-gray-50">
-          <td className="py-3 px-3">
-            <div className="flex items-center" style={{ paddingLeft: `${depth * 24}px` }}>
-              {depth > 0 && <ChevronRight className="w-3 h-3 text-gray-400 mr-1" />}
-              <span className="font-medium">{dept.name}</span>
-            </div>
-          </td>
-          <td className="py-3 px-3 text-gray-500">{dept.code}</td>
-          <td className="py-3 px-3 text-gray-500 hidden sm:table-cell">{getParentName(dept.parentId)}</td>
-          <td className="py-3 px-3 text-center">{dept._count?.employees ?? 0}명</td>
-          <td className="py-3 px-3">
-            <Badge
-              className={
-                dept.isActive
-                  ? 'bg-green-100 text-green-800 hover:bg-green-100 cursor-pointer'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-pointer'
-              }
-              onClick={() => handleToggleActive(dept)}
-            >
-              {dept.isActive ? '활성' : '비활성'}
-            </Badge>
-          </td>
-          <td className="py-3 px-3 text-right">
-            <div className="flex items-center justify-end gap-1">
-              <Button variant="ghost" size="sm" onClick={() => openEditDialog(dept)}>
-                <Pencil className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => handleDelete(dept.id)}>
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </Button>
-            </div>
-          </td>
-        </tr>
-        {dept.children && dept.children.length > 0 && renderDepartmentRows(dept.children, depth + 1)}
-      </Fragment>
-    ));
+    return depts.map((dept) => {
+      const empCount = dept._count?.employees ?? 0;
+      const isExpanded = expandedId === dept.id;
+      return (
+        <Fragment key={dept.id}>
+          <tr className={`border-b last:border-0 hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-purple-50/50' : ''}`} onClick={() => empCount > 0 && toggleExpand(dept.id)}>
+            <td className="py-3 px-3">
+              <div className="flex items-center" style={{ paddingLeft: `${depth * 24}px` }}>
+                {empCount > 0 && (isExpanded ? <ChevronDown className="w-4 h-4 text-purple-500 mr-1" /> : <ChevronRight className="w-4 h-4 text-gray-400 mr-1" />)}
+                {empCount === 0 && depth > 0 && <ChevronRight className="w-3 h-3 text-gray-400 mr-1" />}
+                <span className="font-medium">{dept.name}</span>
+              </div>
+            </td>
+            <td className="py-3 px-3 text-gray-500">{dept.code}</td>
+            <td className="py-3 px-3 text-gray-500 hidden sm:table-cell">{getParentName(dept.parentId)}</td>
+            <td className="py-3 px-3 text-center">
+              <span className={empCount > 0 ? 'text-purple-600 font-medium' : 'text-gray-400'}>{empCount}명</span>
+            </td>
+            <td className="py-3 px-3">
+              <Badge
+                className={
+                  dept.isActive
+                    ? 'bg-green-100 text-green-800 hover:bg-green-100 cursor-pointer'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-pointer'
+                }
+                onClick={(e) => { e.stopPropagation(); handleToggleActive(dept); }}
+              >
+                {dept.isActive ? '활성' : '비활성'}
+              </Badge>
+            </td>
+            <td className="py-3 px-3 text-right">
+              <div className="flex items-center justify-end gap-1">
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditDialog(dept); }}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(dept.id); }}>
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </Button>
+              </div>
+            </td>
+          </tr>
+          {isExpanded && (
+            <tr>
+              <td colSpan={6} className="bg-purple-50/30 px-3 py-0">
+                {loadingEmployees ? (
+                  <div className="flex items-center gap-2 py-4 text-gray-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" /> 불러오는 중...
+                  </div>
+                ) : deptEmployees.length === 0 ? (
+                  <div className="py-4 text-sm text-gray-400">소속 직원이 없습니다.</div>
+                ) : (
+                  <div className="py-3">
+                    <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                      <Users className="w-3.5 h-3.5" />
+                      <span>{dept.name} 소속 직원 ({deptEmployees.length}명)</span>
+                    </div>
+                    <div className="grid gap-1.5">
+                      {deptEmployees.map((emp) => (
+                        <div key={emp.id} className="flex items-center justify-between bg-white rounded-lg border border-gray-100 px-3 py-2 text-sm">
+                          <div className="flex items-center gap-3">
+                            <span className="text-gray-400 text-xs w-16 shrink-0">{emp.employeeNumber}</span>
+                            <span className="font-medium">{emp.name}</span>
+                            <span className="text-gray-400 text-xs">{emp.position?.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={dept.id}
+                              onValueChange={(val) => handleChangeDepartment(emp.id, val)}
+                              disabled={changingDeptFor === emp.id}
+                            >
+                              <SelectTrigger className="w-[130px] h-8 text-xs">
+                                <div className="flex items-center gap-1">
+                                  <ArrowRightLeft className="w-3 h-3 text-gray-400" />
+                                  <SelectValue />
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {allDepartments.filter(d => d.isActive).map((d) => (
+                                  <SelectItem key={d.id} value={d.id}>
+                                    {d.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </td>
+            </tr>
+          )}
+          {dept.children && dept.children.length > 0 && renderDepartmentRows(dept.children, depth + 1)}
+        </Fragment>
+      );
+    });
   };
 
   if (!roleLoaded) {

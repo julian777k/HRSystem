@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,14 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { BarChart3, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { BarChart3, Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronRight, Users, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
@@ -26,6 +33,15 @@ interface Position {
   level: number;
   isActive: boolean;
   _count?: { employees: number };
+}
+
+interface PositionEmployee {
+  id: string;
+  employeeNumber: string;
+  name: string;
+  email: string;
+  department?: { name: string };
+  status: string;
 }
 
 export default function PositionsPage() {
@@ -42,6 +58,12 @@ export default function PositionsPage() {
   const [formLevel, setFormLevel] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{open: boolean; title: string; description: string; action: () => void}>({open: false, title: '', description: '', action: () => {}});
+
+  // Expanded position employees
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [positionEmployees, setPositionEmployees] = useState<PositionEmployee[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [changingPositionFor, setChangingPositionFor] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -82,6 +104,49 @@ export default function PositionsPage() {
       fetchPositions();
     }
   }, [fetchPositions, roleLoaded, userRole]);
+
+  const toggleExpand = async (positionId: string) => {
+    if (expandedId === positionId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(positionId);
+    setLoadingEmployees(true);
+    try {
+      const res = await fetch(`/api/employees?position=${positionId}&limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        setPositionEmployees(data.employees || []);
+      }
+    } catch {
+      toast.error('직원 목록을 불러오지 못했습니다.');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const handleChangePosition = async (employeeId: string, newPositionId: string) => {
+    setChangingPositionFor(employeeId);
+    try {
+      const res = await fetch(`/api/employees/${employeeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ positionId: newPositionId }),
+      });
+      if (res.ok) {
+        toast.success('직급이 변경되었습니다.');
+        fetchPositions();
+        if (expandedId) toggleExpand(expandedId);
+      } else {
+        const data = await res.json();
+        toast.error(data.message || '직급 변경에 실패했습니다.');
+      }
+    } catch {
+      toast.error('직급 변경 중 오류가 발생했습니다.');
+    } finally {
+      setChangingPositionFor(null);
+    }
+  };
 
   const openCreateDialog = () => {
     setEditingPosition(null);
@@ -238,35 +303,100 @@ export default function PositionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {positions.map((p) => (
-                    <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50">
-                      <td className="py-3 px-3 text-gray-500">{p.level}</td>
-                      <td className="py-3 px-3 font-medium">{p.name}</td>
-                      <td className="py-3 px-3 text-center">{p._count?.employees ?? 0}명</td>
-                      <td className="py-3 px-3">
-                        <Badge
-                          className={
-                            p.isActive
-                              ? 'bg-green-100 text-green-800 hover:bg-green-100 cursor-pointer'
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-pointer'
-                          }
-                          onClick={() => handleToggleActive(p)}
-                        >
-                          {p.isActive ? '활성' : '비활성'}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(p)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {positions.map((p) => {
+                    const isExpanded = expandedId === p.id;
+                    const empCount = p._count?.employees ?? 0;
+                    return (
+                      <React.Fragment key={p.id}>
+                        <tr className={`border-b hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-purple-50/50' : ''}`} onClick={() => empCount > 0 && toggleExpand(p.id)}>
+                          <td className="py-3 px-3 text-gray-500">
+                            <div className="flex items-center gap-1">
+                              {empCount > 0 && (isExpanded ? <ChevronDown className="w-4 h-4 text-purple-500" /> : <ChevronRight className="w-4 h-4 text-gray-400" />)}
+                              {p.level}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 font-medium">{p.name}</td>
+                          <td className="py-3 px-3 text-center">
+                            <span className={empCount > 0 ? 'text-purple-600 font-medium' : 'text-gray-400'}>{empCount}명</span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <Badge
+                              className={
+                                p.isActive
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-100 cursor-pointer'
+                                  : 'bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-pointer'
+                              }
+                              onClick={(e) => { e.stopPropagation(); handleToggleActive(p); }}
+                            >
+                              {p.isActive ? '활성' : '비활성'}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}>
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={5} className="bg-purple-50/30 px-3 py-0">
+                              {loadingEmployees ? (
+                                <div className="flex items-center gap-2 py-4 text-gray-400 text-sm">
+                                  <Loader2 className="w-4 h-4 animate-spin" /> 불러오는 중...
+                                </div>
+                              ) : positionEmployees.length === 0 ? (
+                                <div className="py-4 text-sm text-gray-400">소속 직원이 없습니다.</div>
+                              ) : (
+                                <div className="py-3">
+                                  <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                                    <Users className="w-3.5 h-3.5" />
+                                    <span>{p.name} 소속 직원 ({positionEmployees.length}명)</span>
+                                  </div>
+                                  <div className="grid gap-1.5">
+                                    {positionEmployees.map((emp) => (
+                                      <div key={emp.id} className="flex items-center justify-between bg-white rounded-lg border border-gray-100 px-3 py-2 text-sm">
+                                        <div className="flex items-center gap-3">
+                                          <span className="text-gray-400 text-xs w-16 shrink-0">{emp.employeeNumber}</span>
+                                          <span className="font-medium">{emp.name}</span>
+                                          <span className="text-gray-400 text-xs">{emp.department?.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Select
+                                            value={p.id}
+                                            onValueChange={(val) => handleChangePosition(emp.id, val)}
+                                            disabled={changingPositionFor === emp.id}
+                                          >
+                                            <SelectTrigger className="w-[120px] h-8 text-xs">
+                                              <div className="flex items-center gap-1">
+                                                <ArrowRightLeft className="w-3 h-3 text-gray-400" />
+                                                <SelectValue />
+                                              </div>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {positions.filter(pp => pp.isActive).map((pp) => (
+                                                <SelectItem key={pp.id} value={pp.id}>
+                                                  {pp.name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

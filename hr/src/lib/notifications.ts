@@ -226,7 +226,8 @@ export async function sendLeaveSummary(
 
   if (leaveRequests.length === 0) {
     const noLeaveMsg = `[${title}]\n━━━━━━━━━━━━━━\n휴무자가 없습니다.`;
-    await sendWebhookNotification(eventKey, noLeaveMsg);
+    const result = await sendWebhookNotification(eventKey, noLeaveMsg);
+    if (!result.ok) return { sent: false, reason: result.error };
     return { sent: true, count: 0 };
   }
 
@@ -282,7 +283,8 @@ export async function sendLeaveSummary(
     message = `[${title}]\n━━━━━━━━━━━━━━\n${lines.join('\n')}\n\n총 ${leaveRequests.length}건`;
   }
 
-  await sendWebhookNotification(eventKey, message);
+  const sendResult = await sendWebhookNotification(eventKey, message);
+  if (!sendResult.ok) return { sent: false, reason: sendResult.error };
   return { sent: true, count: leaveRequests.length };
 }
 
@@ -309,11 +311,11 @@ export async function notifyApprovers(leaveRequestId: string) {
     const startDate = leaveRequest.startDate.toISOString().split('T')[0];
     const endDate = leaveRequest.endDate.toISOString().split('T')[0];
 
-    // Webhook notification (fire-and-forget)
+    // Webhook notification (best-effort, don't block)
     sendWebhookNotification(
       'LEAVE_REQUEST',
       `${displayName}님이 ${leaveRequest.leaveType.name} 휴가를 신청했습니다. (${startDate} ~ ${endDate})`
-    );
+    ).catch(() => {});
   } catch (error) {
     console.error('[Notification] notifyApprovers error:', error);
   }
@@ -341,13 +343,13 @@ export async function notifyRequestResult(
     const endDate = leaveRequest.endDate.toISOString().split('T')[0];
     const isApproved = status === 'APPROVED';
 
-    // Webhook notification (fire-and-forget)
+    // Webhook notification (best-effort, don't block)
     sendWebhookNotification(
       isApproved ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED',
       isApproved
         ? `${displayName}님의 ${leaveRequest.leaveType.name} 휴가가 승인되었습니다. (${startDate} ~ ${endDate})`
         : `${displayName}님의 ${leaveRequest.leaveType.name} 휴가가 반려되었습니다.${comment ? ` 사유: ${comment}` : ''}`
-    );
+    ).catch(() => {});
   } catch (error) {
     console.error('[Notification] notifyRequestResult error:', error);
   }

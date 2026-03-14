@@ -17,7 +17,7 @@ export default function CreateTenantPage() {
     bizNumber: '',
     maxEmployees: 50,
     status: 'active' as string,
-    trialDays: 14,
+    trialDays: 7,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

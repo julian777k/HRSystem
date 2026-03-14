@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     if (initialStatus === 'trial') {
       tenantData.trialExpiresAt = trialExpiresAt
         ? new Date(trialExpiresAt).toISOString()
-        : new Date(Date.now() + 14 * 86400000).toISOString(); // default 14 days
+        : new Date(Date.now() + 7 * 86400000).toISOString(); // default 7 days
     }
 
     const tenant = await (basePrismaClient.tenant as any).create({

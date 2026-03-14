@@ -83,7 +83,7 @@ export async function PUT(
     // Auto-set trialExpiresAt when switching to trial status without a date
     if (status === 'trial' && !trialExpiresAt && !existing.trialExpiresAt) {
       const defaultExpiry = new Date();
-      defaultExpiry.setDate(defaultExpiry.getDate() + 14); // 14일 기본 체험
+      defaultExpiry.setDate(defaultExpiry.getDate() + 7); // 7일 기본 체험
       updateData.trialExpiresAt = defaultExpiry.toISOString();
     }
     // Clear trialExpiresAt when switching away from trial

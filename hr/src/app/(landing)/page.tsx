@@ -89,10 +89,10 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <a
-                href="/register"
+                href="/start"
                 className="px-8 py-3.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-600/25"
               >
-                무료로 시작하기
+                7일 무료 체험 시작하기
               </a>
               <a
                 href="#features"
@@ -327,10 +327,10 @@ export default function LandingPage() {
               </div>
 
               <a
-                href="/register"
+                href="/start"
                 className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
               >
-                무료 체험 시작하기
+                7일 무료 체험 시작하기
               </a>
             </div>
           </div>
@@ -344,14 +344,14 @@ export default function LandingPage() {
             지금 바로 시작하세요
           </h2>
           <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-            복잡한 설치 없이, 회원가입만으로 모든 HR 기능을 사용할 수 있습니다.
+            7일 무료 체험 후, 1회 구매로 영구 사용. 복잡한 설치 없이 바로 시작하세요.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
-              href="/register"
+              href="/start"
               className="px-8 py-3.5 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition"
             >
-              무료 체험 시작
+              7일 무료 체험
             </a>
             <a
               href="/login"

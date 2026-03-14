@@ -7,6 +7,7 @@ import { isSaaSMode, SAAS_BASE_DOMAIN } from '@/lib/deploy-config';
 const PUBLIC_API_ROUTES = [
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/register-company',
   '/api/setup/',
   '/api/super-admin/auth/login',
 ];
@@ -171,8 +172,8 @@ async function saasMiddleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Allow landing page routes (including privacy, terms)
-    if (pathname.startsWith('/(landing)') || pathname === '/' || pathname === '/privacy' || pathname === '/terms') {
+    // Allow landing page routes (including privacy, terms, start)
+    if (pathname.startsWith('/(landing)') || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/start') {
       return NextResponse.next();
     }
 

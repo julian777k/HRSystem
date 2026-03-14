@@ -419,7 +419,7 @@ export default function TenantDetailPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">체험 기간</label>
               <select
-                value={form.trialExpiresAt ? '' : '14'}
+                value={form.trialExpiresAt ? '' : '7'}
                 onChange={(e) => {
                   const days = parseInt(e.target.value);
                   const date = new Date();

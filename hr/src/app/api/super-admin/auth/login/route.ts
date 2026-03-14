@@ -5,22 +5,22 @@ import { signSuperAdminToken, SUPER_ADMIN_COOKIE } from '@/lib/super-admin-auth'
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit-log';
 
-const DEFAULT_SUPER_ADMIN_EMAIL = 'admin@admin.com';
-const DEFAULT_SUPER_ADMIN_PASSWORD = 'admin1234';
-const DEFAULT_SUPER_ADMIN_NAME = 'Super Admin';
-
 /**
  * Ensure at least one super admin exists.
- * Uses SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD env vars when set,
- * otherwise falls back to built-in defaults.
+ * Requires SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD environment variables.
  */
 async function ensureSuperAdmin() {
   const count = await basePrismaClient.superAdmin.count();
   if (count > 0) return;
 
-  const email = process.env.SUPER_ADMIN_EMAIL || DEFAULT_SUPER_ADMIN_EMAIL;
-  const password = process.env.SUPER_ADMIN_PASSWORD || DEFAULT_SUPER_ADMIN_PASSWORD;
-  const name = process.env.SUPER_ADMIN_NAME || DEFAULT_SUPER_ADMIN_NAME;
+  const email = process.env.SUPER_ADMIN_EMAIL;
+  const password = process.env.SUPER_ADMIN_PASSWORD;
+  const name = process.env.SUPER_ADMIN_NAME || 'Super Admin';
+
+  if (!email || !password) {
+    console.error('SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD environment variables are required for initial setup.');
+    return;
+  }
 
   const passwordHash = await hashPassword(password);
   await basePrismaClient.superAdmin.create({

@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   // Cloudflare uses @opennextjs/cloudflare adapter
   ...(isCloudflare ? {} : { output: "standalone" }),
   allowedDevOrigins: ["172.30.1.30"],
+  images: {
+    unoptimized: true,
+  },
   serverExternalPackages: [
     // Prisma must be external for OpenNext to patch the generated client
     "@prisma/client",

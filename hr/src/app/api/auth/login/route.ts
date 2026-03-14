@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limit: 5 attempts per email per 15 minutes
-    const rateLimitResult = await checkRateLimit(`login:${email}`, 5, 900 * 1000);
+    // Rate limit: 10 attempts per email per 1 minute
+    const rateLimitResult = await checkRateLimit(`login:${email}`, 10, 60 * 1000);
     if (!rateLimitResult.success) {
       const retrySeconds = Math.ceil((rateLimitResult.retryAfterMs || 0) / 1000);
       return NextResponse.json(

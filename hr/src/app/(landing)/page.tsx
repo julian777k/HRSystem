@@ -198,51 +198,81 @@ export default function LandingPage() {
       {/* Price Comparison — 가격 경쟁력 먼저 */}
       <section className="py-20 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-6">
             <p className="text-blue-600 font-semibold text-sm mb-3 tracking-wide">
               매달 나가는 구독료, 언제까지 내실 건가요?
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               구독형 vs <span className="text-blue-600">1회 구매</span> 비용 비교
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              직원 20명 기준, 3년간 누적 비용을 비교해보세요
-            </p>
+          </div>
+
+          {/* Calculation basis tags */}
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-12">
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-medium px-4 py-2 rounded-full border border-gray-200">
+              <span className="text-base">👥</span> 직원 <strong className="text-gray-900">20명</strong> 기준
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-medium px-4 py-2 rounded-full border border-gray-200">
+              <span className="text-base">📅</span> <strong className="text-gray-900">3년(36개월)</strong> 누적
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-medium px-4 py-2 rounded-full border border-gray-200">
+              <span className="text-base">💰</span> VAT 별도
+            </span>
           </div>
 
           {/* Bar Chart */}
-          <div className="flex items-end justify-center gap-4 sm:gap-8 mb-8" style={{ height: 280 }}>
+          <div className="flex items-end justify-center gap-3 sm:gap-6 mb-4" style={{ height: 300 }}>
             {[
-              { name: 'A사', price: '360만원', monthly: '월 5,000원/인', height: '40%', color: 'bg-gray-300' },
-              { name: 'B사', price: '576만원', monthly: '월 8,000원/인', height: '64%', color: 'bg-red-400' },
-              { name: 'C사', price: '864만원', monthly: '월 12,000원/인', height: '96%', color: 'bg-red-600' },
+              { name: 'A사', total: 360, perPerson: '5,000', monthly: 10, height: '42%', color: 'bg-slate-300' },
+              { name: 'B사', total: 576, perPerson: '8,000', monthly: 16, height: '67%', color: 'bg-red-400' },
+              { name: 'C사', total: 864, perPerson: '12,000', monthly: 24, height: '100%', color: 'bg-red-600' },
             ].map((item) => (
-              <div key={item.name} className="flex flex-col items-center flex-1 max-w-[140px]">
-                <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">{item.price}</p>
-                <div className={`w-full rounded-t-lg ${item.color}`} style={{ height: item.height }} />
+              <div key={item.name} className="flex flex-col items-center flex-1 max-w-[160px]">
+                <p className="text-xl sm:text-2xl font-black text-gray-700 mb-1">{item.total}<span className="text-sm font-bold">만원</span></p>
+                <div className={`w-full rounded-t-xl ${item.color} relative`} style={{ height: item.height }}>
+                  <span className="absolute inset-0 flex items-center justify-center text-white/90 text-[11px] sm:text-xs font-medium leading-tight text-center px-1">
+                    월 {item.monthly}만원<br />× 36개월
+                  </span>
+                </div>
                 <div className="mt-3 text-center">
-                  <p className="font-bold text-gray-800">{item.name}</p>
-                  <p className="text-xs text-gray-400">{item.monthly}</p>
+                  <p className="font-bold text-gray-800 text-sm sm:text-base">{item.name}</p>
+                  <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5">
+                    인당 월 {item.perPerson}원
+                  </p>
+                  <p className="text-[10px] text-gray-300 mt-0.5">
+                    {item.perPerson}원 × 20명 = 월 {item.monthly}만원
+                  </p>
                 </div>
               </div>
             ))}
-            <div className="flex flex-col items-center flex-1 max-w-[140px]">
-              <p className="text-lg sm:text-xl font-bold text-blue-600 mb-2">1회 결제</p>
-              <div className="w-full rounded-t-lg bg-blue-600 shadow-lg shadow-blue-600/30" style={{ height: '18%' }} />
+            <div className="flex flex-col items-center flex-1 max-w-[160px]">
+              <p className="text-xl sm:text-2xl font-black text-blue-600 mb-1">49<span className="text-sm font-bold">만원</span></p>
+              <div className="w-full rounded-t-xl bg-blue-600 shadow-lg shadow-blue-600/30 relative" style={{ height: '5.7%' }}>
+              </div>
               <div className="mt-3 text-center">
-                <p className="font-bold text-blue-600">KeystoneHR</p>
-                <p className="text-xs text-gray-400">추가 비용 없음</p>
+                <p className="font-bold text-blue-600 text-sm sm:text-base">KeystoneHR</p>
+                <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5">
+                  1회 결제 · 인원 무제한
+                </p>
+                <p className="text-[10px] text-gray-300 mt-0.5">
+                  추가 과금 0원
+                </p>
               </div>
             </div>
           </div>
 
+          {/* Calculation note */}
+          <p className="text-center text-xs text-gray-400 mb-8">
+            * 구독형 비용 = 인당 월 요금 × 20명 × 36개월. 시장 평균 기준이며, 실제 서비스별로 다를 수 있습니다.
+          </p>
+
           {/* Savings badge */}
           <div className="flex justify-center mb-10">
             <div className="inline-flex items-center gap-3 bg-blue-50 border-2 border-blue-200 rounded-2xl px-6 py-4">
-              <span className="text-2xl">💰</span>
+              <span className="text-3xl">💰</span>
               <div>
-                <p className="text-sm text-gray-600">3년간 최대</p>
-                <p className="text-2xl font-black text-blue-700">864만원 절감</p>
+                <p className="text-sm text-gray-600">A사 대비에도 <strong className="text-gray-900">7배 이상</strong> 절감</p>
+                <p className="text-2xl font-black text-blue-700">최대 815만원 절감 <span className="text-sm font-semibold text-blue-500">(C사 대비)</span></p>
               </div>
             </div>
           </div>
@@ -255,9 +285,10 @@ export default function LandingPage() {
               <span className="text-blue-600">KeystoneHR</span>
             </div>
             {[
-              { label: '직원 추가 시', sub: '인당 추가 과금', keystone: '무료' },
-              { label: '3년 후 해지 시', sub: '데이터 소실', keystone: '영구 사용' },
-              { label: '숨은 추가 비용', sub: '기능당 +1~3만원/월', keystone: '없음' },
+              { label: '과금 방식', sub: '인당 × 매월 반복', keystone: '1회 결제, 끝' },
+              { label: '직원 추가 시', sub: '인당 추가 과금', keystone: '무료 (무제한)' },
+              { label: '3년 후 해지 시', sub: '0원 — 돌려받는 것 없음', keystone: '영구 사용' },
+              { label: '숨은 추가 비용', sub: '기능별 +1~3만원/월', keystone: '없음' },
               { label: '전체 기능 이용', sub: '플랜별 제한', keystone: '모두 포함' },
             ].map((row, i) => (
               <div key={row.label} className={`grid grid-cols-3 text-center text-sm py-3.5 px-4 ${i % 2 === 0 ? '' : 'bg-white'}`}>

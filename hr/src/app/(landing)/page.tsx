@@ -120,14 +120,14 @@ export default function LandingPage() {
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 mb-6 leading-tight">
               HR 솔루션이{' '}
-              <span className="text-blue-600">49만원?</span>
+              <span className="text-blue-600">월 4,083원?</span>
               <br />
-              <span className="text-gray-400 text-3xl sm:text-4xl lg:text-5xl font-bold">네, 10년치입니다.</span>
+              <span className="text-gray-400 text-2xl sm:text-3xl lg:text-4xl font-bold">네, 커피 한 잔 값으로 10년 쓰는 인사관리</span>
             </h1>
             <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
               출퇴근, 휴가, 결재, 연장근무, 복지까지.
               <br className="hidden sm:block" />
-              매달 구독료 낼 필요 없이, 1회 결제로 10년 사용하세요.
+              구독료 없이 1회 결제(49만원), 10년 사용.
             </p>
           </div>
         </div>
@@ -235,6 +235,64 @@ export default function LandingPage() {
               요금제 자세히 보기
             </a>
           </div>
+        </div>
+      </section>
+
+      {/* Feature Comparison — 브릿지 */}
+      <section className="py-16 sm:py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-blue-600 font-bold text-sm mb-3 tracking-wide">잠깐, 가격만 싼 게 아닙니다</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4">
+              타사 <span className="text-red-500">유료 추가 기능</span>,<br />
+              KeystoneHR은 <span className="text-blue-600">전부 무료</span>입니다
+            </h2>
+            <p className="text-gray-500 max-w-xl mx-auto">
+              구독형 서비스에서 기능당 월 1~3만원씩 추가 결제해야 하는 기능들, 전부 기본 포함
+            </p>
+          </div>
+
+          {/* Feature comparison table */}
+          <div className="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="grid grid-cols-[1fr,80px,80px,80px,100px] sm:grid-cols-[1fr,100px,100px,100px,120px] text-center text-xs sm:text-sm font-bold border-b border-gray-200 py-3 bg-gray-100">
+              <span className="text-gray-500 text-left pl-4 sm:pl-6">기능</span>
+              <span className="text-gray-400">A사</span>
+              <span className="text-gray-400">B사</span>
+              <span className="text-gray-400">C사</span>
+              <span className="text-blue-600">KeystoneHR</span>
+            </div>
+            {[
+              { feat: '전자결재 워크플로', a: '△', b: '✓', c: '✓', k: '✓' },
+              { feat: '복지 관리', a: '—', b: '—', c: '+별도', k: '✓' },
+              { feat: '초과근무 보상시간', a: '—', b: '△', c: '✓', k: '✓' },
+              { feat: '웹훅 연동 (Slack/Teams)', a: '—', b: '—', c: '+별도', k: '✓' },
+              { feat: 'HR 대시보드', a: '—', b: '+별도', c: '✓', k: '✓' },
+              { feat: '근태 이상 알림', a: '—', b: '△', c: '✓', k: '✓' },
+              { feat: '데이터 내보내기 (Excel)', a: '△', b: '✓', c: '✓', k: '✓' },
+              { feat: '보상정책 커스터마이즈', a: '—', b: '—', c: '△', k: '✓' },
+            ].map((row, i) => (
+              <div key={row.feat} className={`grid grid-cols-[1fr,80px,80px,80px,100px] sm:grid-cols-[1fr,100px,100px,100px,120px] text-center text-xs sm:text-sm py-3 px-1 ${i % 2 === 0 ? '' : 'bg-white'}`}>
+                <span className="text-gray-700 font-medium text-left pl-4 sm:pl-6">{row.feat}</span>
+                <span className={row.a === '✓' ? 'text-green-600' : row.a === '+별도' ? 'text-red-500 font-semibold' : row.a === '△' ? 'text-amber-500' : 'text-gray-300'}>{row.a}</span>
+                <span className={row.b === '✓' ? 'text-green-600' : row.b === '+별도' ? 'text-red-500 font-semibold' : row.b === '△' ? 'text-amber-500' : 'text-gray-300'}>{row.b}</span>
+                <span className={row.c === '✓' ? 'text-green-600' : row.c === '+별도' ? 'text-red-500 font-semibold' : row.c === '△' ? 'text-amber-500' : 'text-gray-300'}>{row.c}</span>
+                <span className="text-blue-600 font-bold">{row.k}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <div className="inline-flex items-center gap-4 text-xs text-gray-400">
+              <span><span className="text-green-600 font-bold">✓</span> 기본 포함</span>
+              <span><span className="text-amber-500 font-bold">△</span> 일부 제한</span>
+              <span><span className="text-red-500 font-bold">+별도</span> 추가 과금</span>
+              <span><span className="text-gray-300 font-bold">—</span> 미지원</span>
+            </div>
+          </div>
+
+          <p className="text-center text-gray-400 text-xs mt-4">
+            * "+별도" 기능은 구독형 서비스에서 기능당 월 1~3만원이 추가됩니다. 다 켜면 기본료의 2~3배.
+          </p>
         </div>
       </section>
 

@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, UserPlus, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
 import { Toaster, toast } from 'sonner';
@@ -47,6 +48,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [resultInfo, setResultInfo] = useState<{ employeeNumber: string } | null>(null);
 
   useEffect(() => {
@@ -70,6 +72,11 @@ export default function RegisterPage() {
 
     if (password.length < 8) {
       setError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+
+    if (!agreePrivacy) {
+      setError('개인정보 수집 및 이용에 동의해주세요.');
       return;
     }
 
@@ -297,6 +304,19 @@ export default function RegisterPage() {
                   />
                 )}
               </div>
+            </div>
+
+            <div className="flex items-start gap-2 pt-1">
+              <Checkbox
+                id="agreePrivacy"
+                checked={agreePrivacy}
+                onCheckedChange={(v) => setAgreePrivacy(v === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="agreePrivacy" className="text-sm text-gray-600 leading-snug cursor-pointer">
+                <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline font-medium">개인정보 수집 및 이용</Link>에 동의합니다.
+                <span className="text-red-500"> *</span>
+              </label>
             </div>
 
             <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>

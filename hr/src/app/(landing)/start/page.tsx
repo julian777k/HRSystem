@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Building2, CheckCircle, ArrowRight } from 'lucide-react';
 
 export default function StartPage() {
@@ -22,6 +23,8 @@ export default function StartPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
 
   const generateSubdomain = (name: string) => {
     return name
@@ -57,6 +60,11 @@ export default function StartPage() {
 
     if (!subdomain || subdomain.length < 2) {
       setError('서브도메인은 2자 이상이어야 합니다.');
+      return;
+    }
+
+    if (!agreeTerms || !agreePrivacy) {
+      setError('이용약관과 개인정보처리방침에 모두 동의해주세요.');
       return;
     }
 
@@ -271,11 +279,32 @@ export default function StartPage() {
               )}
             </Button>
 
-            <p className="text-xs text-gray-400 text-center">
-              가입 시{' '}
-              <Link href="/terms" className="text-blue-500 hover:underline">이용약관</Link> 및{' '}
-              <Link href="/privacy" className="text-blue-500 hover:underline">개인정보처리방침</Link>에 동의합니다.
-            </p>
+            <div className="space-y-3 pt-1">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="agreeTerms"
+                  checked={agreeTerms}
+                  onCheckedChange={(v) => setAgreeTerms(v === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="agreeTerms" className="text-sm text-gray-600 leading-snug cursor-pointer">
+                  <Link href="/terms" target="_blank" className="text-blue-600 hover:underline font-medium">이용약관</Link>에 동의합니다.
+                  <span className="text-red-500"> *</span>
+                </label>
+              </div>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="agreePrivacy"
+                  checked={agreePrivacy}
+                  onCheckedChange={(v) => setAgreePrivacy(v === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="agreePrivacy" className="text-sm text-gray-600 leading-snug cursor-pointer">
+                  <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline font-medium">개인정보처리방침</Link>에 동의합니다.
+                  <span className="text-red-500"> *</span>
+                </label>
+              </div>
+            </div>
 
             <div className="text-center">
               <span className="text-sm text-gray-500">이미 계정이 있으신가요?</span>{' '}

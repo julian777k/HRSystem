@@ -285,7 +285,7 @@ export default function StartPage() {
                   id="agreeTerms"
                   checked={agreeTerms}
                   onCheckedChange={(v) => setAgreeTerms(v === true)}
-                  className="mt-[3px] size-3.5"
+                  className="mt-[3px] !h-[14px] !w-[14px] !min-h-0"
                 />
                 <label htmlFor="agreeTerms" className="text-sm text-gray-600 leading-snug cursor-pointer">
                   <Link href="/terms" target="_blank" className="text-blue-600 hover:underline font-medium">이용약관</Link>에 동의합니다.
@@ -297,7 +297,7 @@ export default function StartPage() {
                   id="agreePrivacy"
                   checked={agreePrivacy}
                   onCheckedChange={(v) => setAgreePrivacy(v === true)}
-                  className="mt-[3px] size-3.5"
+                  className="mt-[3px] !h-[14px] !w-[14px] !min-h-0"
                 />
                 <label htmlFor="agreePrivacy" className="text-sm text-gray-600 leading-snug cursor-pointer">
                   <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline font-medium">개인정보처리방침</Link>에 동의합니다.

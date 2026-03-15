@@ -4,8 +4,14 @@ import { isSetupComplete } from '@/lib/setup-config';
 
 export async function POST(request: NextRequest) {
   try {
-    // Optional setup secret check (if SETUP_SECRET is configured, require it)
+    // Setup secret check: required in production, optional in development
     const setupSecret = process.env.SETUP_SECRET;
+    if (!setupSecret && process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { success: false, message: 'SETUP_SECRET 환경변수가 설정되지 않았습니다. 프로덕션에서는 필수입니다.' },
+        { status: 403 }
+      );
+    }
     if (setupSecret && request.headers.get('x-setup-secret') !== setupSecret) {
       return NextResponse.json(
         { success: false, message: '설정 권한이 없습니다.' },

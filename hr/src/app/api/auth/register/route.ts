@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, validatePasswordPolicy } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { getTenantIdSafe } from '@/lib/tenant-context';
 
 /**
  * POST /api/auth/register - 직원 자체 회원가입
@@ -34,8 +35,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: pwError }, { status: 400 });
     }
 
-    // 이메일 중복 확인
-    const existing = await prisma.employee.findFirst({ where: { email } });
+    const tenantId = await getTenantIdSafe();
+
+    // 이메일 중복 확인 (테넌트 범위)
+    const existing = await prisma.employee.findFirst({ where: { tenantId, email } });
     if (existing) {
       return NextResponse.json(
         { message: '이미 등록된 이메일입니다.' },
@@ -59,9 +62,9 @@ export async function POST(request: NextRequest) {
       finalEmployeeNumber = `${prefix}${String(seq).padStart(4, '0')}`;
     }
 
-    // 사원번호 중복 확인
+    // 사원번호 중복 확인 (테넌트 범위)
     const existingNumber = await prisma.employee.findFirst({
-      where: { employeeNumber: finalEmployeeNumber },
+      where: { tenantId, employeeNumber: finalEmployeeNumber },
     });
     if (existingNumber) {
       return NextResponse.json(

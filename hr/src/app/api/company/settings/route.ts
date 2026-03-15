@@ -59,7 +59,7 @@ export async function PUT(request: NextRequest) {
       await prisma.systemConfig.upsert({
         where: { tenantId_key: { tenantId, key } },
         update: { value },
-        create: { key, value, group: 'company' },
+        create: { tenantId, key, value, group: 'company' },
       });
     }
 

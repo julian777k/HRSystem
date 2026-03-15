@@ -25,9 +25,27 @@ export async function GET(
     const { path: segments } = await params;
     const filePath = segments.join('/');
 
-    // Sanitize: block path traversal
-    if (filePath.includes('..') || filePath.startsWith('/')) {
+    // Sanitize: block path traversal (including double-encoded sequences like %2e%2e)
+    const decodedPath = decodeURIComponent(filePath);
+    if (
+      filePath.includes('..') || filePath.startsWith('/') ||
+      decodedPath.includes('..') || decodedPath.startsWith('/')
+    ) {
       return NextResponse.json({ message: 'Invalid path' }, { status: 400 });
+    }
+
+    // Only allow public R2 paths (screenshots for landing page)
+    // Private paths like tenants/*/logo.png have their own authenticated routes
+    const PUBLIC_PREFIXES = ['screenshots/'];
+    if (!PUBLIC_PREFIXES.some(prefix => decodedPath.startsWith(prefix))) {
+      return NextResponse.json({ message: 'Access denied' }, { status: 403 });
+    }
+
+    // Whitelist allowed file extensions
+    const ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico'];
+    const ext = decodedPath.substring(decodedPath.lastIndexOf('.')).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return NextResponse.json({ message: 'File type not allowed' }, { status: 400 });
     }
 
     if (!isCloudflare) {

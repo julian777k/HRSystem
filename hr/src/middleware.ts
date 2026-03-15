@@ -187,6 +187,11 @@ async function saasMiddleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    // Allow R2 file serving (screenshots for landing page)
+    if (pathname.startsWith('/api/files/')) {
+      return NextResponse.next();
+    }
+
     // Redirect all other routes to landing page
     return NextResponse.redirect(new URL('/', request.url));
   }

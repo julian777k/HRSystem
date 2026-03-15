@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '종료일은 시작일 이후여야 합니다.' }, { status: 400 });
     }
 
-    // Validate leave type
-    const leaveType = await prisma.leaveType.findUnique({ where: { id: leaveTypeId } });
+    // Validate leave type (with tenantId to prevent cross-tenant access)
+    const leaveType = await prisma.leaveType.findUnique({ where: { id: leaveTypeId, tenantId } });
     if (!leaveType || !leaveType.isActive) {
       return NextResponse.json({ message: '유효하지 않은 휴가 유형입니다.' }, { status: 400 });
     }

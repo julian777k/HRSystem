@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+import { getTenantId } from '@/lib/tenant-context';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: '승인대기',
@@ -20,8 +21,10 @@ export async function GET() {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
     }
 
+    const tenantId = await getTenantId();
+
     const employees = await prisma.employee.findMany({
-      where: { status: { not: 'RESIGNED' } },
+      where: { tenantId, status: { not: 'RESIGNED' } },
       include: {
         department: { select: { name: true } },
         position: { select: { name: true } },

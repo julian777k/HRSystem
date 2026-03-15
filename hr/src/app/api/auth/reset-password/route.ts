@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, validatePasswordPolicy } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
+import { clearAuthCookie } from '@/lib/auth-actions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const employee = await prisma.employee.findFirst({
-      where: { email: resetRecord.email },
+      where: { email: resetRecord.email, tenantId: resetRecord.tenantId },
     });
 
     if (!employee) {
@@ -69,6 +70,9 @@ export async function POST(request: NextRequest) {
         where: { employeeId: employee.id },
       }),
     ]);
+
+    // Clear current session cookie so any logged-in browser must re-login
+    await clearAuthCookie();
 
     return NextResponse.json({
       message: '비밀번호가 성공적으로 변경되었습니다. 새 비밀번호로 로그인해주세요.',

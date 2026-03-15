@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, verifyPassword, validatePasswordPolicy } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-actions';
+import { getCurrentUser, clearAuthCookie } from '@/lib/auth-actions';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit-log';
 
@@ -67,6 +67,9 @@ export async function POST(request: NextRequest) {
     });
 
     writeAuditLog({ action: 'CHANGE_PASSWORD', target: 'employee', targetId: user.id });
+
+    // Clear current session cookie so user must re-login
+    await clearAuthCookie();
 
     return NextResponse.json({
       message: '비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.',

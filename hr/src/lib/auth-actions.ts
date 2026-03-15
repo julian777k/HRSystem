@@ -36,8 +36,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   // JWT tenantId cross-validation in SaaS mode
   if (isSaaSMode()) {
     const subdomainTenantId = await getTenantIdSafe();
-    if (subdomainTenantId && result.user.tenantId !== subdomainTenantId) {
-      return null; // JWT tenant doesn't match subdomain tenant
+    if (!subdomainTenantId || result.user.tenantId !== subdomainTenantId) {
+      return null; // No tenant (suspended/invalid) or tenant mismatch
     }
   }
 
@@ -62,8 +62,8 @@ export async function getCurrentUserWithRefresh(): Promise<{ user: AuthUser; sho
   // JWT tenantId cross-validation in SaaS mode
   if (isSaaSMode()) {
     const subdomainTenantId = await getTenantIdSafe();
-    if (subdomainTenantId && result.user.tenantId !== subdomainTenantId) {
-      return null; // JWT tenant doesn't match subdomain tenant
+    if (!subdomainTenantId || result.user.tenantId !== subdomainTenantId) {
+      return null; // No tenant (suspended/invalid) or tenant mismatch
     }
   }
 

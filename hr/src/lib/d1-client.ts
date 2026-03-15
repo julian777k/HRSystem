@@ -1195,13 +1195,24 @@ export function withD1TenantScope(
             switch (method) {
               case 'findMany':
               case 'findFirst':
-              case 'findUnique':
               case 'count':
               case 'deleteMany':
               case 'updateMany':
               case 'groupBy':
                 a.where = { ...a.where, tenantId };
                 return original.call(dt, a);
+              case 'findUnique': {
+                // Resolve composite unique keys (e.g. tenantId_email → tenantId + email)
+                // THEN force the scoped tenantId so composite keys cannot override it
+                const table = MODEL_TABLE_MAP[prop as string];
+                const resolved = table
+                  ? resolveCompositeWhere(table, a.where || {})
+                  : { ...a.where };
+                resolved.tenantId = tenantId;
+                // Call findFirst directly to avoid double resolveCompositeWhere
+                const findFirst = dt.findFirst || dt['findFirst'];
+                return findFirst.call(dt, { ...a, where: resolved });
+              }
               case 'create':
                 a.data = { ...a.data, tenantId };
                 return original.call(dt, a);

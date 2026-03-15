@@ -254,7 +254,7 @@ export default function LandingPage() {
 
           {/* Feature comparison table — 3열 심플 구조 */}
           <div className="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="grid grid-cols-[1fr,90px,110px] sm:grid-cols-[1fr,120px,140px] text-center text-sm font-bold border-b border-gray-200 py-3.5 bg-gray-100">
+            <div className="grid grid-cols-[1fr_90px_110px] sm:grid-cols-[1fr_120px_140px] text-center text-sm font-bold border-b border-gray-200 py-3.5 bg-gray-100">
               <span className="text-gray-500 text-left pl-5">기능</span>
               <span className="text-gray-400">구독형</span>
               <span className="text-blue-600">KeystoneHR</span>
@@ -269,7 +269,7 @@ export default function LandingPage() {
               { feat: '데이터 내보내기', sub: '제한적', k: '기본 포함' },
               { feat: '보상정책 설정', sub: '미지원 or 제한', k: '기본 포함' },
             ].map((row, i) => (
-              <div key={row.feat} className={`grid grid-cols-[1fr,90px,110px] sm:grid-cols-[1fr,120px,140px] text-center text-sm py-3 ${i % 2 === 0 ? '' : 'bg-white'}`}>
+              <div key={row.feat} className={`grid grid-cols-[1fr_90px_110px] sm:grid-cols-[1fr_120px_140px] text-center text-sm py-3 ${i % 2 === 0 ? '' : 'bg-white'}`}>
                 <span className="text-gray-700 font-medium text-left pl-5">{row.feat}</span>
                 <span className="text-red-500 text-xs sm:text-sm font-medium">{row.sub}</span>
                 <span className="text-blue-600 font-bold">✓ {row.k}</span>

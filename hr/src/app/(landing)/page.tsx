@@ -252,33 +252,52 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Feature comparison table — 3열 심플 구조 */}
-          <div className="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="grid grid-cols-[1fr_90px_110px] sm:grid-cols-[1fr_120px_140px] text-center text-sm font-bold border-b border-gray-200 py-3.5 bg-gray-100">
-              <span className="text-gray-500 text-left pl-5">기능</span>
-              <span className="text-gray-400">구독형</span>
-              <span className="text-blue-600">KeystoneHR</span>
-            </div>
-            {[
-              { feat: '전자결재 워크플로', sub: '유료 or 제한', k: '기본 포함' },
-              { feat: '복지 관리', sub: '미지원 or 별도', k: '기본 포함' },
-              { feat: '초과근무 보상시간', sub: '미지원 or 제한', k: '기본 포함' },
-              { feat: '웹훅 연동 (Slack/Teams)', sub: '별도 과금', k: '기본 포함' },
-              { feat: 'HR 대시보드', sub: '별도 과금', k: '기본 포함' },
-              { feat: '근태 이상 알림', sub: '미지원 or 제한', k: '기본 포함' },
-              { feat: '데이터 내보내기', sub: '제한적', k: '기본 포함' },
-              { feat: '보상정책 설정', sub: '미지원 or 제한', k: '기본 포함' },
-            ].map((row, i) => (
-              <div key={row.feat} className={`grid grid-cols-[1fr_90px_110px] sm:grid-cols-[1fr_120px_140px] text-center text-sm py-3 ${i % 2 === 0 ? '' : 'bg-white'}`}>
-                <span className="text-gray-700 font-medium text-left pl-5">{row.feat}</span>
-                <span className="text-red-500 text-xs sm:text-sm font-medium">{row.sub}</span>
-                <span className="text-blue-600 font-bold">✓ {row.k}</span>
-              </div>
-            ))}
+          {/* Feature comparison table */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left text-gray-500 font-bold py-3 px-4 sm:px-6 w-[50%]">기능</th>
+                  <th className="text-center text-gray-400 font-bold py-3 px-2 w-[25%]">구독형</th>
+                  <th className="text-center text-blue-600 font-bold py-3 px-2 w-[25%] relative">
+                    KeystoneHR
+                    <span className="absolute top-0 left-2 right-2 h-[3px] bg-blue-600 rounded-b" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feat: '전자결재 워크플로', desc: '휴가/초과근무 다단계 승인', sub: 'partial', k: 'yes' },
+                  { feat: '복지 관리', desc: '항목 등록, 신청, 승인', sub: 'extra', k: 'yes' },
+                  { feat: '초과근무 보상시간', desc: '보상휴가/수당 자동 전환', sub: 'no', k: 'yes' },
+                  { feat: '웹훅 연동', desc: 'Slack, Kakao Work, Teams', sub: 'extra', k: 'yes' },
+                  { feat: 'HR 대시보드', desc: '인원/근태/휴가 현황판', sub: 'extra', k: 'yes' },
+                  { feat: '근태 이상 알림', desc: '지각/조퇴/무단결근 감지', sub: 'partial', k: 'yes' },
+                  { feat: '데이터 내보내기', desc: '엑셀/CSV 다운로드', sub: 'partial', k: 'yes' },
+                  { feat: '보상정책 설정', desc: '배율/공제순서 커스텀', sub: 'no', k: 'yes' },
+                ].map((row, i) => (
+                  <tr key={row.feat} className={i % 2 === 0 ? 'bg-gray-50/50' : ''}>
+                    <td className="py-3.5 px-4 sm:px-6">
+                      <span className="text-gray-900 font-semibold">{row.feat}</span>
+                      <span className="block text-[11px] sm:text-xs text-gray-400 mt-0.5">{row.desc}</span>
+                    </td>
+                    <td className="text-center py-3.5 px-2">
+                      {row.sub === 'yes' && <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 text-sm">✓</span>}
+                      {row.sub === 'partial' && <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-500 text-sm">△</span>}
+                      {row.sub === 'no' && <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-300 text-sm">—</span>}
+                      {row.sub === 'extra' && <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-red-50 text-red-600 text-xs font-bold">+별도</span>}
+                    </td>
+                    <td className="text-center py-3.5 px-2">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 text-sm font-bold">✓</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <p className="text-center text-gray-400 text-xs mt-6">
-            * 구독형 서비스의 추가 기능은 기능당 월 1~3만원 과금. 다 켜면 기본료의 2~3배.
+            * "+별도" 기능은 구독형 서비스에서 기능당 월 1~3만원 추가. 다 켜면 기본료의 2~3배.
           </p>
         </div>
       </section>

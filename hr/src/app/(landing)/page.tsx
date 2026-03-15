@@ -252,53 +252,104 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Feature comparison table */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b-2 border-gray-200">
-                  <th className="text-left text-gray-500 font-bold py-3 px-4 sm:px-6 w-[50%]">기능</th>
-                  <th className="text-center text-gray-400 font-bold py-3 px-2 w-[25%]">구독형</th>
-                  <th className="text-center text-blue-600 font-bold py-3 px-2 w-[25%] relative">
-                    KeystoneHR
-                    <span className="absolute top-0 left-2 right-2 h-[3px] bg-blue-600 rounded-b" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { feat: '전자결재 워크플로', desc: '휴가/초과근무 다단계 승인', sub: 'partial', k: 'yes' },
-                  { feat: '복지 관리', desc: '항목 등록, 신청, 승인', sub: 'extra', k: 'yes' },
-                  { feat: '초과근무 보상시간', desc: '보상휴가/수당 자동 전환', sub: 'no', k: 'yes' },
-                  { feat: '웹훅 연동', desc: 'Slack, Kakao Work, Teams', sub: 'extra', k: 'yes' },
-                  { feat: 'HR 대시보드', desc: '인원/근태/휴가 현황판', sub: 'extra', k: 'yes' },
-                  { feat: '근태 이상 알림', desc: '지각/조퇴/무단결근 감지', sub: 'partial', k: 'yes' },
-                  { feat: '데이터 내보내기', desc: '엑셀/CSV 다운로드', sub: 'partial', k: 'yes' },
-                  { feat: '보상정책 설정', desc: '배율/공제순서 커스텀', sub: 'no', k: 'yes' },
-                ].map((row, i) => (
-                  <tr key={row.feat} className={i % 2 === 0 ? 'bg-gray-50/50' : ''}>
-                    <td className="py-3.5 px-4 sm:px-6">
-                      <span className="text-gray-900 font-semibold">{row.feat}</span>
-                      <span className="block text-[11px] sm:text-xs text-gray-400 mt-0.5">{row.desc}</span>
-                    </td>
-                    <td className="text-center py-3.5 px-2">
-                      {row.sub === 'yes' && <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 text-sm">✓</span>}
-                      {row.sub === 'partial' && <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-500 text-sm">△</span>}
-                      {row.sub === 'no' && <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-300 text-sm">—</span>}
-                      {row.sub === 'extra' && <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-red-50 text-red-600 text-xs font-bold">+별도</span>}
-                    </td>
-                    <td className="text-center py-3.5 px-2">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 text-sm font-bold">✓</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Feature comparison tables — 인포그래픽 스타일 */}
+          <div className="space-y-8">
+            {[
+              {
+                category: '📋 인사 · 근태 관리',
+                rows: [
+                  { feat: '직원 정보 DB', desc: '입·퇴사, 인사카드 관리', a: 'yes', b: 'yes', c: 'yes', k: 'yes' },
+                  { feat: '출퇴근 기록', desc: '자동 기록 · 수동 입력 지원', a: 'yes', b: 'yes', c: 'yes', k: 'yes' },
+                  { feat: '연차 · 휴가 관리', desc: '자동 발생, 승인, 이월', a: 'yes', b: 'yes', c: 'yes', k: 'yes' },
+                  { feat: '근태 이상 알림', desc: '지각/조퇴/무단결근 자동 감지', a: 'no', b: 'partial', c: 'yes', k: 'yes' },
+                  { feat: '조직도 관리', desc: '부서/직급 체계 관리', a: 'no', b: 'yes', c: 'yes', k: 'yes' },
+                ],
+              },
+              {
+                category: '📝 전자결재 · 복지',
+                rows: [
+                  { feat: '전자결재 워크플로', desc: '휴가/초과근무 다단계 승인', a: 'partial', b: 'yes', c: 'yes', k: 'yes' },
+                  { feat: '복지 관리', desc: '복지 항목 등록, 신청, 승인', a: 'no', b: 'no', c: 'extra', k: 'yes' },
+                  { feat: '초과근무 관리', desc: '보상휴가/수당 자동 전환', a: 'no', b: 'partial', c: 'yes', k: 'yes' },
+                  { feat: '보상정책 설정', desc: '배율/공제순서 커스터마이즈', a: 'no', b: 'no', c: 'partial', k: 'yes' },
+                ],
+              },
+              {
+                category: '📊 분석 · 연동',
+                rows: [
+                  { feat: 'HR 대시보드', desc: '인원/이직률/근태 현황판', a: 'no', b: 'extra', c: 'yes', k: 'yes' },
+                  { feat: '웹훅 연동', desc: 'Slack/Kakao Work/Teams 알림', a: 'no', b: 'no', c: 'extra', k: 'yes' },
+                  { feat: '데이터 내보내기', desc: '엑셀/CSV 전체 다운로드', a: 'partial', b: 'yes', c: 'yes', k: 'yes' },
+                  { feat: '공휴일 자동 관리', desc: '연도별 공휴일 일괄 등록', a: 'yes', b: 'yes', c: 'yes', k: 'yes' },
+                ],
+              },
+            ].map((section) => (
+              <div key={section.category}>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 pl-1">{section.category}</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm min-w-[480px]">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        <th className="text-left text-gray-800 font-bold py-3 pl-5 pr-2" style={{ width: '40%' }}>기능</th>
+                        <th className="text-center text-gray-400 font-bold py-3 px-1" style={{ width: '15%' }}>A사</th>
+                        <th className="text-center text-gray-400 font-bold py-3 px-1" style={{ width: '15%' }}>B사</th>
+                        <th className="text-center text-gray-400 font-bold py-3 px-1" style={{ width: '15%' }}>C사</th>
+                        <th className="text-center text-blue-600 font-bold py-3 px-1 relative" style={{ width: '15%' }}>
+                          KeystoneHR
+                          <span className="absolute top-0 left-1 right-1 h-[3px] bg-blue-600 rounded-b" />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {section.rows.map((row, i) => {
+                        const icon = (v: string) => {
+                          if (v === 'yes') return <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 text-sm">✓</span>;
+                          if (v === 'partial') return <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-500 text-sm">△</span>;
+                          if (v === 'extra') return <span className="inline-flex items-center justify-center px-2 py-1 rounded-md bg-red-50 text-red-600 text-[11px] font-bold">+별도</span>;
+                          return <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 text-gray-300 text-sm">—</span>;
+                        };
+                        return (
+                          <tr key={row.feat} className={i % 2 === 0 ? 'bg-gray-50/60' : ''}>
+                            <td className="py-3 pl-5 pr-2">
+                              <span className="text-gray-900 font-semibold text-sm">{row.feat}</span>
+                              <span className="block text-[11px] text-gray-400 mt-0.5">{row.desc}</span>
+                            </td>
+                            <td className="text-center py-3 px-1">{icon(row.a)}</td>
+                            <td className="text-center py-3 px-1">{icon(row.b)}</td>
+                            <td className="text-center py-3 px-1">{icon(row.c)}</td>
+                            <td className="text-center py-3 px-1">{icon(row.k)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <p className="text-center text-gray-400 text-xs mt-6">
-            * "+별도" 기능은 구독형 서비스에서 기능당 월 1~3만원 추가. 다 켜면 기본료의 2~3배.
-          </p>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 gap-4 mt-10">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">일반 구독형 (평균)</p>
+              <p className="text-4xl font-black text-gray-600">7<span className="text-base font-bold text-gray-400"> / 13개</span></p>
+              <p className="text-xs text-gray-400 mt-2">기능 기본 포함<br />나머지는 별도 결제 또는 미지원</p>
+            </div>
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 text-center">
+              <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3">KeystoneHR</p>
+              <p className="text-4xl font-black text-blue-700">13<span className="text-base font-bold text-blue-400"> / 13개</span></p>
+              <p className="text-xs text-blue-500 mt-2">전체 기능 기본 포함<br />추가 과금 항목 0개</p>
+            </div>
+          </div>
+
+          {/* Callout */}
+          <div className="mt-8 flex gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-5">
+            <span className="text-xl shrink-0">⚠️</span>
+            <p className="text-sm text-amber-800">
+              구독형 서비스의 <strong>&quot;+별도&quot;는 기능당 월 1~3만원</strong>이 추가됩니다.
+              필요한 기능을 모두 켜면 실제 비용은 기본료의 <strong>2~3배</strong>까지 올라갈 수 있습니다.
+            </p>
+          </div>
         </div>
       </section>
 

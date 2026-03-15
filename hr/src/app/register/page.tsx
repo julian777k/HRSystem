@@ -311,7 +311,7 @@ export default function RegisterPage() {
                 id="agreePrivacy"
                 checked={agreePrivacy}
                 onCheckedChange={(v) => setAgreePrivacy(v === true)}
-                className="mt-0.5"
+                className="mt-[3px] size-3.5"
               />
               <label htmlFor="agreePrivacy" className="text-sm text-gray-600 leading-snug cursor-pointer">
                 <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline font-medium">개인정보 수집 및 이용</Link>에 동의합니다.

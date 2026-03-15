@@ -306,7 +306,7 @@ export default function LandingPage() {
                           if (v === 'yes') return <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 text-sm">✓</span>;
                           if (v === 'partial') return <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-500 text-sm">△</span>;
                           if (v === 'extra') return <span className="inline-flex items-center justify-center px-2 py-1 rounded-md bg-red-50 text-red-600 text-[11px] font-bold">+별도</span>;
-                          return <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 text-gray-300 text-sm">—</span>;
+                          return <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-400 text-sm font-bold">✕</span>;
                         };
                         return (
                           <tr key={row.feat} className={i % 2 === 0 ? 'bg-gray-50/60' : ''}>

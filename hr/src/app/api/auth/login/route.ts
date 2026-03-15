@@ -5,6 +5,7 @@ import { signToken, type AuthUser } from '@/lib/auth';
 import { setAuthCookie } from '@/lib/auth-actions';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getTenantIdSafe } from '@/lib/tenant-context';
+import { isSaaSMode } from '@/lib/deploy-config';
 import { cleanupExpiredSessions } from '@/lib/session-cleanup';
 import { writeAuditLog } from '@/lib/audit-log';
 
@@ -19,17 +20,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limit: 10 attempts per email per 1 minute
-    const rateLimitResult = await checkRateLimit(`login:${email}`, 10, 60 * 1000);
+    // Rate limit: 5 attempts per email per 15 minutes
+    const rateLimitResult = await checkRateLimit(`login:${email}`, 5, 15 * 60 * 1000);
     if (!rateLimitResult.success) {
-      const retrySeconds = Math.ceil((rateLimitResult.retryAfterMs || 0) / 1000);
+      const retryMinutes = Math.ceil((rateLimitResult.retryAfterMs || 0) / 60000);
+      const retryDisplay = retryMinutes > 0 ? `${retryMinutes}분` : '잠시';
       return NextResponse.json(
-        { message: `로그인 시도가 너무 많습니다. ${retrySeconds}초 후 다시 시도해주세요.` },
+        { message: `로그인 시도가 너무 많습니다. ${retryDisplay} 후 다시 시도해주세요.` },
         { status: 429 }
       );
     }
 
     const tenantId = await getTenantIdSafe();
+
+    // SaaS 루트 도메인(tenantId 없음)에서는 로그인 불가
+    if (isSaaSMode() && !tenantId) {
+      return NextResponse.json(
+        { message: '회사 전용 주소(예: 회사명.keystonehr.app)에서 로그인해주세요.' },
+        { status: 400 }
+      );
+    }
 
     const employee = await prisma.employee.findFirst({
       where: { email, tenantId },

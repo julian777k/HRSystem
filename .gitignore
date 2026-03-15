@@ -1,5 +1,6 @@
 .DS_Store
 *.dmg
 *.png
+!hr/public/screenshots/*.png
 *.xlsx
 .claude/

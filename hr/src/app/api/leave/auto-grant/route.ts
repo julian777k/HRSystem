@@ -33,8 +33,8 @@ async function seedDefaultPolicies(tenantId: string) {
     policies.push({ tenantId, leaveTypeId: publicType.id, name: '공가', description: '연 5일 공가', yearFrom: 0, yearTo: null, grantDays: 5, grantType: 'YEARLY' });
   }
 
-  for (const p of policies) {
-    await db.leavePolicy.create({ data: p as any });
+  if (policies.length > 0) {
+    await db.leavePolicy.createMany({ data: policies as any[] });
   }
 }
 
@@ -98,6 +98,20 @@ export async function POST(request: NextRequest) {
     // [FIX] getCompensationPolicy를 루프 밖에서 1회만 호출 (N+1 해소)
     const compensationPolicy = await getCompensationPolicy();
 
+    // Batch load all existing grants for the year (N+1 해소)
+    const allExistingGrants = await prisma.leaveGrant.findMany({
+      where: {
+        employeeId: { in: employees.map(e => e.id) },
+        periodStart,
+        periodEnd,
+        grantReason: { endsWith: '자동부여' },
+      },
+    });
+    const grantMap = new Map<string, typeof allExistingGrants[0]>();
+    for (const g of allExistingGrants) {
+      grantMap.set(`${g.employeeId}:${g.leaveTypeCode}`, g);
+    }
+
     let totalGranted = 0;
     let totalSkipped = 0;
     let totalSupplemented = 0;
@@ -134,16 +148,8 @@ export async function POST(request: NextRequest) {
 
           const leaveTypeName = typePolicies[0].leaveType.name;
 
-          // [STEP 2] 기존 부여 확인 — 부족분 보충 지원
-          const existingGrant = await prisma.leaveGrant.findFirst({
-            where: {
-              employeeId: emp.id,
-              leaveTypeCode: typeCode,
-              periodStart,
-              periodEnd,
-              grantReason: { startsWith: `${year}년`, endsWith: '자동부여' },
-            },
-          });
+          // [STEP 2] 기존 부여 확인 — 부족분 보충 지원 (batch에서 조회, N+1 해소)
+          const existingGrant = grantMap.get(`${emp.id}:${typeCode}`) || null;
 
           if (existingGrant) {
             if (existingGrant.grantDays >= grantDays) {

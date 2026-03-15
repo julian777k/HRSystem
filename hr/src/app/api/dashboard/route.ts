@@ -35,10 +35,8 @@ export async function GET() {
       prisma.leaveBalance.findMany({
         where: { employeeId: user.id, year: currentYear },
       }),
-      // 2. Pending approvals count
-      prisma.approval.count({
-        where: { approverId: user.id, action: 'PENDING' },
-      }),
+      // 2. Pending approvals count — pendingItems.length로 대체 (중복 쿼리 제거)
+      Promise.resolve(0),
       // 3. Department headcount
       prisma.employee.count({
         where: { departmentId: user.departmentId, status: 'ACTIVE' },
@@ -117,6 +115,7 @@ export async function GET() {
     );
 
     const [pendingWelfareCount, pendingWelfareItems] = welfareResults;
+    const actualPendingApprovals = pendingItems.length;
 
     // 8. Today's attendance (auto-record system compatible)
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -160,7 +159,7 @@ export async function GET() {
     return NextResponse.json({
       leaveBalance: totalRemain,
       leaveBalancesByType,
-      pendingApprovals,
+      pendingApprovals: actualPendingApprovals,
       pendingWelfareCount,
       pendingWelfareItems,
       deptMembers,

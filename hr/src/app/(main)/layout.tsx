@@ -1,10 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Toaster } from "sonner";
+
+function TrialBanner() {
+  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.tenantTrial?.trialExpiresAt) {
+          const expires = new Date(data.tenantTrial.trialExpiresAt);
+          const now = new Date();
+          const diff = Math.ceil((expires.getTime() - now.getTime()) / 86400000);
+          setDaysLeft(Math.max(0, diff));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (daysLeft === null) return null;
+
+  const urgent = daysLeft <= 2;
+
+  return (
+    <div className={`lg:ml-60 px-4 py-2 text-center text-sm font-medium ${urgent ? 'bg-red-50 text-red-700 border-b border-red-200' : 'bg-amber-50 text-amber-700 border-b border-amber-200'}`}>
+      {daysLeft === 0
+        ? '체험 기간이 오늘 만료됩니다. 계속 사용하시려면 구매해주세요.'
+        : `체험 기간이 ${daysLeft}일 남았습니다.`}
+    </div>
+  );
+}
 
 export default function MainLayout({
   children,
@@ -16,6 +46,7 @@ export default function MainLayout({
   return (
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 flex flex-col">
       <Header onMenuToggle={() => setSidebarOpen((v) => !v)} />
+      <TrialBanner />
       <div className="flex flex-1">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 px-3 py-4 sm:p-6 pt-16 sm:pt-20 lg:ml-60 pb-20 sm:pb-6">

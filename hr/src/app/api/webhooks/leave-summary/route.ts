@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
 
     // Cron secret auth (for automated scheduled calls)
     const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      console.warn('[webhook] CRON_SECRET not configured - cron authentication disabled');
+    }
     const providedSecret = request.headers.get('x-cron-secret') || '';
 
     if (cronSecret && providedSecret && timingSafeEqual(providedSecret, cronSecret)) {

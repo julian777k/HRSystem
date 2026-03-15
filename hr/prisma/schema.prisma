@@ -267,6 +267,7 @@ model LeaveGrant {
   @@index([tenantId])
   @@index([employeeId])
   @@index([periodEnd])
+  @@index([employeeId, leaveTypeCode, periodStart])
   @@map("leave_grants")
 }
 
@@ -284,6 +285,7 @@ model LeaveBalance {
   updatedAt     DateTime @updatedAt
   @@unique([tenantId, employeeId, year, leaveTypeCode])
   @@index([tenantId])
+  @@index([year, leaveTypeCode])
   @@map("leave_balances")
 }
 
@@ -314,6 +316,7 @@ model LeaveRequest {
   @@index([employeeId])
   @@index([status])
   @@index([startDate, endDate])
+  @@index([leaveTypeId])
   @@map("leave_requests")
 }
 

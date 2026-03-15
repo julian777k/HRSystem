@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 
 const HIGHLIGHTS = [
@@ -21,6 +22,7 @@ const HIGHLIGHTS = [
     screenshots: [
       { src: '/screenshots/13_overtime_request_filled.png', alt: '연장근무 신청', caption: '연장근무 신청' },
       { src: '/screenshots/15_time_wallet_balance.png', alt: '보상시간 잔액', caption: '보상시간 잔액 확인' },
+      { src: '/screenshots/15b_time_wallet_usage.png', alt: '보상시간 사용', caption: '보상시간으로 휴가 신청' },
     ],
   },
   {
@@ -67,6 +69,45 @@ const ALL_FEATURES = [
   '데이터 암호화 및 감사로그',
 ];
 
+function ClickableImage({ src, alt, width, height, className, priority, caption }: {
+  src: string; alt: string; width: number; height: number; className?: string; priority?: boolean; caption?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <div className="cursor-zoom-in" onClick={() => setOpen(true)}>
+        <Image src={src} alt={alt} width={width} height={height} className={className} priority={priority} />
+      </div>
+      {open && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setOpen(false)}
+        >
+          <div className="relative max-w-[95vw] max-h-[95vh]">
+            <Image
+              src={src}
+              alt={alt}
+              width={2880}
+              height={1800}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+            {caption && (
+              <p className="text-white/80 text-sm text-center mt-3">{caption}</p>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+              className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 shadow-lg text-lg font-bold"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function LandingPage() {
   return (
     <main>
@@ -106,13 +147,14 @@ export default function LandingPage() {
           {/* Hero Screenshot */}
           <div className="relative max-w-5xl mx-auto">
             <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-200">
-              <Image
+              <ClickableImage
                 src="/screenshots/03_dashboard.png"
                 alt="KeystoneHR 대시보드"
                 width={1440}
                 height={900}
                 className="w-full"
                 priority
+                caption="사원 대시보드 — 근태, 휴가, 결재 현황 한눈에"
               />
             </div>
             {/* Mobile overlay */}
@@ -186,16 +228,17 @@ export default function LandingPage() {
 
                 {/* Screenshots */}
                 <div className="lg:w-7/12">
-                  <div className={`grid ${item.screenshots.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                  <div className={`grid ${item.screenshots.length >= 3 ? 'grid-cols-3' : item.screenshots.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
                     {item.screenshots.map((ss) => (
                       <div key={ss.alt} className="group">
                         <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
-                          <Image
+                          <ClickableImage
                             src={ss.src}
                             alt={ss.alt}
                             width={720}
                             height={450}
                             className="w-full"
+                            caption={ss.caption}
                           />
                         </div>
                         <p className="text-xs text-gray-400 text-center mt-2">{ss.caption}</p>
@@ -225,12 +268,13 @@ export default function LandingPage() {
             {CORE_FEATURES.map((feat) => (
               <div key={feat.title} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition">
                 <div className="aspect-video overflow-hidden border-b border-gray-100">
-                  <Image
+                  <ClickableImage
                     src={feat.screenshot}
                     alt={feat.title}
                     width={720}
                     height={450}
                     className="w-full h-full object-cover object-top"
+                    caption={feat.title}
                   />
                 </div>
                 <div className="p-6">
@@ -278,12 +322,13 @@ export default function LandingPage() {
             </div>
             <div className="lg:w-7/12">
               <div className="rounded-xl overflow-hidden shadow-xl border border-gray-200">
-                <Image
+                <ClickableImage
                   src="/screenshots/18_my_leave.png"
                   alt="내 휴가 현황"
                   width={1440}
                   height={900}
                   className="w-full"
+                  caption="내 휴가 — 잔여일수, 신청 내역, 사용 현황"
                 />
               </div>
             </div>
@@ -291,8 +336,51 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Approval Workflow */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              결재도 온라인으로
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              연장근무, 휴가, 복지 신청을 관리자가 한 화면에서 확인하고 승인합니다
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div className="group">
+              <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
+                <ClickableImage
+                  src="/screenshots/14_overtime_approval_list.png"
+                  alt="결재 대기 목록"
+                  width={1440}
+                  height={900}
+                  className="w-full"
+                  caption="결재 대기 목록 — 승인/반려 버튼으로 즉시 처리"
+                />
+              </div>
+              <p className="text-xs text-gray-400 text-center mt-2">결재 대기 목록</p>
+            </div>
+            <div className="group">
+              <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
+                <ClickableImage
+                  src="/screenshots/14_overtime_approved.png"
+                  alt="결재 승인 처리"
+                  width={1440}
+                  height={900}
+                  className="w-full"
+                  caption="승인 확인 — 클릭 한 번으로 결재 완료"
+                />
+              </div>
+              <p className="text-xs text-gray-400 text-center mt-2">승인 확인 처리</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      <section id="pricing" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
@@ -303,19 +391,52 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="max-w-lg mx-auto">
-            <div className="p-8 sm:p-10 rounded-2xl bg-white border-2 border-blue-600 shadow-xl relative overflow-hidden">
+          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
+            {/* 50명 플랜 */}
+            <div className="p-8 rounded-2xl bg-white border-2 border-gray-200 shadow-lg relative overflow-hidden hover:border-blue-400 transition">
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">Standard</h3>
+              <p className="text-gray-500 text-sm mb-6">50명 이하 중소기업</p>
+
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-gray-900">49</span>
+                <span className="text-xl font-bold text-gray-900">만원</span>
+              </div>
+              <p className="text-sm text-gray-400 mb-6">1회 구매 · 영구 사용 · 최대 50명</p>
+
+              <div className="space-y-2.5 mb-8">
+                {ALL_FEATURES.map((feature) => (
+                  <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {feature}
+                  </div>
+                ))}
+              </div>
+
+              <a
+                href="/start"
+                className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
+              >
+                7일 무료 체험 시작하기
+              </a>
+            </div>
+
+            {/* 100명 플랜 */}
+            <div className="p-8 rounded-2xl bg-white border-2 border-blue-600 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-lg">
-                ALL-IN-ONE
+                BEST
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Standard</h3>
-              <p className="text-gray-500 text-sm mb-6">모든 HR 관리 기능을 포함한 올인원 솔루션</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">Business</h3>
+              <p className="text-gray-500 text-sm mb-6">100명 이하 중견기업</p>
 
-              <div className="mb-8">
-                <span className="text-4xl font-bold text-gray-900">별도 문의</span>
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-gray-900">69</span>
+                <span className="text-xl font-bold text-gray-900">만원</span>
               </div>
+              <p className="text-sm text-gray-400 mb-6">1회 구매 · 영구 사용 · 최대 100명</p>
 
-              <div className="grid sm:grid-cols-2 gap-3 mb-8">
+              <div className="space-y-2.5 mb-8">
                 {ALL_FEATURES.map((feature) => (
                   <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
                     <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

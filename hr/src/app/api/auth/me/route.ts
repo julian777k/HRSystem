@@ -40,11 +40,27 @@ export async function GET() {
     // Lazy cron: check scheduled webhook summaries (fire-and-forget)
     checkAndSendScheduled().catch(() => {});
 
+    // Fetch tenant trial info for trial banner display
+    let tenantTrial: { status: string; trialExpiresAt: string | null } | null = null;
+    if (user.tenantId) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: user.tenantId },
+        select: { status: true, trialExpiresAt: true },
+      });
+      if (tenant && tenant.status === 'trial') {
+        tenantTrial = {
+          status: tenant.status,
+          trialExpiresAt: tenant.trialExpiresAt ? new Date(tenant.trialExpiresAt).toISOString() : null,
+        };
+      }
+    }
+
     return NextResponse.json({
       user: {
         ...user,
         customPermissions: employee.customPermissions || null,
       },
+      ...(tenantTrial && { tenantTrial }),
     });
   } catch (error) {
     console.error('Auth me error:', error);

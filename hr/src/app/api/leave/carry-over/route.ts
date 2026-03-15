@@ -22,26 +22,24 @@ export async function POST(request: NextRequest) {
 
     const toYear = fromYear + 1;
 
-    // Check carry-over policy from SystemConfig
-    const carryOverEnabled = await prisma.systemConfig.findFirst({
-      where: { key: 'leave_carry_over_enabled' },
+    // Check carry-over policy from SystemConfig (3 queries → 1 query)
+    const configs = await prisma.systemConfig.findMany({
+      where: { key: { in: ['leave_carry_over_enabled', 'leave_carry_over_max_days', 'leave_carry_over_expiry_months'] } },
     });
-    const maxCarryOverDays = await prisma.systemConfig.findFirst({
-      where: { key: 'leave_carry_over_max_days' },
-    });
-    const carryOverExpiryMonths = await prisma.systemConfig.findFirst({
-      where: { key: 'leave_carry_over_expiry_months' },
-    });
+    const configMap = Object.fromEntries(configs.map(c => [c.key, c.value]));
+    const carryOverEnabledValue = configMap['leave_carry_over_enabled'];
+    const maxCarryOverDaysValue = configMap['leave_carry_over_max_days'];
+    const carryOverExpiryMonthsValue = configMap['leave_carry_over_expiry_months'];
 
-    if (carryOverEnabled?.value !== 'true') {
+    if (carryOverEnabledValue !== 'true') {
       return NextResponse.json(
         { message: '이월 기능이 비활성화되어 있습니다.' },
         { status: 400 }
       );
     }
 
-    const maxDays = maxCarryOverDays ? parseFloat(maxCarryOverDays.value) : 0;
-    const expiryMonths = carryOverExpiryMonths ? parseInt(carryOverExpiryMonths.value) : 3;
+    const maxDays = maxCarryOverDaysValue ? parseFloat(maxCarryOverDaysValue) : 0;
+    const expiryMonths = carryOverExpiryMonthsValue ? parseInt(carryOverExpiryMonthsValue) : 3;
 
     if (maxDays <= 0) {
       return NextResponse.json(
@@ -63,23 +61,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Batch load existing carry-overs (N+1 해소)
+    const existingCarryOvers = await prisma.leaveGrant.findMany({
+      where: {
+        employeeId: { in: balances.map(b => b.employeeId) },
+        leaveTypeCode: 'ANNUAL',
+        grantReason: { contains: `${fromYear}년 이월` },
+        periodStart: { gte: new Date(toYear, 0, 1) },
+      },
+    });
+    const carryOverSet = new Set(existingCarryOvers.map(g => g.employeeId));
+
     let carryOverCount = 0;
     let skippedCount = 0;
     const errors: string[] = [];
 
     for (const balance of balances) {
       try {
-        // Check if already carried over
-        const existingCarryOver = await prisma.leaveGrant.findFirst({
-          where: {
-            employeeId: balance.employeeId,
-            leaveTypeCode: 'ANNUAL',
-            grantReason: { contains: `${fromYear}년 이월` },
-            periodStart: { gte: new Date(toYear, 0, 1) },
-          },
-        });
-
-        if (existingCarryOver) {
+        // Check if already carried over (batch에서 조회, N+1 해소)
+        if (carryOverSet.has(balance.employeeId)) {
           skippedCount++;
           continue;
         }
@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Update or create balance for toYear
-        const existingBalance = await prisma.leaveBalance.findUnique({
+        // Update or create balance for toYear (findUnique + if/else → upsert)
+        await prisma.leaveBalance.upsert({
           where: {
             tenantId_employeeId_year_leaveTypeCode: {
               tenantId,
@@ -121,28 +121,19 @@ export async function POST(request: NextRequest) {
               leaveTypeCode: 'ANNUAL',
             },
           },
+          create: {
+            employeeId: balance.employeeId,
+            year: toYear,
+            leaveTypeCode: 'ANNUAL',
+            totalGranted: carryDays,
+            totalUsed: 0,
+            totalRemain: carryDays,
+          },
+          update: {
+            totalGranted: { increment: carryDays },
+            totalRemain: { increment: carryDays },
+          },
         });
-
-        if (existingBalance) {
-          await prisma.leaveBalance.update({
-            where: { id: existingBalance.id },
-            data: {
-              totalGranted: { increment: carryDays },
-              totalRemain: { increment: carryDays },
-            },
-          });
-        } else {
-          await prisma.leaveBalance.create({
-            data: {
-              employeeId: balance.employeeId,
-              year: toYear,
-              leaveTypeCode: 'ANNUAL',
-              totalGranted: carryDays,
-              totalUsed: 0,
-              totalRemain: carryDays,
-            },
-          });
-        }
 
         carryOverCount++;
       } catch (err) {

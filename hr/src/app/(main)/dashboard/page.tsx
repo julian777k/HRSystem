@@ -377,8 +377,8 @@ export default function DashboardPage() {
                         {item.leaveRequest ? (
                           <>
                             <p className="font-medium text-sm">
-                              {item.leaveRequest.employee.name} -{" "}
-                              {item.leaveRequest.leaveType.name}
+                              {item.leaveRequest.employee?.name ?? '직원'} -{" "}
+                              {item.leaveRequest.leaveType?.name ?? '휴가'}
                             </p>
                             <p className="text-xs text-gray-500">
                               {formatDate(item.leaveRequest.startDate)} ~{" "}
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                         ) : item.overtime ? (
                           <>
                             <p className="font-medium text-sm">
-                              {item.overtime.employee.name} - 시간외근무
+                              {item.overtime.employee?.name ?? '직원'} - 시간외근무
                             </p>
                             <p className="text-xs text-gray-500">
                               {formatDate(item.overtime.date)} ·{" "}
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                       <Heart className="w-4 h-4 text-purple-500 flex-shrink-0" />
                       <div>
                         <p className="font-medium text-sm">
-                          {wItem.employee.name} - {wItem.item.category.name}/{wItem.item.name}
+                          {wItem.employee?.name ?? '알 수 없음'} - {wItem.item?.category?.name ?? '미분류'}/{wItem.item?.name ?? '항목'}
                         </p>
                         <p className="text-xs text-gray-500">
                           {formatDate(wItem.createdAt)}

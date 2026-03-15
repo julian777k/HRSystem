@@ -10,8 +10,8 @@ const HIGHLIGHTS = [
     description:
       '다른 HR 솔루션에서는 유료 애드온인 복지 관리 기능을 기본 제공합니다. 카테고리별 복지 항목 등록, 직원 신청, 관리자 승인까지 한번에.',
     screenshots: [
-      { src: '/screenshots/10_welfare_catalog.png', alt: '복지 항목 목록', caption: '사원이 보는 복지 목록' },
-      { src: '/screenshots/08_welfare_item_form.png', alt: '복지 항목 등록', caption: '관리자 복지 항목 등록' },
+      { src: '/api/files/screenshots/10_welfare_catalog.png', alt: '복지 항목 목록', caption: '사원이 보는 복지 목록' },
+      { src: '/api/files/screenshots/08_welfare_item_form.png', alt: '복지 항목 등록', caption: '관리자 복지 항목 등록' },
     ],
   },
   {
@@ -20,9 +20,9 @@ const HIGHLIGHTS = [
     description:
       '연장근무 수당을 현금이 아닌 보상시간(Time Wallet)으로 적립합니다. 적립된 시간은 연차처럼 사용할 수 있어, 비용 부담 없이 직원 보상이 가능합니다.',
     screenshots: [
-      { src: '/screenshots/13_overtime_request_filled.png', alt: '연장근무 신청', caption: '연장근무 신청' },
-      { src: '/screenshots/15_time_wallet_balance.png', alt: '보상시간 잔액', caption: '보상시간 잔액 확인' },
-      { src: '/screenshots/15b_time_wallet_usage.png', alt: '보상시간 사용', caption: '보상시간으로 휴가 신청' },
+      { src: '/api/files/screenshots/13_overtime_request_filled.png', alt: '연장근무 신청', caption: '연장근무 신청' },
+      { src: '/api/files/screenshots/15_time_wallet_balance.png', alt: '보상시간 잔액', caption: '보상시간 잔액 확인' },
+      { src: '/api/files/screenshots/15b_time_wallet_usage.png', alt: '보상시간 사용', caption: '보상시간으로 휴가 신청' },
     ],
   },
   {
@@ -31,7 +31,7 @@ const HIGHLIGHTS = [
     description:
       '매일/매주 휴무 현황을 Slack, Kakao Work, Microsoft Teams로 자동 전송합니다. 팀원 부재 파악에 별도 확인이 필요 없습니다.',
     screenshots: [
-      { src: '/screenshots/17_webhook_schedule_configured.png', alt: '웹훅 설정', caption: '웹훅 스케줄 설정' },
+      { src: '/api/files/screenshots/17_webhook_schedule_configured.png', alt: '웹훅 설정', caption: '웹훅 스케줄 설정' },
     ],
   },
 ];
@@ -40,17 +40,17 @@ const CORE_FEATURES = [
   {
     title: '직원 관리',
     description: '부서, 직급별 직원 현황 관리. 클릭 한 번으로 소속 직원 조회 및 부서/직급 변경.',
-    screenshot: '/screenshots/04_employee_list.png',
+    screenshot: '/api/files/screenshots/04_employee_list.png',
   },
   {
     title: '휴가 관리',
     description: '연차, 반차, 병가 등 다양한 휴가 유형. 자동 부여, 잔여일수 계산, 캘린더 뷰.',
-    screenshot: '/screenshots/20_leave_calendar.png',
+    screenshot: '/api/files/screenshots/20_leave_calendar.png',
   },
   {
     title: '조직 관리',
     description: '부서/직급별 소속 직원 펼침 보기, 드래그 없이 Select로 간편 이동.',
-    screenshot: '/screenshots/06_departments_expanded.png',
+    screenshot: '/api/files/screenshots/06_departments_expanded.png',
   },
 ];
 
@@ -148,7 +148,7 @@ export default function LandingPage() {
           <div className="relative max-w-5xl mx-auto">
             <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-200">
               <ClickableImage
-                src="/screenshots/03_dashboard.png"
+                src="/api/files/screenshots/03_dashboard.png"
                 alt="KeystoneHR 대시보드"
                 width={1440}
                 height={900}
@@ -160,7 +160,7 @@ export default function LandingPage() {
             {/* Mobile overlay */}
             <div className="absolute -bottom-6 -right-4 sm:right-8 w-24 sm:w-32 rounded-xl overflow-hidden shadow-xl border border-gray-200">
               <Image
-                src="/screenshots/25_mobile_dashboard.png"
+                src="/api/files/screenshots/25_mobile_dashboard.png"
                 alt="모바일 대시보드"
                 width={390}
                 height={844}
@@ -323,7 +323,7 @@ export default function LandingPage() {
             <div className="lg:w-7/12">
               <div className="rounded-xl overflow-hidden shadow-xl border border-gray-200">
                 <ClickableImage
-                  src="/screenshots/18_my_leave.png"
+                  src="/api/files/screenshots/18_my_leave.png"
                   alt="내 휴가 현황"
                   width={1440}
                   height={900}
@@ -352,7 +352,7 @@ export default function LandingPage() {
             <div className="group">
               <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
                 <ClickableImage
-                  src="/screenshots/14_overtime_approval_list.png"
+                  src="/api/files/screenshots/14_overtime_approval_list.png"
                   alt="결재 대기 목록"
                   width={1440}
                   height={900}
@@ -365,7 +365,7 @@ export default function LandingPage() {
             <div className="group">
               <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
                 <ClickableImage
-                  src="/screenshots/14_overtime_approved.png"
+                  src="/api/files/screenshots/14_overtime_approved.png"
                   alt="결재 승인 처리"
                   width={1440}
                   height={900}

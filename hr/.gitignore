@@ -47,6 +47,9 @@ next-env.d.ts
 
 /src/generated/prisma
 
+# Screenshots (served from R2, not bundled)
+/public/screenshots/
+
 # backups
 /backups/
 

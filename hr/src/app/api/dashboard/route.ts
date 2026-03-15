@@ -80,7 +80,7 @@ export async function GET() {
       // 2b. Pending welfare requests (admin only)
       isAdmin
         ? Promise.all([
-            prisma.welfareRequest.count({ where: { status: 'PENDING' } }),
+            prisma.welfareRequest.count({ where: { status: 'PENDING' } }).catch(() => 0),
             prisma.welfareRequest.findMany({
               where: { status: 'PENDING' },
               include: {
@@ -89,7 +89,7 @@ export async function GET() {
               },
               orderBy: { createdAt: 'desc' },
               take: 5,
-            }),
+            }).catch(() => []),
           ])
         : Promise.resolve([0, []] as [number, any[]]),
     ]);
@@ -114,7 +114,11 @@ export async function GET() {
       0
     );
 
-    const [pendingWelfareCount, pendingWelfareItems] = welfareResults;
+    const [pendingWelfareCount, rawWelfareItems] = welfareResults;
+    // Filter out welfare requests with missing relations (orphaned items/categories)
+    const pendingWelfareItems = (rawWelfareItems as any[]).filter(
+      (w: any) => w?.employee && w?.item && w?.item?.category
+    );
     const actualPendingApprovals = pendingItems.length;
 
     // 8. Today's attendance (auto-record system compatible)
@@ -132,28 +136,40 @@ export async function GET() {
 
       if (!attendance) {
         // Get work settings (Employee → Department → Company priority)
-        const workSettings = await getWorkSettings(user.id);
-        const dailyHours = await getDailyWorkHours();
+        try {
+          const workSettings = await getWorkSettings(user.id);
+          const dailyHours = await getDailyWorkHours();
 
-        const clockIn = buildDateTime(today, workSettings.workStartTime);
-        const clockOut = buildDateTime(today, workSettings.workEndTime);
+          const clockIn = buildDateTime(today, workSettings.workStartTime);
+          const clockOut = buildDateTime(today, workSettings.workEndTime);
 
-        attendance = await prisma.attendance.create({
-          data: { employeeId: user.id, date: today, clockIn, clockOut, workHours: dailyHours, overtimeHours: 0, status: 'NORMAL' },
-        });
+          attendance = await prisma.attendance.create({
+            data: { employeeId: user.id, date: today, clockIn, clockOut, workHours: dailyHours, overtimeHours: 0, status: 'NORMAL' },
+          });
+        } catch {
+          // Race condition: another request may have created it — re-fetch
+          attendance = await prisma.attendance.findUnique({
+            where: { tenantId_employeeId_date: { tenantId, employeeId: user.id, date: today } },
+          });
+        }
       }
 
-      // Determine actual status: if current time is before clockOut, user is still working
-      const attendanceStatus = (attendance.clockOut && now < attendance.clockOut) ? 'CLOCKED_IN' : 'CLOCKED_OUT';
+      if (!attendance) {
+        // Fallback: neither create nor re-fetch succeeded
+        todayAttendance = { clockIn: null, clockOut: null, workHours: null, status: 'NOT_CLOCKED_IN', isWorkday: true };
+      } else {
+        // Determine actual status: if current time is before clockOut, user is still working
+        const attendanceStatus = (attendance.clockOut && now < attendance.clockOut) ? 'CLOCKED_IN' : 'CLOCKED_OUT';
 
-      todayAttendance = {
-        clockIn: attendance.clockIn,
-        clockOut: attendanceStatus === 'CLOCKED_IN' ? null : attendance.clockOut,
-        workHours: attendanceStatus === 'CLOCKED_IN' ? null : attendance.workHours,
-        overtimeHours: attendance.overtimeHours,
-        status: attendanceStatus,
-        isWorkday: true,
-      };
+        todayAttendance = {
+          clockIn: attendance.clockIn,
+          clockOut: attendanceStatus === 'CLOCKED_IN' ? null : attendance.clockOut,
+          workHours: attendanceStatus === 'CLOCKED_IN' ? null : attendance.workHours,
+          overtimeHours: attendance.overtimeHours,
+          status: attendanceStatus,
+          isWorkday: true,
+        };
+      }
     }
 
     return NextResponse.json({

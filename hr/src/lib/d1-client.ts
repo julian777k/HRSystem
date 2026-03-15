@@ -600,11 +600,11 @@ async function resolveRelations(
     const relMeta = relations[relName];
     if (!relMeta) continue;
 
-    const nestedInclude = typeof relConfig === 'object' && relConfig !== null
+    let nestedInclude = typeof relConfig === 'object' && relConfig !== null
       ? (relConfig as Record<string, unknown>).include as Record<string, unknown> | undefined
       : undefined;
-    const nestedSelect = typeof relConfig === 'object' && relConfig !== null
-      ? (relConfig as Record<string, unknown>).select as Record<string, boolean> | undefined
+    const rawNestedSelect = typeof relConfig === 'object' && relConfig !== null
+      ? (relConfig as Record<string, unknown>).select as Record<string, unknown> | undefined
       : undefined;
     // Nested include where filter
     const nestedWhere = typeof relConfig === 'object' && relConfig !== null
@@ -614,6 +614,17 @@ async function resolveRelations(
     const nestedOrderBy = typeof relConfig === 'object' && relConfig !== null
       ? (relConfig as Record<string, unknown>).orderBy as unknown | undefined
       : undefined;
+
+    // Extract relation selects from nestedSelect (e.g., department: { select: { id, name } })
+    // so they are resolved as nested includes instead of being silently dropped
+    let nestedSelect: Record<string, unknown> | undefined = rawNestedSelect;
+    if (rawNestedSelect) {
+      const { scalarSelect, relationIncludes } = extractRelationSelects(relMeta.targetModel, rawNestedSelect);
+      nestedSelect = scalarSelect;
+      if (relationIncludes) {
+        nestedInclude = nestedInclude ? { ...nestedInclude, ...relationIncludes } : relationIncludes;
+      }
+    }
 
     if (relMeta.type === 'belongsTo') {
       const fkValues = Array.from(new Set(rows.map(r => r[relMeta.foreignKey]).filter(Boolean)));
@@ -648,7 +659,7 @@ async function resolveRelations(
       const result = await stmt.bind(...bindParams).all();
       let relatedRows = (result.results || []).map(r => fromSqlRow(r as Record<string, unknown>));
 
-      // Resolve nested includes
+      // Resolve nested includes (including relation selects extracted above)
       if (nestedInclude) {
         relatedRows = await resolveRelations(db, relMeta.targetModel, relatedRows, nestedInclude, tenantId);
       }
@@ -690,6 +701,7 @@ async function resolveRelations(
       const result = await stmt.bind(...bindParams).all();
       let relatedRows = (result.results || []).map(r => fromSqlRow(r as Record<string, unknown>));
 
+      // Resolve nested includes (including relation selects extracted above)
       if (nestedInclude) {
         relatedRows = await resolveRelations(db, relMeta.targetModel, relatedRows, nestedInclude, tenantId);
       }

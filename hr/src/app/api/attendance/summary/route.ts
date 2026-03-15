@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import { getDailyWorkHours, getHolidaysInRange, isWeekday, dateKey } from '@/lib/attendance-utils';
+import { getDailyWorkHours, getHolidaysInRange, isWeekday, dateKey, getAttendanceMode } from '@/lib/attendance-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,30 +27,35 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // 자동 근태: DB에 없는 근무일도 기본 근무시간으로 카운트
+    // 자동 근태: DB에 없는 근무일도 기본 근무시간으로 카운트 (AUTO mode only)
     const dailyWorkHours = await getDailyWorkHours();
-    const holidays = await getHolidaysInRange(startDate, endDate, user.departmentId);
-
-    const existingDates = new Set<string>();
-    for (const att of attendances) {
-      existingDates.add(dateKey(new Date(att.date)));
-    }
-
-    // 미래 날짜는 제외, 오늘까지만
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    const endBound = new Date(Math.min(endDate.getTime(), today.getTime()));
+    const attendanceMode = await getAttendanceMode();
 
     let virtualWorkDays = 0;
     let virtualWorkHours = 0;
-    const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-    while (cursor <= endBound) {
-      const key = dateKey(cursor);
-      if (isWeekday(cursor) && !holidays.has(key) && !existingDates.has(key)) {
-        virtualWorkDays++;
-        virtualWorkHours += dailyWorkHours;
+
+    if (attendanceMode === 'AUTO') {
+      const holidays = await getHolidaysInRange(startDate, endDate, user.departmentId);
+
+      const existingDates = new Set<string>();
+      for (const att of attendances) {
+        existingDates.add(dateKey(new Date(att.date)));
       }
-      cursor.setDate(cursor.getDate() + 1);
+
+      // 미래 날짜는 제외, 오늘까지만
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      const endBound = new Date(Math.min(endDate.getTime(), today.getTime()));
+
+      const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      while (cursor <= endBound) {
+        const key = dateKey(cursor);
+        if (isWeekday(cursor) && !holidays.has(key) && !existingDates.has(key)) {
+          virtualWorkDays++;
+          virtualWorkHours += dailyWorkHours;
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
     }
 
     const totalWorkDays = attendances.length + virtualWorkDays;

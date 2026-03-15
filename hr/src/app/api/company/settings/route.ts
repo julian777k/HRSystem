@@ -51,6 +51,7 @@ export async function PUT(request: NextRequest) {
       'lunch_start_time',
       'lunch_end_time',
       'server_url',
+      'attendance_mode',
     ];
 
     for (const [key, value] of Object.entries(settings)) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import { isHoliday, isWeekday } from '@/lib/attendance-utils';
+import { isHoliday, isWeekday, getAttendanceMode } from '@/lib/attendance-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,7 +62,9 @@ export async function GET(request: NextRequest) {
       attendances.map(a => [a.employeeId, a])
     );
 
-    // 자동 근태 시스템: 근무일이면 기록이 없는 직원도 '정상근무'로 표시
+    const attendanceMode = await getAttendanceMode();
+
+    // 근무일이면 기록이 없는 직원도 표시 (AUTO: 정상근무 / MANUAL: 미출근)
     const departmentAttendance = employees.map(emp => {
       const att = attendanceMap.get(emp.id);
       if (att) {
@@ -72,12 +74,11 @@ export async function GET(request: NextRequest) {
           status: att.status || 'NORMAL',
         };
       }
-      // 근무일인데 기록이 없으면 자동 기록 대상 (정상근무)
       if (workday) {
         return {
           employee: emp,
           attendance: null,
-          status: 'NORMAL',
+          status: attendanceMode === 'AUTO' ? 'NORMAL' : 'NOT_CLOCKED_IN',
         };
       }
       // 비근무일

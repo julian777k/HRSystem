@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import { getWorkSettings, getDailyWorkHours, isWorkday, buildDateTime } from '@/lib/attendance-utils';
+import { getWorkSettings, getDailyWorkHours, isWorkday, buildDateTime, getAttendanceMode } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
 
 export async function GET() {
@@ -18,6 +18,7 @@ export async function GET() {
     // Fetch work settings (Employee → Department → Company priority)
     const workSettings = await getWorkSettings(user.id);
     const dailyWorkHours = await getDailyWorkHours();
+    const attendanceMode = await getAttendanceMode();
 
     // Check existing attendance record
     let attendance = await prisma.attendance.findUnique({
@@ -30,8 +31,8 @@ export async function GET() {
       },
     });
 
-    // Auto-create for workdays if no record exists
-    if (!attendance && await isWorkday(today, user.departmentId)) {
+    // Auto-create for workdays if no record exists (AUTO mode only)
+    if (!attendance && attendanceMode === 'AUTO' && await isWorkday(today, user.departmentId)) {
       const clockIn = buildDateTime(today, workSettings.workStartTime);
       const clockOut = buildDateTime(today, workSettings.workEndTime);
 
@@ -85,6 +86,7 @@ export async function GET() {
       dailyWorkHours,
       approvedOvertime,
       isWorkday: await isWorkday(today, user.departmentId),
+      attendanceMode,
     });
   } catch (error) {
     console.error('Today attendance error:', error);

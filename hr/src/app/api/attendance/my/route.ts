@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import { getWorkSettings, getDailyWorkHours, getHolidaysInRange, isWeekday, dateKey, buildDateTime } from '@/lib/attendance-utils';
+import { getWorkSettings, getDailyWorkHours, getHolidaysInRange, isWeekday, dateKey, buildDateTime, getAttendanceMode } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
 
 export async function GET(request: NextRequest) {
@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'asc' },
     });
 
-    // If date range is specified, fill in missing workdays with virtual records
-    if (rangeStart && rangeEnd) {
+    // If date range is specified, fill in missing workdays with virtual records (AUTO mode only)
+    const attendanceMode = await getAttendanceMode();
+    if (rangeStart && rangeEnd && attendanceMode === 'AUTO') {
       const workSettings = await getWorkSettings(user.id);
       const dailyWorkHours = await getDailyWorkHours();
       const holidays = await getHolidaysInRange(rangeStart, rangeEnd, user.departmentId);

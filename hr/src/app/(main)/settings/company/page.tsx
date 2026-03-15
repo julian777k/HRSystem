@@ -31,6 +31,7 @@ interface CompanySettings {
   lunch_start_time: string;
   lunch_end_time: string;
   server_url: string;
+  attendance_mode: string;
 }
 
 const defaultSettings: CompanySettings = {
@@ -43,6 +44,7 @@ const defaultSettings: CompanySettings = {
   lunch_start_time: "12:00",
   lunch_end_time: "13:00",
   server_url: "",
+  attendance_mode: "AUTO",
 };
 
 const ADMIN_ROLES = ["SYSTEM_ADMIN", "COMPANY_ADMIN"];
@@ -199,6 +201,46 @@ export default function CompanySettingsPage() {
                 onChange={(e) => updateSetting("address", e.target.value)}
                 placeholder="서울특별시 강남구 ..."
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 출퇴근 모드 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">출퇴근 기록 방식</CardTitle>
+            <CardDescription>직원 출퇴근 기록 방식을 선택합니다.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => updateSetting("attendance_mode", "AUTO")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  settings.attendance_mode !== "MANUAL"
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <p className="font-semibold text-sm mb-1">자동 기록</p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  설정된 근무시간에 따라 출퇴근이 자동 기록됩니다. 별도 조작 불필요.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSetting("attendance_mode", "MANUAL")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  settings.attendance_mode === "MANUAL"
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <p className="font-semibold text-sm mb-1">수동 기록</p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  직원이 직접 출근/퇴근 버튼을 눌러 기록합니다. 실제 시각 기준.
+                </p>
+              </button>
             </div>
           </CardContent>
         </Card>

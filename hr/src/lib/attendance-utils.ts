@@ -103,6 +103,16 @@ export async function getCompanyWorkSettings(): Promise<WorkSettings> {
 }
 
 /**
+ * 출퇴근 모드 조회 (AUTO | MANUAL)
+ */
+export async function getAttendanceMode(): Promise<'AUTO' | 'MANUAL'> {
+  const config = await prisma.systemConfig.findFirst({
+    where: { group: 'company', key: 'attendance_mode' },
+  });
+  return config?.value === 'MANUAL' ? 'MANUAL' : 'AUTO';
+}
+
+/**
  * 공휴일 + 회사휴무 + 부서휴무 통합 확인
  */
 export async function isHoliday(date: Date, departmentId?: string): Promise<boolean> {

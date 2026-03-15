@@ -4,8 +4,8 @@ import { getCurrentUser } from '@/lib/auth-actions';
 import { getWorkSettings, getDailyWorkHours } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
 
-// 자동 근태 기록 시스템: 수동 퇴근은 더 이상 사용되지 않음
-// 이 API는 관리자 또는 시스템 내부에서 수동 기록이 필요할 때 사용
+// 수동 출퇴근 모드에서 직원이 직접 퇴근을 기록하는 API
+// 회사 설정의 attendance_mode가 MANUAL일 때 사용
 export async function POST() {
   try {
     const user = await getCurrentUser();

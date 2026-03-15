@@ -195,8 +195,92 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Price Comparison — 가격 경쟁력 먼저 */}
+      <section className="py-20 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-blue-600 font-semibold text-sm mb-3 tracking-wide">
+              매달 나가는 구독료, 언제까지 내실 건가요?
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              구독형 vs <span className="text-blue-600">1회 구매</span> 비용 비교
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              직원 20명 기준, 3년간 누적 비용을 비교해보세요
+            </p>
+          </div>
+
+          {/* Bar Chart */}
+          <div className="flex items-end justify-center gap-4 sm:gap-8 mb-8" style={{ height: 280 }}>
+            {[
+              { name: 'A사', price: '360만원', monthly: '월 5,000원/인', height: '40%', color: 'bg-gray-300' },
+              { name: 'B사', price: '576만원', monthly: '월 8,000원/인', height: '64%', color: 'bg-red-400' },
+              { name: 'C사', price: '864만원', monthly: '월 12,000원/인', height: '96%', color: 'bg-red-600' },
+            ].map((item) => (
+              <div key={item.name} className="flex flex-col items-center flex-1 max-w-[140px]">
+                <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">{item.price}</p>
+                <div className={`w-full rounded-t-lg ${item.color}`} style={{ height: item.height }} />
+                <div className="mt-3 text-center">
+                  <p className="font-bold text-gray-800">{item.name}</p>
+                  <p className="text-xs text-gray-400">{item.monthly}</p>
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-col items-center flex-1 max-w-[140px]">
+              <p className="text-lg sm:text-xl font-bold text-blue-600 mb-2">1회 결제</p>
+              <div className="w-full rounded-t-lg bg-blue-600 shadow-lg shadow-blue-600/30" style={{ height: '18%' }} />
+              <div className="mt-3 text-center">
+                <p className="font-bold text-blue-600">KeystoneHR</p>
+                <p className="text-xs text-gray-400">추가 비용 없음</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Savings badge */}
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex items-center gap-3 bg-blue-50 border-2 border-blue-200 rounded-2xl px-6 py-4">
+              <span className="text-2xl">💰</span>
+              <div>
+                <p className="text-sm text-gray-600">3년간 최대</p>
+                <p className="text-2xl font-black text-blue-700">864만원 절감</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Comparison table */}
+          <div className="max-w-2xl mx-auto bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="grid grid-cols-3 text-center text-sm font-bold border-b border-gray-200 py-3 bg-gray-100">
+              <span className="text-gray-500">항목</span>
+              <span className="text-gray-500">구독형</span>
+              <span className="text-blue-600">KeystoneHR</span>
+            </div>
+            {[
+              { label: '직원 추가 시', sub: '인당 추가 과금', keystone: '무료' },
+              { label: '3년 후 해지 시', sub: '데이터 소실', keystone: '영구 사용' },
+              { label: '숨은 추가 비용', sub: '기능당 +1~3만원/월', keystone: '없음' },
+              { label: '전체 기능 이용', sub: '플랜별 제한', keystone: '모두 포함' },
+            ].map((row, i) => (
+              <div key={row.label} className={`grid grid-cols-3 text-center text-sm py-3.5 px-4 ${i % 2 === 0 ? '' : 'bg-white'}`}>
+                <span className="text-gray-700 font-medium text-left">{row.label}</span>
+                <span className="text-red-500 font-semibold">{row.sub}</span>
+                <span className="text-blue-600 font-bold">✓ {row.keystone}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <a
+              href="#pricing"
+              className="inline-block px-8 py-3.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-600/25"
+            >
+              요금제 자세히 보기
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Differentiators */}
-      <section id="features" className="py-20">
+      <section id="features" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">

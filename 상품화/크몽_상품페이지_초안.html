@@ -47,7 +47,7 @@
   .pkg ul li { padding: 5px 0; border-bottom: 1px solid #f3f4f6; }
   .pkg ul li::before { content: "✓ "; color: #22c55e; font-weight: 700; }
   .pkg ul li.disabled { color: #ccc; }
-  .pkg ul li.disabled::before { content: "— "; color: #ccc; }
+  .pkg ul li.disabled::before { content: "✕ "; color: #94a3b8; }
 
   /* 비교 테이블 */
   .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
@@ -106,12 +106,30 @@
   .warning-box { background: #fef2f2; border: 2px solid #fca5a5; border-radius: 12px; padding: 20px; margin: 20px 0; }
   .saving-box { background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 20px; margin: 20px 0; }
 
+  /* 스크롤 훅 */
+  .scroll-hook { text-align: center; padding: 32px 0 12px; }
+  .scroll-hook p { font-size: 19px; font-weight: 800; color: #4338ca; margin: 0; line-height: 1.5; }
+
+  /* 페인 카드 */
+  .pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 24px 0; }
+  .pain-card { background: #fff; border-left: 4px solid #f87171; border-radius: 0 10px 10px 0; padding: 18px 16px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+  .pain-card .pain-now { font-size: 15px; font-weight: 800; color: #dc2626; margin-bottom: 4px; }
+  .pain-card .pain-desc { font-size: 13px; color: #666; line-height: 1.5; }
+
+  /* Before → After */
+  .ba-row { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 24px; margin: 24px 0; }
+  .ba-row .ba-before { color: #dc2626; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .ba-row .ba-arrow { color: #4338ca; font-size: 20px; font-weight: 900; margin: 8px 0; }
+  .ba-row .ba-after { color: #4338ca; font-weight: 800; font-size: 16px; margin-bottom: 0; }
+
   /* 반응형 */
   @media (max-width: 700px) {
     .pkg-grid { grid-template-columns: 1fr; }
     .hero h1 { font-size: 24px; }
     .troll-section .shock-number, .troll-section .our-number { font-size: 36px; }
     .screenshot-grid { grid-template-columns: 1fr; }
+    .pain-grid { grid-template-columns: 1fr; }
+    .scroll-hook p { font-size: 16px; }
   }
 
   /* 프린트 */
@@ -131,10 +149,10 @@
 <!-- ==================== 1. 상품 제목 & 한줄 소개 ==================== -->
 <div class="hero">
   <div class="badge">선착순 50사 한정 · 구독료 영원히 0원 · 10년 보장</div>
-  <h1>유명 HR SaaS 3개월치로 10년 쓰는 인사관리<br>— 구독료 영원히 0원</h1>
+  <h1>HR 솔루션이 월 4,083원?<br><span style="font-size:22px; opacity:0.85;">네, 커피 한 잔 값으로 10년 쓰는 인사관리</span></h1>
   <p class="subtitle">
-    휴가·근태·결재·복리후생·직원관리까지 올인원<br>
-    설치 없이 가입 즉시 시작 · <strong>초기 50사 한정 특별 혜택</strong>
+    출퇴근, 휴가, 결재, 연장근무, 복지까지.<br>
+    구독료 없이 1회 결제(49만원), 10년 사용. · <strong>초기 50사 한정 특별 혜택</strong>
   </p>
 </div>
 
@@ -143,14 +161,14 @@
   <h2>1. 상품 제목 (후보)</h2>
 
   <div class="copy-box">
-    <span class="label">▸ 제목 — 확정 (C안 기반)</span>유명 HR SaaS 3개월치로 10년 쓰는 인사관리 — 구독료 영원히 0원</div>
+    <span class="label">▸ 제목 — 확정</span>HR 솔루션이 월 4,083원? 커피값으로 10년 쓰는 인사관리 — 구독료 0원</div>
 
   <div class="copy-box">
-    <span class="label">▸ 서브 제목 (상세 설명 첫 줄)</span>[선착순 50사 한정] 초기 도입 기업만을 위한 파격 혜택 — 1회 결제, 10년 사용, 구독료 평생 0원</div>
+    <span class="label">▸ 서브 제목 (상세 설명 첫 줄)</span>[선착순 50사 한정] 49만원 ÷ 120개월 = 월 4,083원. 1회 결제, 10년 사용, 구독료 평생 0원</div>
 
   <h3>한줄 소개</h3>
   <div class="copy-box">
-    <span class="label">▸ 한줄 소개</span>선착순 50사 한정! 유명 HR SaaS 3개월 비용이면 10년 사용. 가입 즉시 시작되는 클라우드 인사관리 — 구독료 영원히 0원, 초기 도입 기업 특별 혜택.</div>
+    <span class="label">▸ 한줄 소개</span>HR 솔루션이 월 4,083원? 49만원 1회 결제로 10년 사용. 출퇴근·휴가·결재·복지 올인원 — 구독료 영원히 0원, 선착순 50사 한정.</div>
 </div>
 
 <!-- ==================== 2. 카테고리 & 태그 ==================== -->
@@ -186,9 +204,9 @@
     <div class="pkg">
       <div class="pkg-name">Standard (50명)</div>
       <div class="pkg-price">49<small>만원</small></div>
-      <div class="pkg-note">VAT 별도 · 1회 결제 · 영구 사용</div>
+      <div class="pkg-note">VAT 별도 · 1회 결제 · 10년 사용</div>
       <ul>
-        <li>영구 사용권</li>
+        <li>10년 사용권</li>
         <li>모든 기능 포함</li>
         <li>전용 서브도메인 (회사명.keystonehr.app)</li>
         <li>HTTPS 보안 + DDoS 방어</li>
@@ -203,8 +221,8 @@
     <!-- Business 100명 -->
     <div class="pkg recommended">
       <div class="pkg-name">Business (100명)</div>
-      <div class="pkg-price">69<small>만원</small></div>
-      <div class="pkg-note">VAT 별도 · 1회 결제 · 영구 사용</div>
+      <div class="pkg-price">70<small>만원</small></div>
+      <div class="pkg-note">VAT 별도 · 1회 결제 · 10년 사용</div>
       <ul>
         <li>Standard 패키지 전체 포함</li>
         <li style="color:#4338ca; font-weight:700;">직원 100명까지 확장</li>
@@ -216,9 +234,9 @@
 
   <div style="background:#f0f0ff; border:2px solid #6366f1; border-radius:12px; padding:16px 20px; margin:20px 0; text-align:center; font-size:14px;">
     <strong>49만원, 비싸 보이시나요?</strong><br>
-    유명 HR SaaS A사 3개월만 쓰면 같은 돈입니다. 우리는 <strong>영구 사용</strong>입니다.<br>
-    직원 50명이면 <strong>1인당 9,800원</strong> (1회).<br>
-    <span style="font-size:13px; color:#dc2626; font-weight:600;">이 가격은 초기 한정입니다. 이후에는 월 구독 모델로 전환됩니다.</span>
+    49만원 ÷ 120개월 = <strong style="color:#4338ca; font-size:18px;">월 4,083원</strong>. 커피 한 잔 값입니다.<br>
+    직원 50명이면 <strong>1인당 9,800원</strong> (1회). 타사 구독형 3개월치면 끝.<br>
+    <span style="font-size:13px; color:#dc2626; font-weight:600;">이 가격은 초기 50사 한정입니다. 이후에는 월 구독 모델로 전환됩니다.</span>
   </div>
 </div>
 
@@ -226,112 +244,419 @@
 <div class="section">
   <span class="section-label">크몽 상세 설명</span>
   <h2>4. 서비스 상세 설명 (본문)</h2>
-  <p style="color:#888; font-size:13px; margin-bottom:20px;">아래 내용을 크몽 "서비스 설명" 영역에 복사합니다. 이미지는 [ ] 위치에 스크린샷을 삽입합니다.</p>
+  <p style="color:#888; font-size:13px; margin-bottom:20px;">아래 내용을 크몽 "서비스 설명" 영역에 복사합니다.</p>
 
   <hr class="divider">
 
-  <!-- 4-1. 트롤링 도입부 -->
+  <!-- ━━━━━━ ① HOOK — KeystoneHR VS 구독형 HR ━━━━━━ -->
   <div class="troll-section">
-    <h3>혹시 지금도 HR SaaS 구독료 내고 계신가요?</h3>
-    <p style="font-size:15px; line-height:2; margin-bottom:20px;">
-      "인당 월 7,000원"이라고 광고하는 유명 HR SaaS.<br>
-      50명 기업이 10년 쓰면 실제로 내는 금액:
-    </p>
-    <span class="shock-number">5,040만원</span>
-    <p class="vs-text">vs</p>
-    <span class="our-number">49만원</span>
-    <p class="vs-text">KeystoneHR — 같은 기능, 10년 사용, 1회 결제</p>
-  </div>
+    <h3>KeystoneHR VS 구독형 HR — 3년 비용 비교</h3>
+    <p style="font-size:14px; color:#60a5fa; font-weight:600; margin-bottom:20px;">직원 20명 기준 · 3년 비용 · VAT 별도</p>
 
-  <!-- 4-2. 비용 비교 -->
-  <h3>HR SaaS 10년 비용 비교 (50명 기준)</h3>
-  <div class="troll-section">
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th style="color:#a78bfa;">서비스</th>
-          <th style="color:#a78bfa;">광고 가격</th>
-          <th style="color:#a78bfa;">실제 월 비용</th>
-          <th style="color:#a78bfa;">3년 누적</th>
-          <th style="color:#a78bfa;">10년 누적</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>A사 (인당 과금형)</td>
-          <td>"인당 7,000원~"</td>
-          <td style="color:#f87171;">~42만</td>
-          <td style="color:#f87171;">~1,512만</td>
-          <td style="color:#f87171; font-weight:700;">~5,040만</td>
-        </tr>
-        <tr>
-          <td>B사 (인당 과금형)</td>
-          <td>"인당 2,000원~"</td>
-          <td style="color:#f87171;">~20만</td>
-          <td style="color:#f87171;">~720만</td>
-          <td style="color:#f87171; font-weight:700;">~2,400만</td>
-        </tr>
-        <tr>
-          <td>C사 (인당 과금형)</td>
-          <td>"인당 5,000원~"</td>
-          <td style="color:#f87171;">~30만</td>
-          <td style="color:#f87171;">~1,080만</td>
-          <td style="color:#f87171; font-weight:700;">~3,600만</td>
-        </tr>
-        <tr style="background:#1a3a2a;">
-          <td style="color:#34d399; font-weight:700;">KeystoneHR</td>
-          <td style="color:#34d399;">49만원 (1회)</td>
-          <td style="color:#34d399; font-weight:700;">0원</td>
-          <td style="color:#34d399; font-weight:700;">49만 (동일)</td>
-          <td style="color:#34d399; font-weight:700;">49만 (동일)</td>
-        </tr>
-      </tbody>
-    </table>
-    <p style="font-size:13px; color:#94a3b8; margin-top:12px;">
-      ※ A/B/C사 가격은 각 서비스 공식 사이트 기준 (2026년). 기본료 + 인당 과금 포함.
-    </p>
-  </div>
-
-  <div class="warning-box">
-    <strong style="color:#dc2626; font-size:16px;">지금 SaaS를 쓰고 계시다면</strong><br><br>
-    매달 자동결제되는 그 금액, 계산해보셨나요?<br>
-    50명 기준 <strong>연 120~500만원</strong>이 매년 빠져나갑니다.<br>
-    그리고 해지하면? <strong>지금까지 낸 돈 = 0</strong>. 데이터도 접근 불가.<br><br>
-    KeystoneHR은 <strong>49만원 한 번</strong>이면 10년 사용. 해지도 없고, 추가 비용도 없습니다.
-  </div>
-
-  <div class="screenshot placeholder">[ 비용 비교 인포그래픽 이미지 — 별도 디자인 필요 ]</div>
-
-  <!-- 4-3. 구독료 낭비 계산기 -->
-  <h3>"우리 회사는 얼마나 낭비하고 있을까?"</h3>
-  <div style="background:#fff; border:2px solid #6366f1; border-radius:14px; padding:24px; margin:20px 0;">
-    <p style="font-size:15px; margin-bottom:16px; font-weight:700; color:#4338ca;">간단 계산: 현재 HR SaaS 비용 vs KeystoneHR</p>
-    <div style="background:#f8f9fa; border-radius:10px; padding:20px; font-family:monospace; font-size:14px; line-height:2.2;">
-      현재 HR SaaS 월 비용: _______ 만원<br>
-      × 12개월 = 연 _______ 만원<br>
-      × 10년 = <strong style="color:#dc2626;">_______ 만원</strong><br>
-      <br>
-      KeystoneHR 10년 = <strong style="color:#4338ca;">49만원</strong><br>
-      <br>
-      <strong style="color:#22c55e;">10년간 절약: _______ 만원</strong>
+    <div style="display:flex; align-items:flex-end; justify-content:center; gap:20px; margin:24px 0;">
+      <div style="text-align:center;">
+        <span style="font-size:20px; font-weight:900; color:#f87171;">360<small style="font-size:12px;">만원</small></span>
+        <div style="width:100px; height:100px; background:linear-gradient(180deg,#94a3b8,#64748b); border-radius:10px 10px 0 0; margin:8px auto 0; display:flex; align-items:center; justify-content:center;">
+          <span style="color:rgba(255,255,255,0.8); font-size:11px;">월10만×36</span>
+        </div>
+        <p style="font-size:14px; font-weight:700; color:#cbd5e1; margin-top:8px;">A사</p>
+        <p style="font-size:11px; color:#64748b;">인당 5,000원</p>
+      </div>
+      <div style="text-align:center;">
+        <span style="font-size:20px; font-weight:900; color:#f87171;">576<small style="font-size:12px;">만원</small></span>
+        <div style="width:100px; height:160px; background:linear-gradient(180deg,#f87171,#dc2626); border-radius:10px 10px 0 0; margin:8px auto 0; display:flex; align-items:center; justify-content:center;">
+          <span style="color:rgba(255,255,255,0.8); font-size:11px;">월16만×36</span>
+        </div>
+        <p style="font-size:14px; font-weight:700; color:#cbd5e1; margin-top:8px;">B사</p>
+        <p style="font-size:11px; color:#64748b;">인당 8,000원</p>
+      </div>
+      <div style="text-align:center;">
+        <span style="font-size:20px; font-weight:900; color:#f87171;">864<small style="font-size:12px;">만원</small></span>
+        <div style="width:100px; height:240px; background:linear-gradient(180deg,#ef4444,#991b1b); border-radius:10px 10px 0 0; margin:8px auto 0; display:flex; align-items:center; justify-content:center;">
+          <span style="color:rgba(255,255,255,0.8); font-size:11px;">월24만×36</span>
+        </div>
+        <p style="font-size:14px; font-weight:700; color:#cbd5e1; margin-top:8px;">C사</p>
+        <p style="font-size:11px; color:#64748b;">인당 12,000원</p>
+      </div>
+      <div style="text-align:center;">
+        <span style="font-size:20px; font-weight:900; color:#34d399;">49<small style="font-size:12px;">만원</small></span>
+        <div style="width:100px; height:16px; background:linear-gradient(180deg,#60a5fa,#2563eb); border-radius:10px 10px 0 0; margin:8px auto 0; box-shadow:0 4px 20px rgba(37,99,235,0.4);"></div>
+        <p style="font-size:14px; font-weight:700; color:#60a5fa; margin-top:8px;">KeystoneHR</p>
+        <p style="font-size:11px; color:#64748b;">1회 결제 · 10년</p>
+      </div>
     </div>
-    <p style="font-size:13px; color:#888; margin-top:12px;">
-      예시) 시프티 50명 기준: 월 15만 × 120개월 = 1,800만 → KeystoneHR 전환 시 <strong>1,751만원 절약</strong>
+
+    <div style="text-align:center; margin-top:16px; background:rgba(37,99,235,0.1); border:1px solid rgba(96,165,250,0.3); border-radius:12px; padding:14px 20px; display:inline-block;">
+      <span style="font-size:32px; margin-right:8px;">🔥</span>
+      <span style="color:#93bbfc; font-size:14px; font-weight:600;">구독형 최저가와 비교해도 </span>
+      <span style="color:#fff; font-size:20px; font-weight:900;">7배 저렴</span>
+      <span style="color:#60a5fa; font-size:14px; font-weight:700;"> → 311만원 절감</span>
+    </div>
+  </div>
+
+  <div class="scroll-hook"><p>싸면 뭔가 빠진 거 아니냐고요? ↓</p></div>
+
+  <!-- ━━━━━━ ② BRIDGE — KeystoneHR, 싸기만 한 게 아닙니다 ━━━━━━ -->
+  <h3 style="margin-bottom:4px;">KeystoneHR, 싸기만 한 게 아닙니다</h3>
+  <p style="font-size:15px; color:#555; margin-bottom:8px;">타사 <strong style="color:#dc2626;">유료 추가 기능</strong>, KeystoneHR은 <strong style="color:#4338ca;">전부 기본</strong>입니다.</p>
+  <p style="font-size:13px; color:#888; margin-bottom:16px;">구독형 서비스에서 기능당 월 1~3만원씩 추가 결제해야 하는 기능들, 전부 기본 포함</p>
+
+  <div style="display:flex; gap:24px; margin-bottom:16px; font-size:13px; font-weight:600; color:#475569;">
+    <span><span style="display:inline-block; width:12px; height:12px; background:#2563eb; border-radius:3px; margin-right:6px; vertical-align:middle;"></span>기본 포함</span>
+    <span><span style="display:inline-block; width:12px; height:12px; background:#f59e0b; border-radius:3px; margin-right:6px; vertical-align:middle;"></span>일부 제한</span>
+    <span><span style="display:inline-block; width:12px; height:12px; background:#e2e8f0; border-radius:3px; margin-right:6px; vertical-align:middle;"></span>미지원 / 별도 과금</span>
+  </div>
+
+  <!-- 📋 인사·근태 관리 -->
+  <p style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:1.5px; margin:24px 0 10px;">📋 인사 · 근태 관리</p>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width:40%;">기능</th>
+        <th style="width:15%; text-align:center;">A사</th>
+        <th style="width:15%; text-align:center;">B사</th>
+        <th style="width:15%; text-align:center;">C사</th>
+        <th style="width:15%; text-align:center; color:#2563eb;">KeystoneHR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>직원 정보 DB <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">입·퇴사, 인사카드 관리</span></td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>출퇴근 기록 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">자동 기록 · 수동 입력 지원</span></td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>연차 · 휴가 관리 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">자동 발생, 승인, 이월</span></td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>근태 이상 알림 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">지각/조퇴/무단결근 자동 감지</span></td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center; color:#f59e0b;">△</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>조직도 관리 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">부서/직급 체계 관리</span></td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 📝 전자결재·복지 -->
+  <p style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:1.5px; margin:24px 0 10px;">📝 전자결재 · 복지</p>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width:40%;">기능</th>
+        <th style="width:15%; text-align:center;">A사</th>
+        <th style="width:15%; text-align:center;">B사</th>
+        <th style="width:15%; text-align:center;">C사</th>
+        <th style="width:15%; text-align:center; color:#2563eb;">KeystoneHR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>전자결재 워크플로 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">휴가/초과근무 다단계 승인</span></td><td style="text-align:center; color:#f59e0b;">△</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>복지 관리 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">복지 항목 등록, 신청, 승인</span></td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center;"><span style="color:#dc2626; font-size:11px; font-weight:700; background:#fef2f2; padding:2px 8px; border-radius:4px;">+별도</span></td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>초과근무 관리 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">보상휴가/수당 자동 전환</span></td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center; color:#f59e0b;">△</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>보상정책 설정 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">배율/공제순서 커스터마이즈</span></td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center; color:#f59e0b;">△</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 📊 분석·연동 -->
+  <p style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:1.5px; margin:24px 0 10px;">📊 분석 · 연동</p>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width:40%;">기능</th>
+        <th style="width:15%; text-align:center;">A사</th>
+        <th style="width:15%; text-align:center;">B사</th>
+        <th style="width:15%; text-align:center;">C사</th>
+        <th style="width:15%; text-align:center; color:#2563eb;">KeystoneHR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>HR 대시보드 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">인원/이직률/근태 현황판</span></td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center;"><span style="color:#dc2626; font-size:11px; font-weight:700; background:#fef2f2; padding:2px 8px; border-radius:4px;">+별도</span></td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>웹훅 연동 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">Slack/Kakao Work/Teams 알림</span></td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center; color:#94a3b8; font-weight:700;">✕</td><td style="text-align:center;"><span style="color:#dc2626; font-size:11px; font-weight:700; background:#fef2f2; padding:2px 8px; border-radius:4px;">+별도</span></td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>데이터 내보내기 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">엑셀/CSV 전체 다운로드</span></td><td style="text-align:center; color:#f59e0b;">△</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+      <tr><td>공휴일 자동 관리 <span style="display:block;font-size:11px;color:#94a3b8;font-weight:400;">연도별 공휴일 일괄 등록</span></td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb;">✓</td><td style="text-align:center; color:#2563eb; font-weight:700;">✓</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 요약 카드 -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:28px 0;">
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:24px; text-align:center;">
+      <p style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">일반 구독형 (평균)</p>
+      <p style="font-size:40px; font-weight:900; color:#475569; line-height:1;">7<span style="font-size:16px; font-weight:700; color:#94a3b8;"> / 13개</span></p>
+      <p style="font-size:13px; color:#64748b; margin-top:8px;">기능 기본 포함<br>나머지는 별도 결제 또는 미지원</p>
+    </div>
+    <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe); border:2px solid #bfdbfe; border-radius:16px; padding:24px; text-align:center;">
+      <p style="font-size:12px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">KeystoneHR</p>
+      <p style="font-size:40px; font-weight:900; color:#1e40af; line-height:1;">13<span style="font-size:16px; font-weight:700; color:#3b82f6;"> / 13개</span></p>
+      <p style="font-size:13px; color:#64748b; margin-top:8px;">전체 기능 기본 포함<br>추가 과금 항목 0개</p>
+    </div>
+  </div>
+
+  <div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:14px; padding:16px 20px; display:flex; align-items:flex-start; gap:10px;">
+    <span style="font-size:18px; flex-shrink:0;">⚠️</span>
+    <p style="font-size:14px; color:#92400e; line-height:1.6; font-weight:500;">
+      구독형 서비스의 <strong style="color:#78350f;">"+별도"는 기능당 월 1~3만원</strong>이 추가됩니다.
+      필요한 기능을 모두 켜면 실제 비용은 기본료의 <strong style="color:#78350f;">2~3배</strong>까지 올라갈 수 있습니다.
     </p>
   </div>
 
-  <!-- 4-4. 왜 구독료가 없는가 — 50사 한정 특별 혜택 -->
-  <h3>SaaS인데 왜 구독료가 없나요?</h3>
+  <div class="scroll-hook"><p>그럼 지금 우리 회사는 어떻게 하고 있죠? ↓</p></div>
 
+  <!-- ━━━━━━ ③ PAIN — 혹시 지금 이렇게 하고 계신가요? ━━━━━━ -->
+  <h3 style="font-size:22px; color:#222; margin-bottom:4px;">혹시 지금 이렇게 하고 계신가요?</h3>
+  <p style="font-size:14px; color:#888; margin-bottom:20px;">하나라도 해당되면, HR 비용을 0원 쓰고 있는 게 아닙니다.</p>
+
+  <div class="pain-grid">
+    <div class="pain-card">
+      <div class="pain-now">❌ 엑셀에 연차 기록</div>
+      <div class="pain-desc">담당자 퇴사하면 파일도 사라집니다.<br>계산 실수 한 번이면 노무 분쟁.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-now">❌ 카톡으로 "내일 휴가요"</div>
+      <div class="pain-desc">기록이 안 남습니다.<br>나중에 "언제 썼더라?" 추적 불가.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-now">❌ 출퇴근 수기·구두 확인</div>
+      <div class="pain-desc">"몇 시에 왔더라?" 매일 반복.<br>야근 수당 근거도 없습니다.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-now">❌ 결재를 메일·구두로</div>
+      <div class="pain-desc">누가 승인했는지 추적 불가.<br>메일 한 통 놓치면 업무가 멈춥니다.</div>
+    </div>
+  </div>
+
+  <div style="background:#fef2f2; border:2px solid #fca5a5; border-radius:14px; padding:18px 24px; margin:20px 0; text-align:center;">
+    <p style="font-size:15px; font-weight:700; color:#991b1b; margin:0;">
+      관리자의 시간이 매달 새고 있는 겁니다.<br>
+      <span style="font-size:13px; font-weight:500; color:#b91c1c;">월 20시간 × 12개월 = 연 240시간. 인건비로 환산하면?</span>
+    </p>
+  </div>
+
+  <div class="scroll-hook"><p>KeystoneHR을 쓰면 이렇게 바뀝니다 ↓</p></div>
+
+  <!-- ━━━━━━ ④ SOLUTION — Before → After ━━━━━━ -->
+
+  <!-- Solution 1: 연차 -->
+  <div class="ba-row">
+    <div class="ba-before">❌ 엑셀 연차 관리 → 실수, 누락, 분쟁</div>
+    <div class="ba-arrow">↓</div>
+    <div class="ba-after">✅ KeystoneHR — 연차 자동부여, 잔여일 실시간 확인</div>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/26_leave_grant_result.png" alt="KeystoneHR 연차 자동부여">
+    <div class="screenshot-caption">연차 자동부여 — 입사일 기준 자동 계산, 일괄 부여</div>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/18_my_leave.png" alt="KeystoneHR 내 휴가">
+    <div class="screenshot-caption">내 휴가 — 잔여일, 사용 내역, 신청까지 한 화면에서</div>
+  </div>
+
+  <!-- Solution 2: 휴가 -->
+  <div class="ba-row">
+    <div class="ba-before">❌ 카톡 휴가 신청 → 기록 없음, 추적 불가</div>
+    <div class="ba-arrow">↓</div>
+    <div class="ba-after">✅ KeystoneHR — 온라인 신청 + 캘린더로 한눈에</div>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot">
+      <img src="screenshots/20_leave_calendar.png" alt="KeystoneHR 휴가 캘린더">
+      <div class="screenshot-caption">휴가 캘린더 — 팀원 휴가를 달력으로</div>
+    </div>
+    <div class="screenshot">
+      <img src="screenshots/20_leave_usage.png" alt="KeystoneHR 휴가 사용현황">
+      <div class="screenshot-caption">휴가 사용현황 — 전 직원 소진율 확인</div>
+    </div>
+  </div>
+
+  <!-- Solution 3: 출퇴근 -->
+  <div class="ba-row">
+    <div class="ba-before">❌ 출퇴근 수기 → "몇 시에 왔더라?" 매일 반복</div>
+    <div class="ba-arrow">↓</div>
+    <div class="ba-after">✅ KeystoneHR — 출퇴근 자동 기록, 근태 대시보드</div>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/03_dashboard.png" alt="KeystoneHR 사원 대시보드">
+    <div class="screenshot-caption">사원 대시보드 — 오늘의 근무, 휴가, 결재 한눈에</div>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/03_dashboard_admin.png" alt="KeystoneHR 관리자 대시보드">
+    <div class="screenshot-caption">관리자 대시보드 — 근태, 휴가, 결재, 인사 현황 한눈에</div>
+  </div>
+
+  <!-- Solution 4: 결재 -->
+  <div class="ba-row">
+    <div class="ba-before">❌ 메일·구두 결재 → 승인 추적 불가, 업무 지연</div>
+    <div class="ba-arrow">↓</div>
+    <div class="ba-after">✅ KeystoneHR — 전자결재 원클릭 승인</div>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot">
+      <img src="screenshots/14_overtime_approval_list.png" alt="KeystoneHR 결재 대기">
+      <div class="screenshot-caption">결재 대기 — 승인/반려 즉시 처리</div>
+    </div>
+    <div class="screenshot">
+      <img src="screenshots/14_overtime_approved.png" alt="KeystoneHR 결재 승인">
+      <div class="screenshot-caption">클릭 한 번으로 결재 완료</div>
+    </div>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/24_approval_settings.png" alt="KeystoneHR 결재선 설정">
+    <div class="screenshot-caption">결재선 설정 — 부서별 다단계 결재 라인 유연하게 구성</div>
+  </div>
+
+  <!-- 직원·조직 관리 -->
+  <div class="screenshot">
+    <img src="screenshots/04_employee_list.png" alt="KeystoneHR 직원 관리">
+    <div class="screenshot-caption">직원 관리 — 전체 직원 목록, 부서/직급별 필터, 엑셀 업로드/다운로드</div>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot">
+      <img src="screenshots/06_departments_expanded.png" alt="KeystoneHR 부서 관리">
+      <div class="screenshot-caption">부서 관리 — 부서별 소속 직원 한눈에</div>
+    </div>
+    <div class="screenshot">
+      <img src="screenshots/23_positions_expanded.png" alt="KeystoneHR 직급 관리">
+      <div class="screenshot-caption">직급 관리 — 직급별 소속 직원 조회</div>
+    </div>
+  </div>
+
+  <div class="scroll-hook"><p>여기서 끝이 아닙니다 ↓</p></div>
+
+  <!-- ━━━━━━ ⑤ VALUE STACK — 타사는 유료, KeystoneHR은 기본 ━━━━━━ -->
+  <h3 style="font-size:20px; color:#222;">타사는 유료 애드온, KeystoneHR은 기본 탑재</h3>
+
+  <!-- 복지 관리 -->
+  <div style="background:#f8f7ff; border:2px solid #6366f1; border-radius:14px; padding:24px; margin:24px 0;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <span style="font-size:28px;">🎁</span>
+      <div>
+        <span style="font-size:16px; font-weight:800; color:#4338ca;">복지 관리</span>
+        <span style="background:#6366f1;color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;font-weight:700;">KeystoneHR 독점</span>
+      </div>
+    </div>
+    <p style="font-size:14px; color:#555;">
+      카테고리 등록 → 항목 관리 → 직원 신청 → 결재 → 사용 추적. 풀 워크플로.<br>
+      <strong style="color:#dc2626;">타사: 별도 서비스 연동 (월 1~3만원 추가)</strong> → <strong style="color:#4338ca;">KeystoneHR: 기본 포함</strong>
+    </p>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/10_welfare_catalog.png" alt="KeystoneHR 복리후생 목록">
+    <div class="screenshot-caption">복리후생 목록 — 사원이 신청 가능한 복지 항목 카탈로그</div>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot">
+      <img src="screenshots/09_welfare_admin_complete.png" alt="KeystoneHR 복지 관리자">
+      <div class="screenshot-caption">복지 관리자 — 카테고리별 항목, 예산 모니터링</div>
+    </div>
+    <div class="screenshot">
+      <img src="screenshots/08_welfare_item_form.png" alt="KeystoneHR 복지 항목 등록">
+      <div class="screenshot-caption">복지 항목 등록 — 예산, 자동승인, 기간 설정</div>
+    </div>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot">
+      <img src="screenshots/10_welfare_request_dialog.png" alt="KeystoneHR 복지 신청">
+      <div class="screenshot-caption">복지 신청 다이얼로그</div>
+    </div>
+    <div class="screenshot">
+      <img src="screenshots/10_welfare_request_filled.png" alt="KeystoneHR 복지 신청 작성">
+      <div class="screenshot-caption">복지 신청 — 금액, 사유 입력 후 결재 요청</div>
+    </div>
+  </div>
+
+  <!-- 보상시간 Time Wallet -->
+  <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:14px; padding:24px; margin:24px 0;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <span style="font-size:28px;">⏰</span>
+      <span style="font-size:16px; font-weight:800; color:#16a34a;">보상시간 적립 (Time Wallet)</span>
+    </div>
+    <p style="font-size:14px; color:#555;">
+      연장근무를 현금 수당 대신 보상휴가로 자동 전환.<br>
+      비용 부담 없이 직원 보상. 적립된 시간은 연차처럼 사용.
+    </p>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot">
+      <img src="screenshots/13_overtime_request_filled.png" alt="KeystoneHR 연장근무 신청">
+      <div class="screenshot-caption">연장근무 신청 — 시간, 사유 입력 후 결재</div>
+    </div>
+    <div class="screenshot">
+      <img src="screenshots/15_time_wallet_balance.png" alt="KeystoneHR 보상시간 잔액">
+      <div class="screenshot-caption">보상시간 잔액 — 자동 적립, 실시간 확인</div>
+    </div>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/15b_time_wallet_usage.png" alt="KeystoneHR 보상시간 사용">
+    <div class="screenshot-caption">보상시간 사용 — 적립된 시간으로 휴가 신청</div>
+  </div>
+
+  <!-- 메신저 연동 -->
+  <div style="background:#eff6ff; border:2px solid #bfdbfe; border-radius:14px; padding:24px; margin:24px 0;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <span style="font-size:28px;">💬</span>
+      <div>
+        <span style="font-size:16px; font-weight:800; color:#1d4ed8;">Slack · Teams · 카카오워크 자동 전송</span>
+        <span style="background:#dc2626;color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;font-weight:700;">NEW</span>
+      </div>
+    </div>
+    <p style="font-size:14px; color:#555;">
+      "오늘 누가 휴가?" 물어볼 필요 없음. 시스템이 매일 팀 메신저에 자동 알림.<br>
+      <strong style="color:#dc2626;">타사: 별도 과금 또는 미제공</strong> → <strong style="color:#4338ca;">KeystoneHR: 기본 포함</strong>
+    </p>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/16_webhook_settings.png" alt="KeystoneHR 웹훅 설정">
+    <div class="screenshot-caption">웹훅 설정 — Slack, 카카오워크, Teams 간편 연동</div>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot">
+      <img src="screenshots/17_webhook_schedule_configured.png" alt="KeystoneHR 웹훅 스케줄">
+      <div class="screenshot-caption">웹훅 스케줄 — 일간/주간 자동 전송</div>
+    </div>
+    <div class="screenshot">
+      <img src="screenshots/17_webhook_daily_sent.png" alt="KeystoneHR 일간 전송">
+      <div class="screenshot-caption">일간 전송 — 휴무 현황 자동 발송</div>
+    </div>
+  </div>
+
+  <!-- 모바일 -->
+  <div style="background:#f8f9fa; border:2px solid #e5e7eb; border-radius:14px; padding:24px; margin:24px 0;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <span style="font-size:28px;">📱</span>
+      <span style="font-size:16px; font-weight:800; color:#374151;">모바일 완벽 지원</span>
+    </div>
+    <p style="font-size:14px; color:#555;">앱 설치 없이, 브라우저에서 바로. PC와 동일한 모든 기능.</p>
+  </div>
+  <div class="screenshot">
+    <img src="screenshots/25_mobile_dashboard.png" alt="KeystoneHR 모바일">
+    <div class="screenshot-caption">모바일 대시보드 — 스마트폰에서도 모든 기능 사용</div>
+  </div>
+
+  <div class="scroll-hook"><p>이 모든 기능이 49만원.<br>그런데 지금 매달 얼마 쓰고 계세요? ↓</p></div>
+
+  <!-- ━━━━━━ ⑥ FEAR — 안 바꾸면 생기는 일 ━━━━━━ -->
+  <div class="troll-section">
+    <h3 style="color:#f87171;">지금 구독형 HR SaaS를 쓰고 있다면</h3>
+    <p style="font-size:15px; line-height:2; margin-bottom:20px;">
+      매달 자동결제되는 그 금액, 10년이면?<br>
+      인당 8,000원 × 20명 × 120개월 = <strong style="color:#f87171; font-size:20px;">1,920만원</strong><br>
+      KeystoneHR 10년 = <strong style="color:#34d399; font-size:20px;">49만원</strong><br>
+      <strong style="color:#34d399; font-size:18px;">→ 1,871만원 절감</strong>
+    </p>
+    <div style="background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); border-radius:12px; padding:18px; margin-top:16px;">
+      <p style="font-size:15px; font-weight:700; color:#fca5a5; margin-bottom:10px;">그리고 해지하면?</p>
+      <p style="font-size:14px; line-height:2; color:#e2e8f0;">
+        ✗ 데이터 접근 불가<br>
+        ✗ 지금까지 낸 돈 = 매몰 비용<br>
+        ✗ 처음부터 다시 시작
+      </p>
+      <p style="font-size:14px; font-weight:700; color:#60a5fa; margin-top:12px;">
+        KeystoneHR은 데이터 내보내기 언제든 가능. 종속(lock-in) 없음.
+      </p>
+    </div>
+  </div>
+
+  <div class="scroll-hook"><p>근데 SaaS인데 왜 구독료가 없냐고요? ↓</p></div>
+
+  <!-- ━━━━━━ ⑦ TRUST — KeystoneHR 파운더스 플랜 ━━━━━━ -->
   <div style="background:linear-gradient(135deg, #4338ca, #6366f1); border-radius:16px; padding:32px 28px; margin:20px 0; color:#fff;">
-    <p style="font-size:20px; font-weight:800; margin-bottom:16px;">초기 50사 한정 — 특별 혜택입니다.</p>
+    <p style="font-size:22px; font-weight:900; margin-bottom:16px;">KeystoneHR 파운더스 플랜 — 초기 50사 한정</p>
     <p style="font-size:15px; line-height:2; opacity:0.95;">
-      KeystoneHR은 서비스 초기 단계입니다.<br>
-      저희는 처음 함께해주시는 기업에게 <strong>최고의 조건</strong>을 드리기로 했습니다.<br><br>
-      초기 50사에 한해, 1회 결제만으로 10년간 구독료 없이 사용할 수 있는<br>
-      <strong>파운더스 플랜(Founders Plan)</strong>을 제공합니다.<br><br>
-      50사가 채워지면 이 혜택은 종료되며, 이후에는 일반 요금제가 적용됩니다.<br>
-      지금 도입하시면, 앞으로 어떤 가격 변경이 있어도 <strong>10년간 추가 비용 0원</strong>이 보장됩니다.
+      서비스 초기, 함께 시작해주시는 기업에게<br>
+      <strong>1회 결제 · 10년 사용 · 구독료 0원</strong>을 드립니다.<br><br>
+      50사가 채워지면 이 조건은 영영 사라집니다.<br>
+      이후에는 월 구독 모델로 전환되며,<br>
+      파운더스 플랜 고객은 <strong>10년간 기존 조건 그대로 유지</strong>됩니다.
     </p>
   </div>
 
@@ -339,7 +664,7 @@
     <div class="point-card">
       <div class="icon">🏆</div>
       <div class="title">파운더스 플랜</div>
-      <div class="desc">초기 50사만을 위한<br>1회 결제 영구 혜택</div>
+      <div class="desc">초기 50사만을 위한<br>1회 결제 10년 혜택</div>
     </div>
     <div class="point-card">
       <div class="icon">🔒</div>
@@ -363,341 +688,48 @@
     <span style="font-size:13px; color:#92400e;">마감되면 이 가격으로 다시 제공하지 않습니다.</span>
   </div>
 
-  <!-- 4-5. 주요 기능 -->
-  <h3>주요 기능</h3>
-  <div class="feat-grid">
-    <div class="feat-item">
-      <div class="feat-icon">📋</div>
-      <div class="feat-title">휴가 관리</div>
-      <div class="feat-desc">연차·병가·경조 등 다양한 휴가 유형 설정. 신청→결재→잔여일수 자동 계산. 연도 이월, 자동 부여.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">⏰</div>
-      <div class="feat-title">연장근무 관리</div>
-      <div class="feat-desc">야근·휴일근무 신청 및 승인. 일/주/월 상한 설정. 보상휴가 자동 전환 (Time Wallet).</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">✅</div>
-      <div class="feat-title">전자 결재</div>
-      <div class="feat-desc">다단계 결재 라인 설정. 부서장→팀장→대표 순서 자동 라우팅. 모바일에서도 승인 가능.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">👥</div>
-      <div class="feat-title">직원 관리</div>
-      <div class="feat-desc">직원 등록·수정·퇴사 처리. 부서·직급 조직도. 엑셀 일괄 업로드/다운로드.</div>
-    </div>
-    <div class="feat-item" style="border:2px solid #6366f1; background:#f8f7ff;">
-      <div class="feat-icon">🎁</div>
-      <div class="feat-title">복리후생 커스텀 <span style="background:#6366f1;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;vertical-align:middle;">독점 기능</span></div>
-      <div class="feat-desc">단순 목록이 아닌 <strong>풀 워크플로우</strong>: 카테고리 생성 → 항목 관리 → 직원 신청 → 결재 → 사용 추적까지 한 곳에서. 항목별 예산 모니터링, 특정 카테고리 자동승인 설정 가능. 경조사비·자기개발비·건강검진·식대 등 원하는 복지 항목을 자유롭게 생성. <strong>유명 HR SaaS에서는 별도 서비스 연동이 필요한 기능</strong>이 기본 탑재.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">📊</div>
-      <div class="feat-title">대시보드</div>
-      <div class="feat-desc">출근 현황, 휴가 통계, 부서별 인원, 결재 현황 한눈에. 실시간 업데이트.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">🔔</div>
-      <div class="feat-title">알림 시스템</div>
-      <div class="feat-desc">결재 요청·승인·반려 실시간 알림. 로그인하면 바로 확인. Webhook 연동으로 Slack·카카오워크·Teams에 자동 전송까지.</div>
-    </div>
-    <div class="feat-item" style="border:2px solid #6366f1; background:#f8f7ff;">
-      <div class="feat-icon">💬</div>
-      <div class="feat-title">메신저 연동 <span style="background:#dc2626;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;vertical-align:middle;">NEW</span></div>
-      <div class="feat-desc">Slack, 카카오워크, Microsoft Teams에 <strong>일간/주간 휴가 현황을 자동 발송</strong>. "오늘 누가 휴가인지 일일이 확인"할 필요 없이 시스템이 팀 메신저에 자동 알림. <strong>경쟁 HR SaaS는 별도 과금하거나 아예 미제공</strong>하는 기능이 기본 탑재.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">🔐</div>
-      <div class="feat-title">보안 & 권한</div>
-      <div class="feat-desc">엔터프라이즈급 보안: JWT 시크릿 분리, 강제 비밀번호 변경, Rate Limiting, 비밀번호 정책 적용. Cloudflare DDoS 방어 + WAF. 보안 헤더(CSP, HSTS, X-Frame-Options) 기본 적용. 역할별 접근 제어(관리자/부서장/일반), 감사 로그 자동 기록.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">🏖️</div>
-      <div class="feat-title">공휴일 관리</div>
-      <div class="feat-desc">연도별 공휴일 관리. 대체공휴일, 회사 자체 휴일 설정.</div>
-    </div>
-  </div>
+  <!-- ━━━━━━ ⑧ ACTION — KeystoneHR 시작하기 ━━━━━━ -->
+  <h3 style="font-size:20px; color:#222;">KeystoneHR 시작하기</h3>
 
-  <!-- 주요 기능 스크린샷 — 대시보드 -->
-  <div class="screenshot">
-    <img src="screenshots/03_dashboard_employee.png" alt="KeystoneHR 사원 대시보드 화면">
-    <div class="screenshot-caption">사원 대시보드 — 오늘의 근무 현황, 휴가 잔여일, 결재 대기 한눈에 확인</div>
-  </div>
-
-  <!-- 주요 기능 스크린샷 — 관리자 대시보드 -->
-  <div class="screenshot">
-    <img src="screenshots/03_dashboard_admin.png" alt="KeystoneHR 관리자 대시보드 화면">
-    <div class="screenshot-caption">관리자 대시보드 — 근태, 휴가, 결재, 인사관리를 한눈에 확인</div>
-  </div>
-
-  <!-- 주요 기능 스크린샷 — 휴가 -->
-  <div class="screenshot">
-    <img src="screenshots/18_my_leave.png" alt="KeystoneHR 내 휴가 화면">
-    <div class="screenshot-caption">내 휴가 — 휴가 잔여일, 신청 내역, 사용 현황을 한 화면에서 관리</div>
-  </div>
-
-  <!-- 휴가 캘린더 + 사용현황 -->
-  <div class="screenshot-grid">
-    <div class="screenshot">
-      <img src="screenshots/20_leave_calendar.png" alt="KeystoneHR 휴가 캘린더">
-      <div class="screenshot-caption">휴가 캘린더 — 팀원 휴가를 달력으로 한눈에</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/20_leave_usage.png" alt="KeystoneHR 휴가 사용현황">
-      <div class="screenshot-caption">휴가 사용현황 — 전체 직원 휴가 소진율 확인</div>
-    </div>
-  </div>
-
-  <!-- 연차 자동부여 -->
-  <div class="screenshot">
-    <img src="screenshots/26_leave_grant_result.png" alt="KeystoneHR 연차 자동부여 결과">
-    <div class="screenshot-caption">연차 자동부여 — 입사일 기준 연차를 자동 계산하여 일괄 부여</div>
-  </div>
-
-  <!-- 주요 기능 스크린샷 — 직원 관리 -->
-  <div class="screenshot">
-    <img src="screenshots/04_employee_list.png" alt="KeystoneHR 직원 관리 목록">
-    <div class="screenshot-caption">직원 관리 — 전체 직원 목록, 부서/직급별 필터, 엑셀 업로드/다운로드</div>
-  </div>
-
-  <!-- 부서 관리 + 직급 관리 -->
-  <div class="screenshot-grid">
-    <div class="screenshot">
-      <img src="screenshots/06_departments_expanded.png" alt="KeystoneHR 부서 관리 (소속직원 펼침)">
-      <div class="screenshot-caption">부서 관리 — 부서별 소속 직원 한눈에 확인</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/23_positions_expanded.png" alt="KeystoneHR 직급 관리 (소속직원 펼침)">
-      <div class="screenshot-caption">직급 관리 — 직급별 소속 직원 조회</div>
-    </div>
-  </div>
-
-  <!-- 주요 기능 스크린샷 — 복리후생 -->
-  <div class="screenshot">
-    <img src="screenshots/10_welfare_catalog.png" alt="KeystoneHR 복리후생 목록 (사원)">
-    <div class="screenshot-caption">복리후생 목록 — 사원이 신청 가능한 복지 항목을 카탈로그로 제공</div>
-  </div>
-
-  <!-- 복리후생 관리자 설정 + 신청 다이얼로그 -->
-  <div class="screenshot-grid">
-    <div class="screenshot">
-      <img src="screenshots/09_welfare_admin_complete.png" alt="KeystoneHR 복지 설정 완료 화면">
-      <div class="screenshot-caption">복지 관리자 화면 — 카테고리별 항목 설정, 예산 모니터링</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/08_welfare_item_form.png" alt="KeystoneHR 복지 항목 등록 폼">
-      <div class="screenshot-caption">복지 항목 등록 — 예산, 자동승인, 기간 등 세밀한 설정</div>
-    </div>
-  </div>
-
-  <div class="screenshot-grid">
-    <div class="screenshot">
-      <img src="screenshots/10_welfare_request_dialog.png" alt="KeystoneHR 복지 신청 다이얼로그">
-      <div class="screenshot-caption">복지 신청 — 직관적인 신청 다이얼로그</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/10_welfare_request_filled.png" alt="KeystoneHR 복지 신청 작성 완료">
-      <div class="screenshot-caption">복지 신청 작성 — 금액, 사유 입력 후 바로 결재 요청</div>
-    </div>
-  </div>
-
-  <!-- 연장근무 + 보상시간 -->
-  <div class="screenshot-grid">
-    <div class="screenshot">
-      <img src="screenshots/13_overtime_request_filled.png" alt="KeystoneHR 연장근무 신청">
-      <div class="screenshot-caption">연장근무 신청 — 시간, 사유 입력 후 결재 요청</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/15_time_wallet_balance.png" alt="KeystoneHR 보상시간 잔액 (Time Wallet)">
-      <div class="screenshot-caption">보상시간 잔액 (Time Wallet) — 연장근무를 보상휴가로 자동 전환</div>
-    </div>
-  </div>
-
-  <!-- 보상시간 사용 -->
-  <div class="screenshot">
-    <img src="screenshots/15b_time_wallet_usage.png" alt="KeystoneHR 보상시간 사용 (휴가 신청)">
-    <div class="screenshot-caption">보상시간 사용 — 적립된 보상시간으로 휴가 신청</div>
-  </div>
-
-  <!-- 메신저 연동 (Webhook) -->
-  <div class="screenshot">
-    <img src="screenshots/16_webhook_settings.png" alt="KeystoneHR 웹훅 설정">
-    <div class="screenshot-caption">웹훅 설정 — Slack, 카카오워크, Teams 연동을 간편하게 설정</div>
-  </div>
-
-  <div class="screenshot-grid">
-    <div class="screenshot">
-      <img src="screenshots/17_webhook_schedule_configured.png" alt="KeystoneHR 웹훅 스케줄 설정">
-      <div class="screenshot-caption">웹훅 스케줄 — 일간/주간 자동 전송 일정 설정</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/17_webhook_daily_sent.png" alt="KeystoneHR 일간 전송 결과">
-      <div class="screenshot-caption">일간 전송 결과 — 오늘의 휴무 현황이 메신저에 자동 전송</div>
-    </div>
-  </div>
-
-  <!-- 결재선 설정 -->
-  <div class="screenshot">
-    <img src="screenshots/24_approval_settings.png" alt="KeystoneHR 결재선 설정">
-    <div class="screenshot-caption">결재선 설정 — 부서별 다단계 결재 라인을 유연하게 구성</div>
-  </div>
-
-  <!-- 결재 워크플로우 -->
-  <h3>결재도 온라인으로</h3>
-  <p style="font-size:14px; color:#555; margin-bottom:16px;">연장근무, 휴가, 복지 신청을 관리자가 한 화면에서 확인하고 승인합니다. 승인/반려 버튼 클릭 한 번으로 결재 완료.</p>
-  <div class="screenshot-grid">
-    <div class="screenshot">
-      <img src="screenshots/14_overtime_approval_list.png" alt="KeystoneHR 결재 대기 목록">
-      <div class="screenshot-caption">결재 대기 목록 — 승인/반려 버튼으로 즉시 처리</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/14_overtime_approved.png" alt="KeystoneHR 결재 승인 완료">
-      <div class="screenshot-caption">승인 확인 — 클릭 한 번으로 결재 완료</div>
-    </div>
-  </div>
-
-  <!-- 모바일 반응형 -->
-  <h3>모바일에서도 완벽하게</h3>
-  <p style="font-size:14px; color:#555; margin-bottom:16px;">별도 앱 설치 없이 스마트폰 브라우저에서 바로 사용. PC와 동일한 모든 기능을 모바일에서도 지원합니다.</p>
-  <div class="screenshot">
-    <img src="screenshots/25_mobile_dashboard.png" alt="KeystoneHR 모바일 대시보드">
-    <div class="screenshot-caption">모바일 대시보드 — 스마트폰에서도 모든 기능을 편리하게 사용</div>
-  </div>
-
-  <!-- 4-6. 시작 방법 -->
-  <h3>어떻게 시작하나요?</h3>
   <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; margin:16px 0;">
     <p style="font-size:15px; line-height:2.4;">
-      <strong>Step 1.</strong> 크몽에서 패키지를 결제합니다.<br>
-      <strong>Step 2.</strong> 회사 정보 전달 (회사명, 관리자 이메일).<br>
-      <strong>Step 3.</strong> 전용 주소 (회사명.keystonehr.app) 즉시 발급.<br>
-      <strong>Step 4.</strong> 브라우저에서 접속 → 초기 설정 마법사 → 완료!
+      <strong>Step 1.</strong> 크몽 메시지로 "무료 체험" 요청<br>
+      <strong>Step 2.</strong> 7일 체험 계정 즉시 발급 (카드등록 없음)<br>
+      <strong>Step 3.</strong> 만족하면 크몽에서 패키지 결제<br>
+      <strong>Step 4.</strong> 당일 10년 사용권 활성화 — 끝!
     </p>
     <p style="font-size:13px; color:#888; margin-top:12px;">
-      ※ 설치 파일 없음. 서버 세팅 없음. 가입하면 바로 사용 가능.<br>
-      ※ PC·스마트폰·태블릿 모든 기기에서 브라우저 접속.
+      ※ 설치 파일 없음. 서버 세팅 없음. 브라우저에서 바로 시작.<br>
+      ※ 전용 주소 (회사명.keystonehr.app) 즉시 발급.
     </p>
   </div>
 
   <div class="saving-box">
-    <strong style="color:#16a34a;">구매 전 7일 무료 체험</strong>
+    <strong style="color:#16a34a;">7일 무료 체험 — 전 기능, 제한 없이</strong>
     <p style="font-size:14px; margin-top:8px; line-height:1.9;">
-      결제하기 망설여지시나요? 먼저 무료로 체험해보세요.<br>
-      7일 동안 모든 기능을 제한 없이 사용할 수 있습니다.<br>
-      신용카드 등록 필요 없음. 체험 후 만족하시면 크몽에서 결제하시면 됩니다.<br><br>
+      결정이 어려우시면 먼저 써보세요. 7일 동안 모든 기능을 제한 없이 사용할 수 있습니다.<br>
+      신용카드 등록 없음. 체험 후 만족하시면 크몽에서 결제하시면 됩니다.<br>
       <strong style="color:#b45309;">단, 무료 체험도 50사 이내에서만 가능합니다.</strong><br>
-      체험 중에도 파운더스 플랜 자리는 차감되지 않으니 부담 없이 체험하세요.<br>
       → <strong>크몽 메시지로 "무료 체험" 요청</strong>
     </p>
   </div>
 
-  <!-- 4-7. 왜 이런 혜택이 가능한가 -->
-  <h3>왜 이런 파격적인 혜택이 가능한가요?</h3>
-  <div style="background:#f0f0ff; border-radius:12px; padding:20px; margin:16px 0; font-size:14.5px; line-height:2;">
-    KeystoneHR은 서비스 초기 단계입니다.<br>
-    저희에게 가장 중요한 것은 <strong>실제 사용하시는 기업의 피드백</strong>입니다.<br><br>
-    초기 50사의 고객님들과 함께 서비스를 다듬어 나가면서<br>
-    최고의 HR 시스템으로 만들어 가고자 합니다.<br><br>
-    그래서 처음 함께해주시는 기업에게는<br>
-    <strong>구독료 없이 10년간 사용할 수 있는 파운더스 플랜</strong>을 드립니다.<br><br>
-    50사 이후에는 월 정기 구독 모델로 전환될 예정이며,<br>
-    파운더스 플랜 고객은 <strong>기존 조건이 10년간 그대로 유지</strong>됩니다.
-  </div>
-
-  <!-- 4-8. 적합한 회사 -->
   <h3>이런 회사에 딱 맞습니다</h3>
   <div style="background:#f0f0ff; border-radius:12px; padding:20px; margin:16px 0; font-size:14.5px; line-height:2;">
     ✔ 직원 5~100명 규모의 중소기업·스타트업<br>
     ✔ 아직 엑셀로 휴가·근태를 관리하고 있는 회사<br>
     ✔ HR SaaS 구독료가 부담되어 도입을 미루고 있는 회사<br>
     ✔ 지금 SaaS를 쓰고 있지만 매달 나가는 비용이 아까운 회사<br>
-    ✔ IT 담당자 없이 대표나 경영지원팀이 직접 운영해야 하는 회사<br>
-    ✔ PC, 스마트폰 어디서든 접속이 필요한 회사
+    ✔ IT 담당자 없이 대표나 경영지원팀이 직접 운영해야 하는 회사
   </div>
 
-  <!-- 4-9. 경쟁사에 없는 기능 강조 -->
-  <h3>유명 HR SaaS에 없는 기능이 있습니다</h3>
-  <div class="troll-section">
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th style="color:#a78bfa;">기능</th>
-          <th style="color:#a78bfa;">A사</th>
-          <th style="color:#a78bfa;">B사</th>
-          <th style="color:#a78bfa;">C사</th>
-          <th style="color:#34d399;">KeystoneHR</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>휴가 관리</td>
-          <td>✓</td>
-          <td>✓</td>
-          <td>✓</td>
-          <td style="color:#34d399; font-weight:700;">✓</td>
-        </tr>
-        <tr>
-          <td>근태 관리</td>
-          <td>✓</td>
-          <td>✓</td>
-          <td>—</td>
-          <td style="color:#34d399; font-weight:700;">✓</td>
-        </tr>
-        <tr>
-          <td>결재 시스템</td>
-          <td>✓</td>
-          <td>✓</td>
-          <td>✓</td>
-          <td style="color:#34d399; font-weight:700;">✓</td>
-        </tr>
-        <tr>
-          <td>연장근무 관리</td>
-          <td>✓</td>
-          <td>✓</td>
-          <td>—</td>
-          <td style="color:#34d399; font-weight:700;">✓</td>
-        </tr>
-        <tr style="background:#1a3a2a;">
-          <td style="font-weight:700;">복리후생 커스텀</td>
-          <td style="color:#f87171;">별도 서비스 필요</td>
-          <td style="color:#f87171;">별도 서비스 필요</td>
-          <td style="color:#f87171;">경비처리만</td>
-          <td style="color:#34d399; font-weight:700;">기본 탑재</td>
-        </tr>
-        <tr style="background:#1a3a2a;">
-          <td style="font-weight:700;">메신저 연동 (Webhook)</td>
-          <td style="color:#f87171;">유료 애드온</td>
-          <td style="color:#f87171;">미제공</td>
-          <td style="color:#f87171;">유료 플랜만</td>
-          <td style="color:#34d399; font-weight:700;">기본 탑재 (Slack·카카오워크·Teams)</td>
-        </tr>
-        <tr>
-          <td>직원 수 제한</td>
-          <td style="color:#f87171;">인당 과금 (무한 증가)</td>
-          <td style="color:#f87171;">인당 과금 (무한 증가)</td>
-          <td style="color:#f87171;">인당 과금</td>
-          <td style="color:#34d399; font-weight:700;">50명/100명 (1회 결제)</td>
-        </tr>
-        <tr style="background:#1a3a2a;">
-          <td style="font-weight:700;">10년 비용 (50명)</td>
-          <td style="color:#f87171; font-weight:700;">~5,040만</td>
-          <td style="color:#f87171; font-weight:700;">~2,400만</td>
-          <td style="color:#f87171; font-weight:700;">~3,600만</td>
-          <td style="color:#34d399; font-weight:700;">49만</td>
-        </tr>
-      </tbody>
-    </table>
-    <p style="font-size:12px; color:#94a3b8; margin-top:12px;">※ A사(기본료+인당), B사(인당), C사(인당) — 각 서비스 공식 가격 기준</p>
-  </div>
-
-  <!-- 4-10. 납품물 -->
   <h3>납품 내역</h3>
   <table class="compare-table">
     <thead>
-      <tr><th>항목</th><th>Standard (49만)</th><th>Business (69만)</th></tr>
+      <tr><th>항목</th><th>Standard (49만)</th><th>Business (70만)</th></tr>
     </thead>
     <tbody>
-      <tr><td>영구 사용권</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
+      <tr><td>10년 사용권</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
       <tr><td>모든 기능</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
       <tr><td>전용 서브도메인 (회사명.keystonehr.app)</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
       <tr><td>HTTPS 보안 + DDoS 방어</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
@@ -705,12 +737,11 @@
       <tr><td>데이터 내보내기 (Excel/CSV)</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
       <tr><td>직원 수 한도</td><td style="text-align:center;">50명</td><td style="text-align:center;color:#4338ca;font-weight:700;">100명</td></tr>
       <tr><td>무상 지원 기간</td><td style="text-align:center;">1개월</td><td style="text-align:center;color:#4338ca;font-weight:700;">3개월</td></tr>
-      <tr><td>우선 응대</td><td style="text-align:center;" class="disabled">—</td><td style="text-align:center;">✓ (업무일 4시간 내)</td></tr>
+      <tr><td>우선 응대</td><td style="text-align:center;" class="disabled">✕</td><td style="text-align:center;">✓ (업무일 4시간 내)</td></tr>
       <tr><td>7일 무료 체험</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
     </tbody>
   </table>
 
-  <!-- 4-11. 진행 프로세스 -->
   <h3>진행 프로세스</h3>
   <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; margin:16px 0; font-size:14.5px; line-height:2.2;">
     <strong>① 무료 체험</strong> — 크몽 메시지로 "무료 체험" 요청 → 7일 체험 계정 즉시 발급<br>
@@ -738,7 +769,7 @@
 
   <div class="faq-item">
     <div class="faq-q">직원이 50명을 넘으면 어떻게 하나요?</div>
-    <div class="faq-a">Business 플랜(69만원, 100명)을 구매하시면 됩니다. 1회 결제이며, 인당 과금이 아니라 확장 1번이면 끝입니다.</div>
+    <div class="faq-a">Business 플랜(70만원, 100명)을 구매하시면 됩니다. 1회 결제이며, 인당 과금이 아니라 확장 1번이면 끝입니다.</div>
   </div>
 
   <div class="faq-item">
@@ -822,16 +853,20 @@
     - 뱃지: "49만원에 10년" "설치 불필요"
   </div>
 
-  <h3>상세 이미지 (Playwright 자동 촬영)</h3>
+  <h3>상세 이미지 (본문 섹션 순서 기준)</h3>
   <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:18px; margin:12px 0; font-size:14px; line-height:2;">
-    ① 대시보드 전체 화면<br>
-    ② 휴가 신청/내역 화면<br>
-    ③ 결재 라인 설정 화면<br>
-    ④ 직원 관리 목록<br>
-    ⑤ 복리후생 관리 화면<br>
-    ⑥ <strong>비용 비교 인포그래픽 (트롤링 핵심)</strong> — 경쟁사 10년 비용 vs KeystoneHR<br>
-    ⑦ 모바일 반응형 화면 (스마트폰 목업)<br>
-    ⑧ 패키지 비교표 이미지
+    <strong>① HOOK</strong> — 바 차트는 HTML 렌더링 (이미지 불필요)<br>
+    <strong>② BRIDGE</strong> — 기능비교 인포그래픽 (HTML 테이블, 이미지 불필요)<br>
+    <strong>③ PAIN</strong> — 텍스트 전용 (이미지 불필요)<br>
+    <strong>④ SOLUTION</strong> — ✅ 연차 자동부여, 내 휴가, 캘린더, 대시보드, 결재 스크린샷<br>
+    <strong>⑤ VALUE</strong> — ✅ 복지 카탈로그, 복지 관리, Time Wallet, 웹훅, 모바일<br>
+    <strong>⑥ FEAR</strong> — 텍스트 전용 (이미지 불필요)<br>
+    <strong>⑦ TRUST</strong> — 텍스트 전용 (이미지 불필요)<br>
+    <strong>⑧ ACTION</strong> — 텍스트 전용 (이미지 불필요)<br>
+    <br>
+    <strong style="color:#dc2626;">⚠️ 재촬영 필요:</strong><br>
+    - 03_dashboard_employee.png → <strong>500 에러 캡처됨, 03_dashboard.png으로 대체 완료</strong><br>
+    - 03_dashboard_admin.png → 브라우저 탭바 노출, 재촬영 권장
   </div>
 </div>
 
@@ -842,9 +877,9 @@
 
   <h3>메인 슬로건</h3>
   <div class="copy-box">
-    <span class="label">▸ 메인 (숫자 충격)</span>유명 HR SaaS 10년 = 5,040만원.
-KeystoneHR 10년 = 49만원.
-같은 HR 시스템입니다.</div>
+    <span class="label">▸ 메인 (월 단가 후킹)</span>HR 솔루션이 월 4,083원?
+네, 커피 한 잔 값으로 10년 쓰는 인사관리.
+49만원 1회 결제 — 구독료 영원히 0원.</div>
 
   <div class="copy-box">
     <span class="label">▸ 서브 카피 A (질문형 트롤링)</span>"인당 월 7,000원"이 진짜 저렴한 걸까요?
@@ -862,9 +897,9 @@ KeystoneHR 10년 = 49만원.
 계산해 보셨나요?</div>
 
   <div class="copy-box">
-    <span class="label">▸ 서브 카피 D (전환 유도)</span>시프티 3개월치 = KeystoneHR 10년.
-플렉스 1개월치 = KeystoneHR 10년.
-어디에 쓰시겠습니까?</div>
+    <span class="label">▸ 서브 카피 D (전환 유도)</span>구독형 HR SaaS 3년 = 최대 864만원.
+KeystoneHR 10년 = 49만원.
+월 4,083원으로 10년 쓸 건가요, 매달 24만원 낼 건가요?</div>
 
   <div class="copy-box">
     <span class="label">▸ 서브 카피 E (50사 한정 FOMO)</span>초기 50사 한정 "파운더스 플랜"
@@ -902,23 +937,20 @@ KeystoneHR은 10년 보장. 데이터는 언제든 내보내기 가능.</div>
   <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; font-size:14px; line-height:2.2;">
     <strong>[ 필수 준비물 ]</strong><br>
     □ 대표 썸네일 이미지 (1280×960px) — Playwright 촬영 + 편집<br>
-    □ 상세 이미지 5~8장 (Playwright 자동 촬영)<br>
-    □ 비용 비교 인포그래픽 (트롤링 핵심 이미지)<br>
+    □ 본문 스크린샷 재촬영 (03_dashboard_admin.png 브라우저 탭바 제거)<br>
     □ demo.keystonehr.app 데모 사이트 준비 (더미 데이터)<br><br>
 
     <strong>[ 크몽 설정 ]</strong><br>
     □ 전문가 프로필 작성 완료<br>
     □ 사업자등록증 등록<br>
     □ 카테고리: IT·프로그래밍 → PC·웹 프로그램 → 업무 자동화<br>
-    □ 가격 설정: Standard 49만 / Business 69만<br>
+    □ 가격 설정: Standard 49만 / Business 70만<br>
     □ 작업일: Standard 1일 / Business 1일<br>
     □ 수정 횟수: 0회 (SaaS이므로)<br><br>
 
     <strong>[ 등록 후 ]</strong><br>
-    □ Early Bird 프로모션 설정 (선착순 20명: Standard 29만, Business 49만)<br>
     □ 크몽 내 "무료 상담" 활성화<br>
-    □ 자동 응답 메시지: "안녕하세요! 7일 무료 체험을 원하시면 회사명과 관리자 이메일을 알려주세요."<br>
-    □ 트롤링 블로그 5건 사전 작성 (SEO 선점)
+    □ 자동 응답 메시지: "안녕하세요! 7일 무료 체험을 원하시면 회사명과 관리자 이메일을 알려주세요."
   </div>
 </div>
 

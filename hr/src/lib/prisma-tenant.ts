@@ -22,7 +22,6 @@ import { getTenantIdSafe } from './tenant-context';
 /** Models that do NOT have tenantId (global/SaaS-management models) */
 const GLOBAL_MODELS = new Set([
   'Tenant',
-  'TenantSetting',   // Intentionally global: super-admin accesses across tenants
   'SuperAdmin',
   'TenantUsageLog',  // Intentionally global: super-admin usage tracking
 ]);

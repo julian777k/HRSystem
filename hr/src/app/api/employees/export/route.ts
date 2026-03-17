@@ -23,6 +23,7 @@ export async function GET() {
 
     const tenantId = await getTenantId();
 
+    // Limit export rows to prevent memory exhaustion on large datasets
     const employees = await prisma.employee.findMany({
       where: { tenantId, status: { not: 'RESIGNED' } },
       include: {
@@ -30,6 +31,7 @@ export async function GET() {
         position: { select: { name: true } },
       },
       orderBy: { employeeNumber: 'asc' },
+      take: 5000,
     });
 
     const data = employees.map((emp) => ({

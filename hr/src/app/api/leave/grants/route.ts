@@ -14,20 +14,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const employeeId = searchParams.get('employeeId');
 
+    // Pagination (default: page=1, limit=100, max limit=500)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '100', 10)));
+
     const where: Record<string, unknown> = {};
     if (employeeId) {
       where.employeeId = employeeId;
     }
 
-    const grants = await prisma.leaveGrant.findMany({
-      where,
-      include: {
-        employee: {
-          include: { department: true, position: true },
+    const [grants, total] = await Promise.all([
+      prisma.leaveGrant.findMany({
+        where,
+        include: {
+          employee: {
+            include: { department: true, position: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      prisma.leaveGrant.count({ where }),
+    ]);
 
     const data = grants.map((g) => ({
       id: g.id,
@@ -46,7 +55,7 @@ export async function GET(request: NextRequest) {
       createdAt: g.createdAt,
     }));
 
-    return NextResponse.json(data);
+    return NextResponse.json({ data, total, page, limit });
   } catch (error) {
     console.error('Leave grants error:', error);
     return NextResponse.json(

@@ -568,31 +568,55 @@ async function resolveRelations(
     if (!relConfig) continue;
 
     // Handle _count includes: { _count: { select: { employees: true } } }
+    // Batched: collect all parent IDs and query counts per relation in one query using GROUP BY
     if (relName === '_count') {
       const countConfig = relConfig as Record<string, unknown>;
       const countSelect = countConfig.select as Record<string, boolean> | undefined;
       if (!countSelect) continue;
 
+      const parentIds = rows.map(r => r.id as string).filter(Boolean);
+
+      // Initialize _count for all rows
       for (const row of rows) {
-        const countResult: Record<string, number> = {};
-        for (const [countRel, enabled] of Object.entries(countSelect)) {
-          if (!enabled) continue;
-          const countRelMeta = relations[countRel];
-          if (!countRelMeta || countRelMeta.type !== 'hasMany') {
-            countResult[countRel] = 0;
-            continue;
+        (row as Record<string, unknown>)._count = {};
+      }
+
+      for (const [countRel, enabled] of Object.entries(countSelect)) {
+        if (!enabled) continue;
+        const countRelMeta = relations[countRel];
+        if (!countRelMeta || countRelMeta.type !== 'hasMany') {
+          for (const row of rows) {
+            ((row as Record<string, unknown>)._count as Record<string, number>)[countRel] = 0;
           }
-          let countSql = `SELECT COUNT(*) as cnt FROM "${countRelMeta.targetTable}" WHERE "${countRelMeta.foreignKey}" = ?`;
-          const countParams: unknown[] = [row.id];
+          continue;
+        }
+
+        // Batch count query: use IN clause with GROUP BY to get all counts at once
+        // Split into chunks of 100 to avoid overly large IN clauses
+        const CHUNK_SIZE = 100;
+        const countMap = new Map<string, number>();
+
+        for (let i = 0; i < parentIds.length; i += CHUNK_SIZE) {
+          const chunk = parentIds.slice(i, i + CHUNK_SIZE);
+          const placeholders = chunk.map(() => '?').join(', ');
+          let countSql = `SELECT "${countRelMeta.foreignKey}" as fk, COUNT(*) as cnt FROM "${countRelMeta.targetTable}" WHERE "${countRelMeta.foreignKey}" IN (${placeholders})`;
+          const countParams: unknown[] = [...chunk];
           if (tenantId && !GLOBAL_TABLES.has(countRelMeta.targetTable)) {
             countSql += ` AND "tenantId" = ?`;
             countParams.push(tenantId);
           }
-          const countStmt = db.prepare(countSql);
-          const countRes = await countStmt.bind(...countParams).first<{ cnt: number }>();
-          countResult[countRel] = countRes?.cnt || 0;
+          countSql += ` GROUP BY "${countRelMeta.foreignKey}"`;
+
+          const countResult = await db.prepare(countSql).bind(...countParams).all();
+          for (const r of (countResult.results || []) as Record<string, unknown>[]) {
+            countMap.set(r.fk as string, r.cnt as number);
+          }
         }
-        (row as Record<string, unknown>)._count = countResult;
+
+        // Map counts back to rows
+        for (const row of rows) {
+          ((row as Record<string, unknown>)._count as Record<string, number>)[countRel] = countMap.get(row.id as string) || 0;
+        }
       }
       continue;
     }
@@ -872,20 +896,59 @@ function createModelDelegate(db: D1Database, modelName: string) {
       data: Record<string, unknown>[];
       skipDuplicates?: boolean;
     }) {
-      let count = 0;
-      for (const item of args.data) {
-        try {
-          await this.create({ data: item });
-          count++;
-        } catch (e: unknown) {
-          if (args.skipDuplicates) {
-            const msg = e instanceof Error ? e.message : String(e);
-            if (msg.includes('UNIQUE constraint') || msg.includes('duplicate')) continue;
-          }
-          throw e;
+      if (args.data.length === 0) return { count: 0 };
+
+      // Build batch INSERT statements for performance
+      try {
+        const statements: D1PreparedStatement[] = [];
+        const now = new Date().toISOString();
+
+        for (const item of args.data) {
+          const data = { ...item };
+          if (!data.id) data.id = generateCuid();
+          if (!NO_CREATED_AT.has(table) && !data.createdAt) data.createdAt = now;
+          if (!NO_UPDATED_AT.has(table) && !data.updatedAt) data.updatedAt = now;
+
+          const columns = Object.keys(data).filter(k => data[k] !== undefined);
+          const values = columns.map(k => toSqlValue(data[k]));
+          const placeholders = columns.map(() => '?').join(', ');
+          const colNames = columns.map(c => `"${c}"`).join(', ');
+
+          const verb = args.skipDuplicates ? 'INSERT OR IGNORE INTO' : 'INSERT INTO';
+          const sql = `${verb} "${table}" (${colNames}) VALUES (${placeholders})`;
+          statements.push(db.prepare(sql).bind(...values));
         }
+
+        // D1 batch limit: execute in chunks of 50
+        const BATCH_SIZE = 50;
+        let count = 0;
+        for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+          const chunk = statements.slice(i, i + BATCH_SIZE);
+          const results = await db.batch(chunk);
+          for (const r of results) {
+            const changes = (r as D1Result<unknown>).meta?.changes ?? 0;
+            count += changes;
+          }
+        }
+        return { count };
+      } catch (batchError) {
+        // Fallback to sequential inserts if batch fails
+        console.warn('[D1Client] createMany batch failed, falling back to sequential inserts:', batchError);
+        let count = 0;
+        for (const item of args.data) {
+          try {
+            await this.create({ data: item });
+            count++;
+          } catch (e: unknown) {
+            if (args.skipDuplicates) {
+              const msg = e instanceof Error ? e.message : String(e);
+              if (msg.includes('UNIQUE constraint') || msg.includes('duplicate')) continue;
+            }
+            throw e;
+          }
+        }
+        return { count };
       }
-      return { count };
     },
 
     async update(args: {
@@ -1150,12 +1213,24 @@ export function withD1TenantScope(
       if (typeof prop === 'symbol' || prop === 'then') return undefined;
 
       // $transaction: pass tenant-scoped proxy to callback
+      // NOTE: Same atomicity limitation as the base client — see createD1Client.$transaction
       if (prop === '$transaction') {
         return async (input: unknown) => {
           if (typeof input === 'function') return input(proxy);
           if (Array.isArray(input)) {
-            const results = [];
-            for (const p of input) results.push(await p);
+            const results: unknown[] = [];
+            for (let i = 0; i < input.length; i++) {
+              try {
+                results.push(await input[i]);
+              } catch (e) {
+                console.warn(
+                  `[D1Client] $transaction (tenant-scoped): promise at index ${i}/${input.length} failed. ` +
+                  `${results.length} of ${input.length} operations succeeded before this error.`,
+                  e instanceof Error ? e.message : e,
+                );
+                throw e;
+              }
+            }
             return results;
           }
           throw new Error('Invalid $transaction argument');
@@ -1257,17 +1332,29 @@ export function createD1Client(db: D1Database) {
       if (prop === 'then') return undefined;
 
       // $transaction support
+      // NOTE: True atomicity is not possible with the array form because promises
+      // are already executing when passed in. D1's db.batch() requires prepared
+      // statements, not promises. The callback form provides logical grouping but
+      // not D1-level atomicity. Achieving true atomicity would require architectural
+      // changes (e.g., building SQL statements lazily and batching them).
       if (prop === '$transaction') {
         return async (input: unknown) => {
           if (typeof input === 'function') {
             return await input(client);
           }
           if (Array.isArray(input)) {
-            // Array-style transaction: use db.batch() for atomicity when possible
-            // Since promises are already executing, collect results
-            const results = [];
-            for (const promise of input) {
-              results.push(await promise);
+            const results: unknown[] = [];
+            for (let i = 0; i < input.length; i++) {
+              try {
+                results.push(await input[i]);
+              } catch (e) {
+                console.warn(
+                  `[D1Client] $transaction: promise at index ${i}/${input.length} failed. ` +
+                  `${results.length} of ${input.length} operations succeeded before this error.`,
+                  e instanceof Error ? e.message : e,
+                );
+                throw e;
+              }
             }
             return results;
           }

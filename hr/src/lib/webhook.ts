@@ -80,11 +80,13 @@ function formatPayload(platform: string, event: string, message: string) {
 }
 
 export async function sendWebhookNotification(event: string, message: string): Promise<{ ok: boolean; error?: string }> {
+  let webhookUrl = '(unknown)';
   try {
     const config = await getWebhookConfig();
     if (!config) return { ok: false, error: '웹훅이 비활성화되어 있습니다.' };
     if (!config.events.includes(event)) return { ok: false, error: `${event} 이벤트가 비활성화되어 있습니다.` };
 
+    webhookUrl = config.url;
     const payload = formatPayload(config.platform, event, message);
 
     const res = await fetch(config.url, {
@@ -95,10 +97,14 @@ export async function sendWebhookNotification(event: string, message: string): P
     });
 
     if (!res.ok) {
+      console.warn(`[Webhook] Failed to send to ${webhookUrl} — status ${res.status}`);
       return { ok: false, error: `웹훅 전송 실패 (HTTP ${res.status})` };
     }
+    console.log(`[Webhook] Sent to ${webhookUrl} — status ${res.status}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : '전송 중 오류' };
+    const errMsg = e instanceof Error ? e.message : '전송 중 오류';
+    console.warn(`[Webhook] Failed to send to ${webhookUrl} — ${errMsg}`);
+    return { ok: false, error: errMsg };
   }
 }

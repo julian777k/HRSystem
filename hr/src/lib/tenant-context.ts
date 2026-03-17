@@ -11,7 +11,7 @@ import { isSaaSMode } from './deploy-config';
 
 // Per-isolate cache: subdomain → tenantId (persists across requests in same Worker)
 const subdomainCache = new Map<string, { tenantId: string; expiresAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (tenant mapping rarely changes)
+const CACHE_TTL_MS = 1 * 60 * 1000; // 1 minute
 const CACHE_MAX_SIZE = 500;
 
 /**

@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { COOKIE_NAME, verifyToken, type AuthUser } from './auth';
 import { basePrismaClient } from './prisma';
 import { getTenantIdSafe } from './tenant-context';
@@ -48,6 +48,21 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   });
   if (!employee) return null;
 
+  // Session IP consistency check (monitoring only — not blocking, as mobile users change IPs)
+  try {
+    const hdrs = await headers();
+    const currentIp = hdrs.get('cf-connecting-ip') || hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const session = await basePrismaClient.session.findFirst({
+      where: { employeeId: result.user.id, token },
+      select: { ipAddress: true },
+    });
+    if (session?.ipAddress && session.ipAddress !== 'unknown' && currentIp !== 'unknown' && session.ipAddress !== currentIp) {
+      console.warn(`[Auth] Session IP mismatch — userId=${result.user.id}, session=${session.ipAddress}, current=${currentIp}`);
+    }
+  } catch {
+    // Non-critical: don't block auth if IP check fails
+  }
+
   return result.user;
 }
 
@@ -72,6 +87,21 @@ export async function getCurrentUserWithRefresh(): Promise<{ user: AuthUser; sho
     select: { id: true },
   });
   if (!employee) return null;
+
+  // Session IP consistency check (monitoring only — not blocking, as mobile users change IPs)
+  try {
+    const hdrs = await headers();
+    const currentIp = hdrs.get('cf-connecting-ip') || hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const session = await basePrismaClient.session.findFirst({
+      where: { employeeId: result.user.id, token },
+      select: { ipAddress: true },
+    });
+    if (session?.ipAddress && session.ipAddress !== 'unknown' && currentIp !== 'unknown' && session.ipAddress !== currentIp) {
+      console.warn(`[Auth] Session IP mismatch — userId=${result.user.id}, session=${session.ipAddress}, current=${currentIp}`);
+    }
+  } catch {
+    // Non-critical: don't block auth if IP check fails
+  }
 
   return result;
 }

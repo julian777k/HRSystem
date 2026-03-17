@@ -41,12 +41,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+
     const employee = await prisma.employee.findFirst({
       where: { email, tenantId },
       include: { department: true, position: true },
     });
 
-    if (!employee || !(await verifyPassword(password, employee.passwordHash))) {
+    if (!employee) {
+      console.warn(`[Auth] Failed login: user not found — email=${email}, ip=${ip}`);
+      return NextResponse.json(
+        { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
+        { status: 401 }
+      );
+    }
+
+    if (!(await verifyPassword(password, employee.passwordHash))) {
+      console.warn(`[Auth] Failed login: wrong password — email=${email}, ip=${ip}`);
       return NextResponse.json(
         { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
         { status: 401 }
@@ -54,6 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (employee.status === 'PENDING') {
+      console.warn(`[Auth] Failed login: account pending — email=${email}, ip=${ip}`);
       return NextResponse.json(
         { message: '계정이 아직 활성화되지 않았습니다. 관리자에게 문의하세요.' },
         { status: 403 }
@@ -61,6 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (employee.status !== 'ACTIVE') {
+      console.warn(`[Auth] Failed login: account suspended — email=${email}, ip=${ip}`);
       return NextResponse.json(
         { message: '비활성화된 계정입니다. 관리자에게 문의하세요.' },
         { status: 403 }

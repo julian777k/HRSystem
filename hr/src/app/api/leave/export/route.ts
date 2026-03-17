@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       where.employee = { departmentId };
     }
 
+    // Limit export rows to prevent memory exhaustion on large datasets
     const requests = await prisma.leaveRequest.findMany({
       where,
       include: {
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
         leaveType: true,
       },
       orderBy: { appliedAt: 'desc' },
+      take: 5000,
     });
 
     const rows = requests.map((r) => ({

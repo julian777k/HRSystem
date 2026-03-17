@@ -148,10 +148,19 @@ export async function POST(request: NextRequest) {
 
     writeAuditLog({ action: 'EMPLOYEE_IMPORT', target: 'employee', targetId: 'batch', after: { success: results.success, failed: results.failed } });
 
+    // Mask generated passwords in JSON response (show first 3 chars + ***)
+    // Full passwords are only available at generation time; this prevents caching/logging exposure
+    const maskedPasswords = generatedPasswords.map(({ employeeNumber, name, email, password }) => ({
+      employeeNumber,
+      name,
+      email,
+      password: password.length > 3 ? password.slice(0, 3) + '***' : '***',
+    }));
+
     return NextResponse.json({
       message: `가져오기 완료: 성공 ${results.success}건, 실패 ${results.failed}건`,
       ...results,
-      generatedPasswords,
+      generatedPasswords: maskedPasswords,
     });
   } catch (error) {
     console.error('Employee import error:', error);

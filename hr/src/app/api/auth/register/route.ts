@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     if (!deptId && departmentName?.trim()) {
       // 이름으로 기존 부서 찾기 (생성은 관리자만 가능)
       const existing = await prisma.department.findFirst({
-        where: { name: departmentName.trim() },
+        where: { name: departmentName.trim(), tenantId },
       });
       if (existing) {
         deptId = existing.id;
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     if (!deptId) {
       const defaultDept = await prisma.department.findFirst({
-        where: { isActive: true },
+        where: { isActive: true, tenantId },
         orderBy: { sortOrder: 'asc' },
       });
       if (!defaultDept) {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     if (!posId && positionName?.trim()) {
       // 이름으로 기존 직급 찾기 (생성은 관리자만 가능)
       const existing = await prisma.position.findFirst({
-        where: { name: positionName.trim() },
+        where: { name: positionName.trim(), tenantId },
       });
       if (existing) {
         posId = existing.id;
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     if (!posId) {
       const defaultPos = await prisma.position.findFirst({
-        where: { isActive: true },
+        where: { isActive: true, tenantId },
         orderBy: { level: 'asc' },
       });
       if (!defaultPos) {

@@ -51,6 +51,32 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Validate schedule settings
+    if (schedule) {
+      const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+      if (schedule.dailyTime && !timeRegex.test(schedule.dailyTime)) {
+        return NextResponse.json(
+          { message: '일일 알림 시간 형식이 올바르지 않습니다. (HH:MM)' },
+          { status: 400 }
+        );
+      }
+      if (schedule.weeklyTime && !timeRegex.test(schedule.weeklyTime)) {
+        return NextResponse.json(
+          { message: '주간 알림 시간 형식이 올바르지 않습니다. (HH:MM)' },
+          { status: 400 }
+        );
+      }
+      if (schedule.weeklyDay !== undefined && schedule.weeklyDay !== null) {
+        const day = Number(schedule.weeklyDay);
+        if (!Number.isInteger(day) || day < 0 || day > 6) {
+          return NextResponse.json(
+            { message: '주간 알림 요일은 0(일)~6(토)이어야 합니다.' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Save webhook settings
     const webhookEntries: { key: string; value: string; group: string }[] = [
       { key: 'webhook_enabled', value: enabled ? 'true' : 'false', group: 'webhook' },

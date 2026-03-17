@@ -3,6 +3,62 @@ import type { NextRequest } from 'next/server';
 import { verifyToken, COOKIE_NAME } from '@/lib/auth';
 import { isSaaSMode, SAAS_BASE_DOMAIN } from '@/lib/deploy-config';
 
+// ──────────────────────────────────────────────
+// Global API rate limiting (in-memory, per-isolate)
+// 100 requests per 60 seconds per IP for /api/ routes
+// Excludes /api/auth/*, /api/files/*, /api/internal/*
+// ──────────────────────────────────────────────
+const API_RATE_LIMIT = 100;
+const API_RATE_WINDOW_MS = 60_000;
+
+const apiRateLimitMap = new Map<string, { count: number; timestamp: number }>();
+
+function checkApiRateLimit(request: NextRequest): Response | null {
+  const { pathname } = request.nextUrl;
+
+  // Only apply to /api/ routes
+  if (!pathname.startsWith('/api/')) return null;
+
+  // Exclude routes that have their own rate limits or are exempt
+  if (
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/api/files/') ||
+    pathname.startsWith('/api/internal/')
+  ) {
+    return null;
+  }
+
+  const ip =
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown';
+
+  const now = Date.now();
+
+  // Cleanup stale entries (older than the window)
+  for (const [key, entry] of apiRateLimitMap) {
+    if (now - entry.timestamp > API_RATE_WINDOW_MS) {
+      apiRateLimitMap.delete(key);
+    }
+  }
+
+  const existing = apiRateLimitMap.get(ip);
+
+  if (existing && now - existing.timestamp <= API_RATE_WINDOW_MS) {
+    existing.count++;
+    if (existing.count > API_RATE_LIMIT) {
+      return new Response(
+        JSON.stringify({ message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      );
+    }
+  } else {
+    apiRateLimitMap.set(ip, { count: 1, timestamp: now });
+  }
+
+  return null;
+}
+
 // API routes that don't require authentication
 const PUBLIC_API_ROUTES = [
   '/api/auth/login',
@@ -270,12 +326,16 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'");
+  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'");
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   return response;
 }
 
 export async function middleware(request: NextRequest) {
+  // Global API rate limit check (early exit)
+  const rateLimitResponse = checkApiRateLimit(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const response = isSaaSMode()
     ? await saasMiddleware(request)
     : await selfHostedMiddleware(request);

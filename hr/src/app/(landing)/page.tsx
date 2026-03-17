@@ -152,7 +152,7 @@ export default function LandingPage() {
           </div>
 
           {/* Bar Chart */}
-          <div className="flex items-end justify-center gap-4 sm:gap-6 mt-6 sm:mt-10 mb-4 h-[180px] sm:h-[300px]">
+          <div className="flex items-end justify-center gap-4 sm:gap-6 mt-4 sm:mt-6 mb-4 h-[180px] sm:h-[300px]">
             {[
               { name: 'A사', total: 360, perPerson: '5,000', monthly: 10, height: '42%', barColor: 'bg-slate-500' },
               { name: 'B사', total: 576, perPerson: '8,000', monthly: 16, height: '67%', barColor: 'bg-red-500/80' },
@@ -640,13 +640,13 @@ export default function LandingPage() {
                 BEST
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-1">Business</h3>
-              <p className="text-gray-500 text-sm mb-6">100명 이하 중견기업</p>
+              <p className="text-gray-500 text-sm mb-6"><span className="text-red-500 font-bold">100명</span> 이하 중견기업</p>
 
               <div className="mb-2">
                 <span className="text-4xl font-bold text-gray-900">70</span>
                 <span className="text-xl font-bold text-gray-900">만원</span>
               </div>
-              <p className="text-sm text-gray-400 mb-6">1회 구매 · 10년 사용 · 최대 100명</p>
+              <p className="text-sm text-gray-400 mb-6">1회 구매 · 10년 사용 · 최대 <span className="text-red-500 font-semibold">100명</span></p>
 
               <div className="space-y-2.5 mb-8">
                 {ALL_FEATURES.map((feature) => (

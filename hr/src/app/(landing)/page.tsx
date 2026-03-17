@@ -152,7 +152,7 @@ export default function LandingPage() {
           </div>
 
           {/* Bar Chart */}
-          <div className="flex items-end justify-center gap-4 sm:gap-6 mt-12 mb-4 h-[180px] sm:h-[300px]">
+          <div className="flex items-end justify-center gap-4 sm:gap-6 mt-6 sm:mt-10 mb-4 h-[180px] sm:h-[300px]">
             {[
               { name: 'A사', total: 360, perPerson: '5,000', monthly: 10, height: '42%', barColor: 'bg-slate-500' },
               { name: 'B사', total: 576, perPerson: '8,000', monthly: 16, height: '67%', barColor: 'bg-red-500/80' },
@@ -160,15 +160,15 @@ export default function LandingPage() {
             ].map((item) => (
               <div key={item.name} className="flex flex-col items-center w-16 sm:w-auto sm:flex-1 sm:max-w-[160px]">
                 <p className="text-sm sm:text-2xl font-black text-white mb-1">{item.total}<span className="text-[9px] sm:text-sm font-bold text-slate-400">만</span></p>
-                <div className={`w-full rounded-t-xl ${item.barColor} relative`} style={{ height: item.height }}>
-                  <span className="absolute inset-0 hidden sm:flex items-center justify-center text-white/80 text-xs font-medium leading-tight text-center px-0.5">
+                <div className={`w-full rounded-t-xl ${item.barColor} relative overflow-hidden`} style={{ height: item.height }}>
+                  <span className="absolute inset-0 hidden lg:flex items-center justify-center text-white/80 text-xs font-medium leading-tight text-center px-0.5">
                     월 {item.monthly}만<br />× 36월
                   </span>
                 </div>
                 <div className="mt-1.5 sm:mt-3 text-center">
                   <p className="font-bold text-slate-300 text-[11px] sm:text-base">{item.name}</p>
-                  <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 hidden sm:block">인당 월 {item.perPerson}원</p>
-                  <p className="text-[9px] sm:text-[10px] text-slate-600 mt-0.5 hidden sm:block">{item.perPerson}원 × 20명 = 월 {item.monthly}만원</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 hidden md:block">인당 월 {item.perPerson}원</p>
+                  <p className="text-[9px] sm:text-[10px] text-slate-600 mt-0.5 hidden md:block">{item.perPerson}원 × 20명 = 월 {item.monthly}만원</p>
                 </div>
               </div>
             ))}

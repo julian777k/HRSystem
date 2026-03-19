@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS "payments" (
   "id" TEXT NOT NULL PRIMARY KEY,
-  "tenantId" TEXT NOT NULL,
+  "tenantId" TEXT,
   "orderId" TEXT NOT NULL UNIQUE,
   "paymentKey" TEXT,
   "plan" TEXT NOT NULL,
@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS "payments" (
   "method" TEXT,
   "receiptUrl" TEXT,
   "failureReason" TEXT,
+  "guestData" TEXT,
   "approvedAt" DATETIME,
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

@@ -289,21 +289,19 @@ export default function PurchasePage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setStep('plan')}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">결제를 진행하려면</h2>
-            <p className="text-sm text-gray-500 mb-8 text-center">계정이 필요합니다. 로그인하거나 새로 만들어주세요.</p>
+            <p className="text-sm text-gray-500 mb-8 text-center">계정이 필요합니다.</p>
 
             <div className="space-y-3">
-              <Link
-                href={`/login?redirect=/purchase?plan=${selectedPlan}`}
-                className="block w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold text-center hover:bg-blue-700 transition"
-              >
-                기존 계정으로 로그인
-              </Link>
               <button
                 onClick={() => setStep('register')}
-                className="block w-full py-3.5 border-2 border-blue-600 text-blue-600 rounded-xl font-semibold text-center hover:bg-blue-50 transition"
+                className="block w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold text-center hover:bg-blue-700 transition"
               >
                 새 계정 만들고 결제하기
               </button>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                <p className="text-sm text-gray-600">이미 계정이 있으신가요?</p>
+                <p className="text-xs text-gray-400 mt-1">회사 서브도메인(회사명.keystonehr.app)으로<br/>로그인 후 대시보드에서 결제해주세요.</p>
+              </div>
             </div>
 
             <button onClick={() => setStep('plan')} className="mt-6 w-full text-sm text-gray-400 hover:text-gray-600 text-center">

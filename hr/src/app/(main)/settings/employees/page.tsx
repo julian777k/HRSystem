@@ -1003,7 +1003,7 @@ export default function EmployeesPage() {
           <div className="py-4 space-y-3">
             <div className="rounded-md border bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
               <p className="font-medium text-slate-700">자동 컬럼 매핑</p>
-              <p>기존 CSV/엑셀 파일을 그대로 업로드하세요. 다양한 헤더명을 자동으로 인식합니다.</p>
+              <p>CSV 파일을 그대로 업로드하세요. 다양한 헤더명을 자동으로 인식합니다.</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-slate-500">
                 <p><strong className="text-slate-700">사번</strong> — 사원번호, 직원번호, No, ID</p>
                 <p><strong className="text-slate-700">이름</strong> — 성명, 성함, 직원명</p>
@@ -1015,12 +1015,36 @@ export default function EmployeesPage() {
               <p className="text-slate-400 mt-1">선택: 전화번호, 비밀번호 (미입력 시 랜덤 생성)</p>
               <p className="text-slate-400">최대 <strong>5MB</strong> / <strong>1,000건</strong></p>
             </div>
-            <Input
+            <div
+              onClick={() => !submitting && fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-blue-400', 'bg-blue-50'); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50'); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+                const f = e.dataTransfer.files[0];
+                if (f && fileInputRef.current) {
+                  const dt = new DataTransfer();
+                  dt.items.add(f);
+                  fileInputRef.current.files = dt.files;
+                  fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+              }}
+              className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 p-6 cursor-pointer transition hover:border-blue-400 hover:bg-blue-50/50 ${submitting ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              <p className="text-sm text-gray-600 font-medium">CSV 파일을 드래그하거나 클릭하여 선택</p>
+              <p className="text-xs text-gray-400">.csv 파일만 가능</p>
+            </div>
+            <input
               ref={fileInputRef}
               type="file"
               accept=".csv"
               onChange={handleImport}
               disabled={submitting}
+              className="hidden"
             />
             {importResult && (
               <pre className="mt-3 text-sm bg-gray-50 p-3 rounded whitespace-pre-wrap">

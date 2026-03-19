@@ -303,13 +303,28 @@ export default function PurchasePage() {
                 <span className="px-3 text-xs text-gray-400">또는</span>
                 <div className="flex-1 border-t border-gray-200" />
               </div>
-              <a
-                href="/login"
-                className="block w-full py-3.5 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold text-center hover:bg-gray-50 transition"
-              >
-                기존 계정으로 로그인
-              </a>
-              <p className="text-xs text-gray-400 text-center">로그인 후 서브도메인에서 결제할 수 있습니다</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2 text-center">이미 체험 중이신가요?</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="서브도메인 입력"
+                    id="subdomainInput"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="flex items-center text-sm text-gray-400">.keystonehr.app</span>
+                </div>
+                <button
+                  onClick={() => {
+                    const v = (document.getElementById('subdomainInput') as HTMLInputElement)?.value?.trim();
+                    if (v) window.location.href = `https://${v}.keystonehr.app/billing`;
+                    else setError('서브도메인을 입력해주세요.');
+                  }}
+                  className="mt-2 w-full py-2.5 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition"
+                >
+                  내 서브도메인에서 결제하기
+                </button>
+              </div>
             </div>
 
             <button onClick={() => setStep('plan')} className="mt-6 w-full text-sm text-gray-400 hover:text-gray-600 text-center">

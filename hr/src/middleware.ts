@@ -66,6 +66,7 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/register-company',
   '/api/setup/',
   '/api/super-admin/auth/login',
+  '/api/payments/',
 ];
 
 function isPublicApiRoute(pathname: string): boolean {
@@ -229,7 +230,7 @@ async function saasMiddleware(request: NextRequest) {
     }
 
     // Allow landing page routes (including privacy, terms, start)
-    if (pathname.startsWith('/(landing)') || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/start') {
+    if (pathname.startsWith('/(landing)') || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/start' || pathname.startsWith('/purchase')) {
       return NextResponse.next();
     }
 

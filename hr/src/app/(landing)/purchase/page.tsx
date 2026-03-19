@@ -153,7 +153,7 @@ export default function PurchasePage() {
       const payment = tossPayments.payment({ customerKey: 'ANONYMOUS' });
 
       await payment.requestPayment({
-        method: '카드',
+        method: 'CARD',
         amount: { currency: 'KRW', value: amount },
         orderId,
         orderName,
@@ -298,10 +298,18 @@ export default function PurchasePage() {
               >
                 새 계정 만들고 결제하기
               </button>
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-600">이미 계정이 있으신가요?</p>
-                <p className="text-xs text-gray-400 mt-1">회사 서브도메인(회사명.keystonehr.app)으로<br/>로그인 후 대시보드에서 결제해주세요.</p>
+              <div className="relative flex items-center my-2">
+                <div className="flex-1 border-t border-gray-200" />
+                <span className="px-3 text-xs text-gray-400">또는</span>
+                <div className="flex-1 border-t border-gray-200" />
               </div>
+              <a
+                href="/login"
+                className="block w-full py-3.5 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold text-center hover:bg-gray-50 transition"
+              >
+                기존 계정으로 로그인
+              </a>
+              <p className="text-xs text-gray-400 text-center">로그인 후 서브도메인에서 결제할 수 있습니다</p>
             </div>
 
             <button onClick={() => setStep('plan')} className="mt-6 w-full text-sm text-gray-400 hover:text-gray-600 text-center">

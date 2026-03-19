@@ -105,13 +105,15 @@ export default function PurchasePage() {
       setError('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
     }
-    // Check if user is logged in
+    // Check if user is logged in (redirect: manual to avoid following 307)
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        // Logged in → proceed directly
-        await processPayment('authenticated');
-        return;
+      const res = await fetch('/api/auth/me', { redirect: 'manual' });
+      if (res.ok && res.status === 200) {
+        const data = await res.json();
+        if (data?.user?.id) {
+          await processPayment('authenticated');
+          return;
+        }
       }
     } catch {}
     // Not logged in → show auth choice modal

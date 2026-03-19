@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import type { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +21,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
-    const where: Prisma.LeaveRequestWhereInput = {};
+    const where: Record<string, any> = {};
 
     if (startDate) where.startDate = { gte: new Date(startDate) };
     if (endDate) where.endDate = { lte: new Date(endDate) };

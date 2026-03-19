@@ -415,7 +415,7 @@ export default function AdminPage() {
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `employees_${new Date().toISOString().split("T")[0]}.xlsx`;
+                  a.download = `employees_${new Date().toISOString().split("T")[0]}.csv`;
                   document.body.appendChild(a);
                   a.click();
                   a.remove();
@@ -446,7 +446,7 @@ export default function AdminPage() {
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `leave_${new Date().toISOString().split("T")[0]}.xlsx`;
+                  a.download = `leave_${new Date().toISOString().split("T")[0]}.csv`;
                   document.body.appendChild(a);
                   a.click();
                   a.remove();

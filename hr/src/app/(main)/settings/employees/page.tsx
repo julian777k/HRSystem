@@ -446,7 +446,7 @@ export default function EmployeesPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `employees_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.download = `employees_${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -997,7 +997,7 @@ export default function EmployeesPage() {
           <DialogHeader>
             <DialogTitle>엑셀 가져오기</DialogTitle>
             <DialogDescription>
-              엑셀 파일(.xlsx)을 업로드하여 직원을 일괄 등록합니다.
+              CSV 파일(.csv)을 업로드하여 직원을 일괄 등록합니다.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">
@@ -1005,13 +1005,13 @@ export default function EmployeesPage() {
               <p className="font-medium text-slate-700">업로드 안내</p>
               <p>• 필수 컬럼: 사번, 이름, 이메일, 부서, 직급, 입사일</p>
               <p>• 선택 컬럼: 비밀번호, 전화번호 (비밀번호 미입력 시 default1234)</p>
-              <p>• 파일 형식: .xlsx 또는 .xls</p>
+              <p>• 파일 형식: .csv</p>
               <p>• 최대 파일 크기: <strong>5MB</strong> / 최대 <strong>1,000건</strong></p>
             </div>
             <Input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls"
+              accept=".csv"
               onChange={handleImport}
               disabled={submitting}
             />

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import type { Prisma } from '@prisma/client';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: '대기',
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const departmentId = searchParams.get('departmentId');
 
-    const where: Prisma.LeaveRequestWhereInput = {};
+    const where: Record<string, any> = {};
     if (startDate) where.startDate = { gte: new Date(startDate) };
     if (endDate) where.endDate = { lte: new Date(endDate) };
     if (departmentId) {
@@ -64,24 +63,26 @@ export async function GET(request: NextRequest) {
       '사유': r.reason || '',
     }));
 
-    const XLSX = await import('xlsx');
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 },
-      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 8 },
-      { wch: 6 }, { wch: 8 }, { wch: 30 },
+    // Generate CSV
+    const csvHeaders = Object.keys(rows[0] || {});
+    const csvLines = [
+      csvHeaders.join(','),
+      ...rows.map((row) =>
+        csvHeaders.map((h) => {
+          const val = String(row[h as keyof typeof row] ?? '');
+          // Escape fields containing commas, quotes, or newlines
+          return val.includes(',') || val.includes('"') || val.includes('\n')
+            ? `"${val.replace(/"/g, '""')}"`
+            : val;
+        }).join(',')
+      ),
     ];
+    const csvString = '\uFEFF' + csvLines.join('\r\n'); // BOM for Excel UTF-8
 
-    XLSX.utils.book_append_sheet(wb, ws, '휴가관리대장');
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-
-    return new NextResponse(buffer, {
+    return new NextResponse(csvString, {
       headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="leave-register-${new Date().toISOString().split('T')[0]}.xlsx"`,
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="leave-register-${new Date().toISOString().split('T')[0]}.csv"`,
       },
     });
   } catch (error) {

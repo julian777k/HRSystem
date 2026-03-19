@@ -45,18 +45,25 @@ export async function GET() {
       '상태': STATUS_LABELS[emp.status] || emp.status,
     }));
 
-    const XLSX = await import('xlsx');
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, '직원목록');
+    // Generate CSV
+    const csvHeaders = Object.keys(data[0] || {});
+    const csvLines = [
+      csvHeaders.join(','),
+      ...data.map((row) =>
+        csvHeaders.map((h) => {
+          const val = String(row[h as keyof typeof row] ?? '');
+          return val.includes(',') || val.includes('"') || val.includes('\n')
+            ? `"${val.replace(/"/g, '""')}"`
+            : val;
+        }).join(',')
+      ),
+    ];
+    const csvString = '\uFEFF' + csvLines.join('\r\n'); // BOM for Excel UTF-8
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-    return new NextResponse(buffer, {
+    return new NextResponse(csvString, {
       headers: {
-        'Content-Type':
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="employees_${new Date().toISOString().split('T')[0]}.xlsx"`,
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="employees_${new Date().toISOString().split('T')[0]}.csv"`,
       },
     });
   } catch (error) {

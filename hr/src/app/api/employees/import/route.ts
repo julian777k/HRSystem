@@ -39,25 +39,74 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // File type validation
-    const allowedTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
-    if (file.type && !allowedTypes.includes(file.type)) {
+    // File type validation — accept CSV and Excel
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+    if (file.type && !allowedTypes.includes(file.type) && !file.name?.endsWith('.csv')) {
       return NextResponse.json(
-        { message: '.xlsx 또는 .xls 파일만 업로드 가능합니다.' },
+        { message: '.csv 파일을 업로드해주세요.' },
         { status: 400 }
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const XLSX = await import('xlsx');
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
+    // Parse CSV natively
+    const text = await file.text();
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter((l) => l.trim());
+
+    if (lines.length < 2) {
+      return NextResponse.json(
+        { message: 'CSV 파일에 데이터가 없습니다.' },
+        { status: 400 }
+      );
+    }
+
+    // Parse CSV with proper quote handling
+    function parseCsvLine(line: string): string[] {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            current += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',') {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += ch;
+          }
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
+    const headerLine = lines[0].replace(/^\uFEFF/, ''); // strip BOM
+    const headers = parseCsvLine(headerLine);
+    const rows: Record<string, string>[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCsvLine(lines[i]);
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+      rows.push(row);
+    }
 
     if (rows.length === 0) {
       return NextResponse.json(
-        { message: '엑셀 파일에 데이터가 없습니다.' },
+        { message: 'CSV 파일에 데이터가 없습니다.' },
         { status: 400 }
       );
     }
@@ -165,7 +214,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Employee import error:', error);
     return NextResponse.json(
-      { message: '엑셀 가져오기 중 오류가 발생했습니다.' },
+      { message: 'CSV 가져오기 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

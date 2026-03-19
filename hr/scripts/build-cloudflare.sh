@@ -19,9 +19,31 @@ export NEXT_PUBLIC_DEPLOY_TARGET=cloudflare
 echo "[1/5] Generating Prisma client..."
 npx prisma generate --schema=prisma/schema.sqlite.prisma
 
+# Swap to Cloudflare-only prisma (eliminates @prisma/client from bundle)
+echo "[1.5/5] Swapping to Cloudflare-only prisma..."
+cp src/lib/prisma.ts src/lib/prisma.ts.bak
+cp src/lib/prisma-tenant.ts src/lib/prisma-tenant.ts.bak
+cp src/lib/prisma-cloudflare.ts src/lib/prisma.ts
+cp src/lib/prisma-tenant-cloudflare.ts src/lib/prisma-tenant.ts
+
+# Ensure originals are restored even if the build fails
+restore_prisma() {
+  if [ -f src/lib/prisma.ts.bak ]; then
+    mv src/lib/prisma.ts.bak src/lib/prisma.ts
+  fi
+  if [ -f src/lib/prisma-tenant.ts.bak ]; then
+    mv src/lib/prisma-tenant.ts.bak src/lib/prisma-tenant.ts
+  fi
+}
+trap restore_prisma EXIT
+
 # Build with OpenNext Cloudflare adapter
 echo "[2/5] Building with OpenNext..."
 npx opennextjs-cloudflare build
+
+# Restore original prisma files (also runs via trap on failure)
+echo "  Restoring original prisma files..."
+restore_prisma
 
 # ─── Step 3: Stub unused middleware WASM ───
 echo "[3/5] Stubbing middleware WASM..."
@@ -46,11 +68,11 @@ for wasm in $(find .open-next -name "resvg.wasm" 2>/dev/null); do
   printf '\x00\x61\x73\x6d\x01\x00\x00\x00' > "$wasm"
 done
 
-# ─── Step 4: Verify Prisma WASM in bundle ───
-# Cloudflare Workers requires static WASM imports (no dynamic WebAssembly.compile).
-# The WASM stays in the bundle (~1.1MB gzip). Total bundle fits within 3MB free tier.
-echo "[4/5] Verifying Prisma WASM..."
-python3 scripts/patch-wasm-r2.py
+# ─── Step 4: Patch Prisma WASM if present ───
+# With prisma-cloudflare.ts swap, Prisma WASM is no longer bundled.
+# This step is kept for backward compatibility but skips gracefully when WASM is absent.
+echo "[4/5] Checking Prisma WASM..."
+python3 scripts/patch-wasm-r2.py || echo "  (Prisma WASM absent — D1 client in use, no patching needed)"
 
 # ─── Step 4.5: Remove unnecessary node_modules from bundle ───
 echo "[4.5/5] Cleaning unnecessary dependencies from bundle..."

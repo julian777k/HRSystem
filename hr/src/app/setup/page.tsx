@@ -785,7 +785,7 @@ export default function SetupPage() {
                     기존 직원 데이터가 있으신가요?
                   </h4>
                   <p className="text-xs text-amber-700 mt-1">
-                    설정 완료 후 <strong>설정 &gt; 직원관리</strong>에서 엑셀 파일(.xlsx)로 직원을 일괄 등록할 수 있습니다.
+                    설정 완료 후 <strong>설정 &gt; 직원관리</strong>에서 CSV 파일(.csv)로 직원을 일괄 등록할 수 있습니다.
                     현재 엑셀이나 CSV로 관리하고 계신 직원 명부를 그대로 업로드하세요.
                   </p>
                 </div>

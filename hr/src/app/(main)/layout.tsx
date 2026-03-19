@@ -59,6 +59,8 @@ export default function MainLayout({
         <Link href="/terms" className="hover:text-gray-600 transition-colors">이용약관</Link>
         <span className="text-gray-300">·</span>
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSfegtqPf6yW27R_nyK_lCxTC46cwT5lznY_QuHvMWiZuIwK9A/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">문의하기</a>
+        <span className="text-gray-300">·</span>
+        <Link href="/billing" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">결제하기</Link>
       </footer>
       <Toaster position="top-center" richColors closeButton />
     </div>

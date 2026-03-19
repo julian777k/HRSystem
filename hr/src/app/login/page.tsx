@@ -73,8 +73,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         toast.success("로그인 성공! 이동 중...");
-        const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(data.user?.role);
-        router.replace(isAdmin ? '/admin' : '/dashboard');
+        router.replace('/dashboard');
       } else {
         const msg = data.message || "로그인에 실패했습니다.";
         setError(msg);

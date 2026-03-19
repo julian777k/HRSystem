@@ -20,14 +20,9 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ClipboardList, Check, X, Loader2, MoreVertical, Trash2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ClipboardList, Check, X, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface WelfareRequest {
@@ -35,6 +30,7 @@ interface WelfareRequest {
   status: string;
   amount: number | null;
   note: string | null;
+  adminComment: string | null;
   createdAt: string;
   item: {
     name: string;
@@ -71,6 +67,11 @@ export default function WelfareRequestPage() {
   const [adminEmployeeFilter, setAdminEmployeeFilter] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{open: boolean; title: string; description: string; action: () => void}>({open: false, title: '', description: '', action: () => {}});
+
+  // Reject dialog
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectTargetId, setRejectTargetId] = useState('');
+  const [rejectComment, setRejectComment] = useState('');
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -158,13 +159,13 @@ export default function WelfareRequestPage() {
     });
   };
 
-  const handleApproval = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+  const handleApproval = async (id: string, status: 'APPROVED' | 'REJECTED', comment?: string) => {
     setProcessingId(id);
     try {
       const res = await fetch(`/api/welfare/requests/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...(comment ? { comment } : {}) }),
       });
       if (res.ok) {
         toast.success(status === 'APPROVED' ? '복지 신청이 승인되었습니다.' : '복지 신청이 반려되었습니다.');
@@ -178,6 +179,29 @@ export default function WelfareRequestPage() {
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const handleApprove = (id: string) => {
+    setConfirmDialog({
+      open: true,
+      title: '복지 신청 승인',
+      description: '이 복지 신청을 승인하시겠습니까?',
+      action: async () => {
+        await handleApproval(id, 'APPROVED');
+      },
+    });
+  };
+
+  const openRejectDialog = (id: string) => {
+    setRejectTargetId(id);
+    setRejectComment('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectTargetId) return;
+    await handleApproval(rejectTargetId, 'REJECTED', rejectComment);
+    setRejectDialogOpen(false);
   };
 
   const openDeleteDialog = (id: string) => {
@@ -219,7 +243,8 @@ export default function WelfareRequestPage() {
             <th className="pb-3 font-medium">항목</th>
             <th className="pb-3 font-medium">금액</th>
             <th className="pb-3 font-medium">상태</th>
-            <th className="pb-3 font-medium hidden sm:table-cell">메모</th>
+            <th className="pb-3 font-medium hidden sm:table-cell">{showEmployee ? '신청 사유' : '메모'}</th>
+            {!showEmployee && <th className="pb-3 font-medium hidden sm:table-cell">반려 사유</th>}
             <th className="pb-3 font-medium text-right">관리</th>
           </tr>
         </thead>
@@ -246,6 +271,13 @@ export default function WelfareRequestPage() {
                 <td className="py-3 hidden sm:table-cell text-gray-500 max-w-[200px] truncate">
                   {req.note || '-'}
                 </td>
+                {!showEmployee && (
+                  <td className="py-3 hidden sm:table-cell max-w-[200px] truncate">
+                    {req.status === 'REJECTED' && req.adminComment ? (
+                      <span className="text-red-500 text-xs">{req.adminComment}</span>
+                    ) : '-'}
+                  </td>
+                )}
                 <td className="py-3 text-right">
                   {renderActions(req)}
                 </td>
@@ -401,42 +433,37 @@ export default function WelfareRequestPage() {
                   <p className="text-gray-400">신청 내역이 없습니다.</p>
                 </div>
               ) : (
-                renderRequestTable(filteredAdminRequests, true, (req) =>
-                  req.status === 'PENDING' ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleApproval(req.id, 'APPROVED')}
+                renderRequestTable(filteredAdminRequests, true, (req) => (
+                  <div className="flex items-center justify-end gap-1">
+                    {req.status === 'PENDING' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-green-600 border-green-300 hover:bg-green-50"
+                          onClick={() => handleApprove(req.id)}
                           disabled={processingId === req.id}
                         >
-                          <Check className="w-4 h-4 mr-2 text-green-600" />
+                          <Check className="w-3.5 h-3.5 mr-1" />
                           승인
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleApproval(req.id, 'REJECTED')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-red-600 border-red-300 hover:bg-red-50"
+                          onClick={() => openRejectDialog(req.id)}
                           disabled={processingId === req.id}
                         >
-                          <X className="w-4 h-4 mr-2 text-red-600" />
+                          <X className="w-3.5 h-3.5 mr-1" />
                           반려
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => openDeleteDialog(req.id)} className="text-red-600">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          삭제
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-red-500" onClick={() => openDeleteDialog(req.id)}>
-                      <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-red-500" onClick={() => openDeleteDialog(req.id)}>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
-                  )
-                )
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>
@@ -453,6 +480,40 @@ export default function WelfareRequestPage() {
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setConfirmDialog(prev => ({...prev, open: false}))}>취소</Button>
             <Button variant="destructive" onClick={async () => { await confirmDialog.action(); setConfirmDialog(prev => ({...prev, open: false})); }}>확인</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>복지 신청 반려</DialogTitle>
+            <DialogDescription>반려 사유를 입력해주세요.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>반려 사유</Label>
+              <Textarea
+                value={rejectComment}
+                onChange={(e) => setRejectComment(e.target.value)}
+                placeholder="반려 사유를 입력하세요 (선택)"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setRejectDialogOpen(false)}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full sm:w-auto"
+              onClick={handleReject}
+              disabled={processingId === rejectTargetId}
+            >
+              {processingId === rejectTargetId ? '처리 중...' : '반려'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

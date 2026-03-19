@@ -596,10 +596,11 @@ model WelfareRequest {
   amount      Float?
   note        String?
   formValues  String?
-  approvedBy  String?
-  approvedAt  DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  approvedBy    String?
+  approvedAt    DateTime?
+  adminComment  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   @@index([tenantId])
   @@index([employeeId])
   @@index([status])

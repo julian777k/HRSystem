@@ -19,7 +19,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { status } = body;
+    const { status, comment } = body;
 
     if (!['APPROVED', 'REJECTED'].includes(status)) {
       return NextResponse.json({ message: '유효하지 않은 상태입니다.' }, { status: 400 });
@@ -40,6 +40,7 @@ export async function PUT(
         status,
         approvedBy: user.id,
         approvedAt: new Date(),
+        ...(comment ? { adminComment: comment } : {}),
       },
       include: {
         item: { include: { category: true } },

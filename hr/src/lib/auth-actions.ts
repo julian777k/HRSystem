@@ -41,9 +41,9 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     }
   }
 
-  // Verify the employee still exists and is active in the database
+  // Verify the employee still exists and is active (or on leave) in the database
   const employee = await basePrismaClient.employee.findFirst({
-    where: { id: result.user.id, status: 'ACTIVE' },
+    where: { id: result.user.id, status: { in: ['ACTIVE', 'ON_LEAVE'] } },
     select: { id: true },
   });
   if (!employee) return null;
@@ -83,7 +83,7 @@ export async function getCurrentUserWithRefresh(): Promise<{ user: AuthUser; sho
   }
 
   const employee = await basePrismaClient.employee.findFirst({
-    where: { id: result.user.id, status: 'ACTIVE' },
+    where: { id: result.user.id, status: { in: ['ACTIVE', 'ON_LEAVE'] } },
     select: { id: true },
   });
   if (!employee) return null;

@@ -67,6 +67,14 @@ const menuItems: MenuGroup[] = [
     ],
   },
   {
+    group: "휴직",
+    icon: Clock,
+    items: [
+      { label: "나의 휴직", href: "/leave/absence", icon: Clock, role: "ALL" },
+      { label: "휴직 관리", href: "/admin/absence", icon: FileText, role: "ADMIN", permModule: "leave" },
+    ],
+  },
+  {
     group: "복지",
     icon: Heart,
     items: [

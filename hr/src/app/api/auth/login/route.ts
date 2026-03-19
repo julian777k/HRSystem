@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (employee.status !== 'ACTIVE') {
+    if (employee.status !== 'ACTIVE' && employee.status !== 'ON_LEAVE') {
       console.warn(`[Auth] Failed login: account suspended — email=${email}, ip=${ip}`);
       return NextResponse.json(
         { message: '비활성화된 계정입니다. 관리자에게 문의하세요.' },

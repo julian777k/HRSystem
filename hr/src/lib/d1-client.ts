@@ -46,6 +46,7 @@ const MODEL_TABLE_MAP: Record<string, string> = {
   welfareItem: 'welfare_items',
   welfareRequest: 'welfare_requests',
   attendance: 'attendances',
+  leaveOfAbsence: 'leave_of_absences',
 };
 
 // ─── Relation metadata (for include/select joins) ───
@@ -74,6 +75,7 @@ const RELATIONS: Record<string, Record<string, RelationMeta>> = {
     compTimeAccruals: { foreignKey: 'employeeId', targetTable: 'comp_time_accruals', targetModel: 'compTimeAccrual', type: 'hasMany' },
     welfareRequests: { foreignKey: 'employeeId', targetTable: 'welfare_requests', targetModel: 'welfareRequest', type: 'hasMany' },
     attendances: { foreignKey: 'employeeId', targetTable: 'attendances', targetModel: 'attendance', type: 'hasMany' },
+    leaveOfAbsences: { foreignKey: 'employeeId', targetTable: 'leave_of_absences', targetModel: 'leaveOfAbsence', type: 'hasMany' },
   },
   leaveRequest: {
     employee: { foreignKey: 'employeeId', targetTable: 'employees', targetModel: 'employee', type: 'belongsTo' },
@@ -136,6 +138,9 @@ const RELATIONS: Record<string, Record<string, RelationMeta>> = {
     items: { foreignKey: 'categoryId', targetTable: 'welfare_items', targetModel: 'welfareItem', type: 'hasMany' },
   },
   attendance: {
+    employee: { foreignKey: 'employeeId', targetTable: 'employees', targetModel: 'employee', type: 'belongsTo' },
+  },
+  leaveOfAbsence: {
     employee: { foreignKey: 'employeeId', targetTable: 'employees', targetModel: 'employee', type: 'belongsTo' },
   },
   department: {

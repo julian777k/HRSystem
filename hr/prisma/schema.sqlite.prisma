@@ -146,6 +146,7 @@ model Employee {
   compTimeAccruals   CompTimeAccrual[]
   welfareRequests    WelfareRequest[]
   attendances        Attendance[]
+  leaveOfAbsences    LeaveOfAbsence[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   @@unique([tenantId, email])
@@ -628,4 +629,25 @@ model Attendance {
   @@index([employeeId])
   @@index([date])
   @@map("attendances")
+}
+
+model LeaveOfAbsence {
+  id            String    @id @default(cuid())
+  tenantId      String    @default("")
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  type          String    @default("OTHER")
+  reason        String?
+  startDate     DateTime
+  endDate       DateTime
+  status        String    @default("PENDING")
+  adminComment  String?
+  approvedBy    String?
+  approvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([status])
+  @@map("leave_of_absences")
 }

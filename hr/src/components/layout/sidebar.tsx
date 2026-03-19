@@ -67,20 +67,20 @@ const menuItems: MenuGroup[] = [
     ],
   },
   {
-    group: "휴직",
-    icon: Clock,
-    items: [
-      { label: "나의 휴직", href: "/leave/absence", icon: Clock, role: "ALL" },
-      { label: "휴직 관리", href: "/admin/absence", icon: FileText, role: "ADMIN", permModule: "leave" },
-    ],
-  },
-  {
     group: "복지",
     icon: Heart,
     items: [
       { label: "복지혜택", href: "/welfare", icon: Gift, role: "ALL" },
       { label: "복지신청내역", href: "/welfare/request", icon: FileText, role: "ALL" },
       { label: "복지관리", href: "/settings/welfare", icon: Settings, role: "ADMIN", permModule: "welfare" },
+    ],
+  },
+  {
+    group: "휴직",
+    icon: Clock,
+    items: [
+      { label: "나의 휴직", href: "/leave/absence", icon: Clock, role: "ALL" },
+      { label: "휴직 관리", href: "/admin/absence", icon: FileText, role: "ADMIN", permModule: "leave" },
     ],
   },
   {

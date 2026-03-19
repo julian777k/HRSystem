@@ -52,9 +52,56 @@ done
 echo "[4/5] Verifying Prisma WASM..."
 python3 scripts/patch-wasm-r2.py
 
+# ─── Step 4.5: Remove unnecessary node_modules from bundle ───
+echo "[4.5/5] Cleaning unnecessary dependencies from bundle..."
+
+CLEAN_DIR=".open-next/server-functions/default/node_modules"
+CLEANED=0
+
+# Prisma WASM base64 files (81MB+ — D1 client replaces Prisma on CF)
+if [ -d "$CLEAN_DIR/@prisma" ]; then
+  PRISMA_SIZE=$(du -sm "$CLEAN_DIR/@prisma" | cut -f1)
+  rm -rf "$CLEAN_DIR/@prisma"
+  echo "  - Removed @prisma/ (${PRISMA_SIZE}MB)"
+  CLEANED=$((CLEANED + PRISMA_SIZE))
+fi
+if [ -d "$CLEAN_DIR/.prisma" ]; then
+  DOTPRISMA_SIZE=$(du -sm "$CLEAN_DIR/.prisma" | cut -f1)
+  rm -rf "$CLEAN_DIR/.prisma"
+  echo "  - Removed .prisma/ (${DOTPRISMA_SIZE}MB)"
+  CLEANED=$((CLEANED + DOTPRISMA_SIZE))
+fi
+
+# better-sqlite3 native binary (macOS — can't run on Workers)
+if [ -d "$CLEAN_DIR/better-sqlite3" ]; then
+  BS3_SIZE=$(du -sm "$CLEAN_DIR/better-sqlite3" | cut -f1)
+  rm -rf "$CLEAN_DIR/better-sqlite3"
+  echo "  - Removed better-sqlite3/ (${BS3_SIZE}MB)"
+  CLEANED=$((CLEANED + BS3_SIZE))
+fi
+
+# PostgreSQL client (D1 used, not PostgreSQL)
+for pkg in pg pg-cloudflare pg-connection-string pg-int8 pg-pool pg-protocol pg-types pgpass postgres-array postgres-bytea postgres-date postgres-interval; do
+  if [ -d "$CLEAN_DIR/$pkg" ]; then
+    rm -rf "$CLEAN_DIR/$pkg"
+  fi
+done
+echo "  - Removed pg* packages"
+
+# Source maps (no use in production)
+find .open-next -name "*.map" -delete 2>/dev/null
+echo "  - Removed source maps"
+
+# TypeScript declarations (no use at runtime)
+find .open-next -name "*.d.ts" -delete 2>/dev/null
+find .open-next -name "*.d.mts" -delete 2>/dev/null
+echo "  - Removed TypeScript declarations"
+
+echo "  - Total cleaned: ~${CLEANED}MB"
+
 AFTER_SIZE=$(du -sk .open-next/ | cut -f1)
 SAVED=$(( (BEFORE_SIZE - AFTER_SIZE) / 1024 ))
-echo "  - Total saved: ~${SAVED}MB"
+echo "  - Total saved from original: ~${SAVED}MB"
 
 # ─── Step 5: Final summary ───
 echo ""

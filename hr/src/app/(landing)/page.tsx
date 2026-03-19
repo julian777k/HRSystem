@@ -272,7 +272,10 @@ export default function LandingPage() {
               },
             ].map((section) => (
               <div key={section.category}>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 pl-1">{section.category}</p>
+                <div className="flex items-center gap-2 mb-3 mt-6 first:mt-0">
+                  <span className="text-sm sm:text-base font-extrabold text-gray-700">{section.category}</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
                 <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
                   <table className="w-full border-collapse text-xs sm:text-sm min-w-[380px] sm:min-w-[480px]">
                     <thead>
@@ -481,55 +484,6 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* My Leave Screenshot */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-12 items-center">
-            <div className="lg:w-5/12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                KeystoneHR 셀프서비스
-              </h2>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                직원이 직접 휴가 잔여일을 확인하고, 휴가/연장근무/복지를 신청합니다.
-                관리자에게 물어볼 필요 없이, 모든 것이 한 화면에.
-              </p>
-              <ul className="space-y-3 text-sm text-gray-600">
-                <li className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  잔여 연차, 사용 현황 실시간 확인
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  휴가/연장근무/복지 온라인 신청
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  신청 진행 상태 추적
-                </li>
-              </ul>
-            </div>
-            <div className="lg:w-7/12">
-              <div className="rounded-xl overflow-hidden shadow-xl border border-gray-200">
-                <ClickableImage
-                  src="/screenshots/18_my_leave.png"
-                  alt="내 휴가 현황"
-                  width={1440}
-                  height={900}
-                  className="w-full"
-                  caption="내 휴가 — 잔여일수, 신청 내역, 사용 현황"
-                />
-              </div>
-            </div>
           </div>
         </div>
       </section>

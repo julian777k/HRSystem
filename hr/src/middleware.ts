@@ -333,6 +333,22 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Block path traversal attempts (../, %2e%2e, etc.)
+  const decodedPath = decodeURIComponent(pathname);
+  if (decodedPath.includes('..') || pathname.includes('..') || pathname.includes('%2e%2e') || pathname.includes('%2E%2E')) {
+    return new Response(JSON.stringify({ message: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // Block access to sensitive files
+  const sensitiveFiles = ['.env', 'wrangler.toml', '.git', 'package.json', 'tsconfig.json', '.wrangler'];
+  for (const f of sensitiveFiles) {
+    if (pathname.endsWith(f) || pathname.includes(`/${f}`)) {
+      return new Response(JSON.stringify({ message: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+  }
+
   // Global API rate limit check (early exit)
   const rateLimitResponse = checkApiRateLimit(request);
   if (rateLimitResponse) return rateLimitResponse;

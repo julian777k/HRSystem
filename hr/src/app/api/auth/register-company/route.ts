@@ -13,6 +13,11 @@ const RESERVED_SUBDOMAINS = [
 
 const TRIAL_DAYS = 7;
 
+/** Strip HTML tags to prevent XSS in API responses */
+function sanitize(str: string): string {
+  return str.replace(/[<>"'&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' }[c] || c));
+}
+
 /**
  * POST /api/auth/register-company — Self-service company registration (public)
  * Creates a new tenant with 7-day trial + admin account.
@@ -114,7 +119,7 @@ export async function POST(request: NextRequest) {
       {
         message: '회사 등록이 완료되었습니다.',
         tenant: {
-          name: companyName,
+          name: sanitize(companyName),
           subdomain,
           trialExpiresAt,
         },

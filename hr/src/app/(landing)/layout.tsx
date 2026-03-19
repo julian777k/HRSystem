@@ -58,7 +58,11 @@ export default function LandingLayout({
               <a href="/terms" className="hover:text-gray-700">이용약관</a>
               <a href="https://docs.google.com/forms/d/e/1FAIpQLSfegtqPf6yW27R_nyK_lCxTC46cwT5lznY_QuHvMWiZuIwK9A/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700">문의하기</a>
             </div>
-            <div className="text-gray-500 text-sm">
+            <div className="text-gray-400 text-xs leading-relaxed text-center">
+              <p>상호: KeystoneHR | 대표: 홍영웅 | 사업자등록번호: 000-00-00000</p>
+              <p>이메일: support@keystonehr.app</p>
+            </div>
+            <div className="text-gray-400 text-xs">
               &copy; {new Date().getFullYear()} KeystoneHR. All rights reserved.
             </div>
           </div>

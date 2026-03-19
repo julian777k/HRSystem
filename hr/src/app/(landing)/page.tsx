@@ -632,6 +632,12 @@ export default function LandingPage() {
               >
                 7일 무료 체험 시작하기
               </a>
+              <a
+                href="/purchase?plan=standard"
+                className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 mt-3"
+              >
+                바로 구매하기
+              </a>
             </div>
 
             {/* 100명 플랜 */}
@@ -664,6 +670,12 @@ export default function LandingPage() {
                 className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
               >
                 7일 무료 체험 시작하기
+              </a>
+              <a
+                href="/purchase?plan=business"
+                className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 mt-3"
+              >
+                바로 구매하기
               </a>
             </div>
           </div>

@@ -94,13 +94,19 @@ export async function POST(request: NextRequest) {
       return result;
     }
 
+    // Sanitize CSV formula injection (=, +, -, @, tab, carriage return)
+    function sanitizeCsvValue(val: string): string {
+      if (/^[=+\-@\t\r]/.test(val)) return "'" + val;
+      return val;
+    }
+
     const headerLine = lines[0].replace(/^\uFEFF/, ''); // strip BOM
     const headers = parseCsvLine(headerLine);
     const rows: Record<string, string>[] = [];
     for (let i = 1; i < lines.length; i++) {
       const values = parseCsvLine(lines[i]);
       const row: Record<string, string> = {};
-      headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+      headers.forEach((h, idx) => { row[h] = sanitizeCsvValue(values[idx] || ''); });
       rows.push(row);
     }
 
@@ -146,6 +152,12 @@ export async function POST(request: NextRequest) {
         if (!employeeNumber || !name || !email || !deptName || !posName || !hireDate) {
           results.failed++;
           results.errors.push(`${rowNum}행: 필수 항목 누락`);
+          continue;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          results.failed++;
+          results.errors.push(`${rowNum}행: 이메일 형식 오류 (${email})`);
           continue;
         }
 

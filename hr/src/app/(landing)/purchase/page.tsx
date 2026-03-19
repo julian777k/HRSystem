@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Script from 'next/script';
+import Link from 'next/link';
 
 /* global TossPayments SDK — loaded via CDN script tag */
 declare global {
@@ -40,22 +41,83 @@ const ALL_FEATURES = [
 
 type Plan = 'standard' | 'business';
 
+/** Convert company name to a subdomain suggestion (romanize Korean, lowercase, strip special chars) */
+function suggestSubdomain(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[가-힣]+/g, '') // remove Korean chars (can't be in subdomain)
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 30);
+}
+
 export default function PurchasePage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan>('standard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sdkReady, setSdkReady] = useState(false);
 
+  // Guest registration fields
+  const [companyName, setCompanyName] = useState('');
+  const [subdomain, setSubdomain] = useState('');
+  const [subdomainTouched, setSubdomainTouched] = useState(false);
+  const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Auto-suggest subdomain from company name
+  useEffect(() => {
+    if (!subdomainTouched && companyName) {
+      setSubdomain(suggestSubdomain(companyName));
+    }
+  }, [companyName, subdomainTouched]);
+
   const plans = {
     standard: { name: 'Standard', price: 490000, priceLabel: '49만원', desc: '50명 이하 중소기업', maxEmployees: '50명' },
     business: { name: 'Business', price: 700000, priceLabel: '70만원', desc: '100명 이하 중견기업', maxEmployees: '100명', badge: 'BEST' },
   } as const;
+
+  const validateForm = useCallback((): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!companyName.trim()) errors.companyName = '회사명을 입력해주세요.';
+    if (!subdomain.trim()) {
+      errors.subdomain = '서브도메인을 입력해주세요.';
+    } else if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(subdomain) || subdomain.length < 2 || subdomain.length > 30) {
+      errors.subdomain = '2~30자, 영문 소문자/숫자/하이픈만 사용 가능합니다.';
+    }
+    if (!adminName.trim()) errors.adminName = '관리자 이름을 입력해주세요.';
+    if (!adminEmail.trim()) {
+      errors.adminEmail = '이메일을 입력해주세요.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
+      errors.adminEmail = '올바른 이메일 형식을 입력해주세요.';
+    }
+    if (!adminPassword) {
+      errors.adminPassword = '비밀번호를 입력해주세요.';
+    } else if (adminPassword.length < 8) {
+      errors.adminPassword = '비밀번호는 8자 이상이어야 합니다.';
+    } else if (!/\d/.test(adminPassword)) {
+      errors.adminPassword = '비밀번호에 숫자가 1개 이상 포함되어야 합니다.';
+    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(adminPassword)) {
+      errors.adminPassword = '비밀번호에 특수문자가 1개 이상 포함되어야 합니다.';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [companyName, subdomain, adminName, adminEmail, adminPassword]);
 
   const handlePayment = async () => {
     if (!sdkReady) {
       setError('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
     }
+
+    // Validate guest form
+    if (!validateForm()) return;
 
     setLoading(true);
     setError('');
@@ -65,7 +127,14 @@ export default function PurchasePage() {
       const res = await fetch('/api/payments/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan }),
+        body: JSON.stringify({
+          plan: selectedPlan,
+          companyName: companyName.trim(),
+          subdomain: subdomain.trim(),
+          adminName: adminName.trim(),
+          adminEmail: adminEmail.trim(),
+          adminPassword,
+        }),
       });
 
       if (!res.ok) {
@@ -120,6 +189,178 @@ export default function PurchasePage() {
             <p className="text-gray-600 max-w-2xl mx-auto">
               추가 비용 없이, 모든 기능을 하나의 플랜으로. 1회 결제, 10년 사용.
             </p>
+          </div>
+
+          {/* Company & Admin Info Form */}
+          <div className="max-w-2xl mx-auto mb-10">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-6 sm:p-8">
+              <h2 className="text-lg font-bold text-gray-900 mb-1">회사 및 관리자 정보</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                결제 완료 후 바로 사용할 수 있는 계정이 생성됩니다.
+              </p>
+
+              <div className="space-y-4">
+                {/* Company Name */}
+                <div>
+                  <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+                    회사명 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="companyName"
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => {
+                      setCompanyName(e.target.value);
+                      setFieldErrors((prev) => ({ ...prev, companyName: '' }));
+                    }}
+                    placeholder="예: 주식회사 키스톤"
+                    className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+                      fieldErrors.companyName ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {fieldErrors.companyName && (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.companyName}</p>
+                  )}
+                </div>
+
+                {/* Subdomain */}
+                <div>
+                  <label htmlFor="subdomain" className="block text-sm font-medium text-gray-700 mb-1">
+                    서브도메인 <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-0">
+                    <input
+                      id="subdomain"
+                      type="text"
+                      value={subdomain}
+                      onChange={(e) => {
+                        setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
+                        setSubdomainTouched(true);
+                        setFieldErrors((prev) => ({ ...prev, subdomain: '' }));
+                      }}
+                      placeholder="my-company"
+                      className={`flex-1 px-4 py-2.5 border rounded-l-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+                        fieldErrors.subdomain ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    <span className="px-3 py-2.5 bg-gray-100 border border-l-0 border-gray-300 rounded-r-xl text-sm text-gray-500 whitespace-nowrap">
+                      .keystonehr.app
+                    </span>
+                  </div>
+                  {fieldErrors.subdomain ? (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.subdomain}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-400">
+                      영문 소문자, 숫자, 하이픈만 사용 가능 (2~30자)
+                    </p>
+                  )}
+                </div>
+
+                <div className="border-t border-gray-100 pt-4" />
+
+                {/* Admin Name */}
+                <div>
+                  <label htmlFor="adminName" className="block text-sm font-medium text-gray-700 mb-1">
+                    관리자 이름 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="adminName"
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => {
+                      setAdminName(e.target.value);
+                      setFieldErrors((prev) => ({ ...prev, adminName: '' }));
+                    }}
+                    placeholder="홍길동"
+                    className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+                      fieldErrors.adminName ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {fieldErrors.adminName && (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.adminName}</p>
+                  )}
+                </div>
+
+                {/* Admin Email */}
+                <div>
+                  <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                    관리자 이메일 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="adminEmail"
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => {
+                      setAdminEmail(e.target.value);
+                      setFieldErrors((prev) => ({ ...prev, adminEmail: '' }));
+                    }}
+                    placeholder="admin@company.com"
+                    className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+                      fieldErrors.adminEmail ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {fieldErrors.adminEmail && (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.adminEmail}</p>
+                  )}
+                </div>
+
+                {/* Admin Password */}
+                <div>
+                  <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                    관리자 비밀번호 <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="adminPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      value={adminPassword}
+                      onChange={(e) => {
+                        setAdminPassword(e.target.value);
+                        setFieldErrors((prev) => ({ ...prev, adminPassword: '' }));
+                      }}
+                      placeholder="8자 이상, 숫자+특수문자 포함"
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition pr-12 ${
+                        fieldErrors.adminPassword ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {fieldErrors.adminPassword ? (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.adminPassword}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-400">
+                      8자 이상, 숫자 1개 이상, 특수문자 1개 이상
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Login link */}
+              <div className="mt-5 pt-4 border-t border-gray-100 text-center">
+                <p className="text-sm text-gray-500">
+                  이미 계정이 있으신가요?{' '}
+                  <Link href="/login" className="text-blue-600 hover:underline font-medium">
+                    로그인 후 결제하기
+                  </Link>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Plan Cards */}

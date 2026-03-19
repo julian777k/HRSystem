@@ -5,11 +5,19 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface PaymentResult {
-  orderName: string;
-  totalAmount: number;
-  orderId: string;
-  approvedAt: string;
+  success: boolean;
+  loginUrl?: string;
   subdomain?: string;
+  payment: {
+    orderId: string;
+    amount: number;
+    plan: string;
+    planName: string;
+    method?: string;
+    receiptUrl?: string;
+    approvedAt: string;
+    expiresAt: string;
+  };
 }
 
 export default function PurchaseSuccessPage() {
@@ -67,7 +75,7 @@ function PurchaseSuccessContent() {
 
         const data = await res.json();
 
-        if (res.ok) {
+        if (res.ok && data.success) {
           setResult(data);
           setStatus('success');
         } else {
@@ -130,6 +138,9 @@ function PurchaseSuccessContent() {
     );
   }
 
+  const isNewAccount = !!result?.loginUrl;
+  const payment = result?.payment;
+
   return (
     <main className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-lg p-8 text-center space-y-5">
@@ -138,41 +149,73 @@ function PurchaseSuccessContent() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-xl font-bold text-gray-900">결제가 완료되었습니다</h2>
-        <p className="text-gray-500 text-sm">
-          KeystoneHR을 구매해주셔서 감사합니다.
-        </p>
 
-        {result && (
+        {isNewAccount ? (
+          <>
+            <h2 className="text-xl font-bold text-gray-900">계정이 생성되었습니다</h2>
+            <p className="text-gray-500 text-sm">
+              결제가 완료되고 KeystoneHR 계정이 생성되었습니다.<br />
+              아래 주소에서 로그인하여 바로 사용하실 수 있습니다.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-xl font-bold text-gray-900">결제가 완료되었습니다</h2>
+            <p className="text-gray-500 text-sm">
+              KeystoneHR을 구매해주셔서 감사합니다.
+            </p>
+          </>
+        )}
+
+        {payment && (
           <>
             <div className="bg-gray-50 rounded-xl p-4 text-sm text-left space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-500">상품명</span>
-                <span className="font-medium text-gray-900">{result.orderName}</span>
+                <span className="font-medium text-gray-900">KeystoneHR {payment.planName} 플랜</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">결제 금액</span>
-                <span className="font-bold text-blue-600">{result.totalAmount.toLocaleString()}원</span>
+                <span className="font-bold text-blue-600">{payment.amount.toLocaleString()}원</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">주문번호</span>
-                <span className="font-mono text-xs text-gray-700">{result.orderId}</span>
+                <span className="font-mono text-xs text-gray-700">{payment.orderId}</span>
               </div>
-              {result.approvedAt && (
+              {payment.approvedAt && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">승인 일시</span>
                   <span className="text-gray-700">
-                    {new Date(result.approvedAt).toLocaleString('ko-KR')}
+                    {new Date(payment.approvedAt).toLocaleString('ko-KR')}
                   </span>
                 </div>
               )}
             </div>
 
+            {isNewAccount && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-left space-y-1.5">
+                <p className="font-medium text-blue-900">로그인 정보</p>
+                <p className="text-blue-700">
+                  가입 시 입력하신 이메일과 비밀번호로 로그인하세요.
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-col gap-3 pt-2">
-              {result.subdomain ? (
+              {result?.loginUrl ? (
+                <a
+                  href={result.loginUrl}
+                  className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition text-center flex items-center justify-center gap-2"
+                >
+                  로그인하러 가기
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </a>
+              ) : result?.subdomain ? (
                 <a
                   href={`https://${result.subdomain}.keystonehr.app/login`}
-                  className="block w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition text-center flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition text-center flex items-center justify-center gap-2"
                 >
                   대시보드로 이동
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

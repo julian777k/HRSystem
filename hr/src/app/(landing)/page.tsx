@@ -106,7 +106,7 @@ export default function LandingPage() {
             </p>
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-gray-900 mb-6 leading-tight">
               HR 솔루션이{' '}
-              <span className="text-blue-600">월 4,083원?</span>
+              <span className="text-red-500">월 4,083원?</span>
               <br />
               <span className="text-gray-400 text-lg sm:text-3xl lg:text-4xl font-bold">네, 커피 한 잔 값으로 10년 쓰는 인사관리</span>
             </h1>
@@ -128,8 +128,8 @@ export default function LandingPage() {
               직원 20명 기준 · 3년 비용 비교 · VAT 별도
             </p>
             <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black mb-4 leading-tight">
-              3년에 <span className="text-red-400">864만원</span> 쓸 건가요?<br />
-              <span className="text-blue-400">49만원</span>이면 <span className="text-blue-400">10년</span> 씁니다.
+              3년에 <span className="text-slate-400">864만원</span> 쓸 건가요?<br />
+              <span className="text-red-400">49만원</span>이면 <span className="text-red-400">10년</span> 씁니다.
             </h2>
             <p className="text-slate-400 text-base sm:text-lg max-w-xl mx-auto">
               구독형 HR 솔루션은 매달 인당 요금이 쌓입니다.<br className="hidden sm:block" />
@@ -159,10 +159,10 @@ export default function LandingPage() {
               </div>
             ))}
             <div className="flex flex-col items-center w-16 sm:w-auto sm:flex-1 sm:max-w-[160px]">
-              <p className="text-sm sm:text-2xl font-black text-blue-400 mb-1">49<span className="text-[9px] sm:text-sm font-bold">만</span></p>
-              <div className="w-full rounded-t-xl bg-blue-500 shadow-lg shadow-blue-500/40 relative" style={{ height: '5.7%' }} />
+              <p className="text-sm sm:text-2xl font-black text-red-400 mb-1">49<span className="text-[9px] sm:text-sm font-bold">만</span></p>
+              <div className="w-full rounded-t-xl bg-red-500 shadow-lg shadow-red-500/40 relative" style={{ height: '5.7%' }} />
               <div className="mt-1.5 sm:mt-3 text-center">
-                <p className="font-bold text-blue-400 text-[11px] sm:text-base">KeystoneHR</p>
+                <p className="font-bold text-red-400 text-[11px] sm:text-base">KeystoneHR</p>
                 <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">1회 결제 · 10년</p>
                 <p className="text-[9px] sm:text-[10px] text-slate-600 mt-0.5 hidden sm:block">50명 이하 기준</p>
               </div>
@@ -176,12 +176,12 @@ export default function LandingPage() {
 
           {/* Hooking callout */}
           <div className="flex justify-center mb-10">
-            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-blue-500/10 border border-blue-400/30 rounded-2xl px-5 sm:px-8 py-4 sm:py-5 backdrop-blur max-w-full">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-red-500/10 border border-red-400/30 rounded-2xl px-5 sm:px-8 py-4 sm:py-5 backdrop-blur max-w-full">
               <span className="text-3xl sm:text-4xl">🔥</span>
               <div className="text-center sm:text-left">
-                <p className="text-blue-300 text-xs sm:text-sm font-semibold">구독형 최저가 A사와 비교해도</p>
+                <p className="text-slate-300 text-xs sm:text-sm font-semibold">구독형 최저가 A사와 비교해도</p>
                 <p className="text-xl sm:text-3xl font-black text-white">7배 저렴합니다</p>
-                <p className="text-blue-400 text-sm sm:text-lg font-bold">→ 311만원 절감</p>
+                <p className="text-red-400 text-sm sm:text-lg font-bold">→ 311만원 절감</p>
               </div>
             </div>
           </div>
@@ -191,7 +191,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-3 text-center text-xs sm:text-sm font-bold border-b border-slate-700 py-3 px-2 sm:px-4">
               <span className="text-slate-400">항목</span>
               <span className="text-slate-400">구독형</span>
-              <span className="text-blue-400">KeystoneHR</span>
+              <span className="text-red-400">KeystoneHR</span>
             </div>
             {[
               { label: '과금 방식', sub: '인당 × 매월 반복', keystone: '1회 결제, 끝' },
@@ -202,8 +202,8 @@ export default function LandingPage() {
             ].map((row, i) => (
               <div key={row.label} className={`grid grid-cols-3 text-center text-xs sm:text-sm py-3 sm:py-3.5 px-2 sm:px-4 ${i % 2 === 0 ? 'bg-slate-800/30' : ''}`}>
                 <span className="text-slate-300 font-medium text-left">{row.label}</span>
-                <span className="text-red-400 font-semibold">{row.sub}</span>
-                <span className="text-blue-400 font-bold">✓ {row.keystone}</span>
+                <span className="text-slate-400 font-semibold">{row.sub}</span>
+                <span className="text-red-400 font-bold">✓ {row.keystone}</span>
               </div>
             ))}
           </div>
@@ -211,7 +211,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row justify-center gap-3 mt-10">
             <a
               href="/start"
-              className="px-8 py-3.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition shadow-lg shadow-blue-500/30 text-center"
+              className="px-8 py-3.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition shadow-lg shadow-red-500/30 text-center"
             >
               7일 무료 체험 시작하기
             </a>
@@ -501,32 +501,16 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <div className="group">
-              <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
-                <ClickableImage
-                  src="/screenshots/14_overtime_approval_list.png"
-                  alt="결재 대기 목록"
-                  width={1440}
-                  height={900}
-                  className="w-full"
-                  caption="결재 대기 목록 — 승인/반려 버튼으로 즉시 처리"
-                />
+            {[
+              { src: '/screenshots/14_overtime_approval_list.png', alt: '결재 대기', cap: '결재 대기 — 승인/반려 즉시 처리' },
+              { src: '/screenshots/14_overtime_approved.png', alt: '결재 승인', cap: '클릭 한 번으로 결재 완료' },
+            ].map((s) => (
+              <div key={s.alt} className="group">
+                <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
+                  <ClickableImage src={s.src} alt={s.alt} width={1440} height={900} className="w-full" caption={s.cap} />
+                </div>
               </div>
-              <p className="text-xs text-gray-400 text-center mt-2">결재 대기 목록</p>
-            </div>
-            <div className="group">
-              <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 transition group-hover:shadow-xl">
-                <ClickableImage
-                  src="/screenshots/14_overtime_approved.png"
-                  alt="결재 승인 처리"
-                  width={1440}
-                  height={900}
-                  className="w-full"
-                  caption="승인 확인 — 클릭 한 번으로 결재 완료"
-                />
-              </div>
-              <p className="text-xs text-gray-400 text-center mt-2">승인 확인 처리</p>
-            </div>
+            ))}
           </div>
         </div>
       </section>

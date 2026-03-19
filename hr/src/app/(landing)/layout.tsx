@@ -56,6 +56,7 @@ export default function LandingLayout({
             <div className="flex gap-6 text-sm text-gray-500">
               <a href="/privacy" className="hover:text-gray-700">개인정보처리방침</a>
               <a href="/terms" className="hover:text-gray-700">이용약관</a>
+              <a href="https://docs.google.com/forms/d/e/1FAIpQLSfegtqPf6yW27R_nyK_lCxTC46cwT5lznY_QuHvMWiZuIwK9A/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700">문의하기</a>
             </div>
             <div className="text-gray-500 text-sm">
               &copy; {new Date().getFullYear()} KeystoneHR. All rights reserved.

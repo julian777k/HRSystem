@@ -116,7 +116,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <p className="text-blue-600 font-semibold text-sm mb-3 tracking-wide">
-              중소기업을 위한 올인원 HR 솔루션
+              KeystoneHR — 중소기업을 위한 올인원 HR 솔루션
             </p>
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-gray-900 mb-6 leading-tight">
               HR 솔루션이{' '}
@@ -412,7 +412,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              다른 HR 솔루션과 다릅니다
+              KeystoneHR은 다릅니다
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               유료 애드온 없이, 중소기업에 꼭 필요한 기능을 기본으로 제공합니다
@@ -469,7 +469,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              기본도 탄탄합니다
+              KeystoneHR, 기본도 탄탄합니다
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               HR 업무에 필요한 핵심 기능을 모두 갖추고 있습니다
@@ -505,7 +505,7 @@ export default function LandingPage() {
           <div className="flex flex-col lg:flex-row gap-12 items-center">
             <div className="lg:w-5/12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                직원 셀프서비스
+                KeystoneHR 셀프서비스
               </h2>
               <p className="text-gray-600 mb-6 leading-relaxed">
                 직원이 직접 휴가 잔여일을 확인하고, 휴가/연장근무/복지를 신청합니다.
@@ -596,7 +596,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              심플한 요금제
+              KeystoneHR 요금제
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               추가 비용 없이, 모든 기능을 하나의 플랜으로
@@ -674,10 +674,10 @@ export default function LandingPage() {
       <section className="py-20 bg-blue-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            지금 바로 시작하세요
+            KeystoneHR, 지금 바로 시작하세요
           </h2>
           <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-            7일 무료 체험 후, 1회 구매로 영구 사용. 복잡한 설치 없이 바로 시작하세요.
+            7일 무료 체험 후, 1회 구매로 10년 사용. 복잡한 설치 없이 바로 시작하세요.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
@@ -693,6 +693,17 @@ export default function LandingPage() {
               로그인
             </a>
           </div>
+          <p className="mt-6 text-blue-200 text-sm">
+            궁금한 점이 있으신가요?{' '}
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfegtqPf6yW27R_nyK_lCxTC46cwT5lznY_QuHvMWiZuIwK9A/viewform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white underline underline-offset-2 hover:text-blue-100 font-semibold"
+            >
+              문의하기
+            </a>
+          </p>
         </div>
       </section>
     </main>

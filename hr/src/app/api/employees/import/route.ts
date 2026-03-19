@@ -100,13 +100,55 @@ export async function POST(request: NextRequest) {
       return val;
     }
 
+    // ── 컬럼 자동 매핑 ──
+    // 다양한 한글/영문 헤더명을 내부 필드로 매핑
+    const COLUMN_MAP: Record<string, string[]> = {
+      employeeNumber: ['사번', '사원번호', '직원번호', '번호', 'no', 'id', 'employeenumber', 'employee_number', 'emp_no', 'empno', 'employee_id', 'staff_no', 'num'],
+      name: ['이름', '성명', '성함', '직원명', '사원명', 'name', 'employee_name', 'full_name', 'fullname', 'staff_name'],
+      email: ['이메일', '메일', 'e-mail', 'email', 'mail', 'email_address', 'e_mail'],
+      password: ['비밀번호', '패스워드', '암호', 'password', 'pw', 'pass'],
+      phone: ['전화번호', '연락처', '휴대폰', '핸드폰', '전화', '폰', 'phone', 'tel', 'mobile', 'phone_number', 'contact', 'cell'],
+      department: ['부서', '부서명', '소속', '소속부서', '팀', '팀명', 'department', 'dept', 'dept_name', 'department_name', 'team', 'division'],
+      position: ['직급', '직위', '직책', '직급명', '등급', 'position', 'rank', 'title', 'job_title', 'grade', 'level', 'role_title'],
+      hireDate: ['입사일', '입사일자', '입사년월일', '시작일', '근무시작일', 'hiredate', 'hire_date', 'start_date', 'join_date', 'joined', 'entry_date'],
+    };
+
+    function matchColumn(header: string): string | null {
+      const h = header.trim().toLowerCase().replace(/[\s_\-\.]+/g, '');
+      for (const [field, aliases] of Object.entries(COLUMN_MAP)) {
+        for (const alias of aliases) {
+          if (h === alias.toLowerCase().replace(/[\s_\-\.]+/g, '')) return field;
+        }
+      }
+      return null;
+    }
+
     const headerLine = lines[0].replace(/^\uFEFF/, ''); // strip BOM
-    const headers = parseCsvLine(headerLine);
+    const rawHeaders = parseCsvLine(headerLine);
+
+    // 헤더를 내부 필드명으로 매핑
+    const headerMapping: (string | null)[] = rawHeaders.map(matchColumn);
+    const mappedFields = headerMapping.filter(Boolean) as string[];
+    const requiredFields = ['employeeNumber', 'name', 'email', 'department', 'position', 'hireDate'];
+    const missingFields = requiredFields.filter(f => !mappedFields.includes(f));
+
+    if (missingFields.length > 0) {
+      const fieldNames: Record<string, string> = { employeeNumber: '사번', name: '이름', email: '이메일', department: '부서', position: '직급', hireDate: '입사일' };
+      const missing = missingFields.map(f => fieldNames[f] || f).join(', ');
+      return NextResponse.json(
+        { message: `필수 컬럼을 찾을 수 없습니다: ${missing}. CSV 헤더를 확인해주세요.`, detectedHeaders: rawHeaders, mappedTo: Object.fromEntries(rawHeaders.map((h, i) => [h, headerMapping[i] || '(인식 불가)'])) },
+        { status: 400 }
+      );
+    }
+
     const rows: Record<string, string>[] = [];
     for (let i = 1; i < lines.length; i++) {
       const values = parseCsvLine(lines[i]);
       const row: Record<string, string> = {};
-      headers.forEach((h, idx) => { row[h] = sanitizeCsvValue(values[idx] || ''); });
+      rawHeaders.forEach((_, idx) => {
+        const field = headerMapping[idx];
+        if (field) row[field] = sanitizeCsvValue(values[idx] || '');
+      });
       rows.push(row);
     }
 
@@ -117,7 +159,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Row limit: 1000 rows max
     if (rows.length > 1000) {
       return NextResponse.json(
         { message: `최대 1,000건까지 가져올 수 있습니다. (현재 ${rows.length}건)` },
@@ -139,15 +180,15 @@ export async function POST(request: NextRequest) {
       const rowNum = i + 2;
 
       try {
-        const employeeNumber = row['사번'] || row['employeeNumber'] || '';
-        const name = row['이름'] || row['name'] || '';
-        const email = row['이메일'] || row['email'] || '';
-        const hasExplicitPassword = !!(row['비밀번호'] || row['password']);
-        const password = row['비밀번호'] || row['password'] || generateRandomPassword();
-        const phone = row['전화번호'] || row['phone'] || '';
-        const deptName = row['부서'] || row['department'] || '';
-        const posName = row['직급'] || row['position'] || '';
-        const hireDate = row['입사일'] || row['hireDate'] || '';
+        const employeeNumber = row['employeeNumber'] || '';
+        const name = row['name'] || '';
+        const email = row['email'] || '';
+        const hasExplicitPassword = !!row['password'];
+        const password = row['password'] || generateRandomPassword();
+        const phone = row['phone'] || '';
+        const deptName = row['department'] || '';
+        const posName = row['position'] || '';
+        const hireDate = row['hireDate'] || '';
 
         if (!employeeNumber || !name || !email || !deptName || !posName || !hireDate) {
           results.failed++;

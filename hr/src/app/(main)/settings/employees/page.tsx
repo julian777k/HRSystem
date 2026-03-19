@@ -995,18 +995,25 @@ export default function EmployeesPage() {
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>엑셀 가져오기</DialogTitle>
+            <DialogTitle>CSV 가져오기</DialogTitle>
             <DialogDescription>
               CSV 파일(.csv)을 업로드하여 직원을 일괄 등록합니다.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">
-            <div className="rounded-md border bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
-              <p className="font-medium text-slate-700">업로드 안내</p>
-              <p>• 필수 컬럼: 사번, 이름, 이메일, 부서, 직급, 입사일</p>
-              <p>• 선택 컬럼: 비밀번호, 전화번호 (비밀번호 미입력 시 default1234)</p>
-              <p>• 파일 형식: .csv</p>
-              <p>• 최대 파일 크기: <strong>5MB</strong> / 최대 <strong>1,000건</strong></p>
+            <div className="rounded-md border bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
+              <p className="font-medium text-slate-700">자동 컬럼 매핑</p>
+              <p>기존 CSV/엑셀 파일을 그대로 업로드하세요. 다양한 헤더명을 자동으로 인식합니다.</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-slate-500">
+                <p><strong className="text-slate-700">사번</strong> — 사원번호, 직원번호, No, ID</p>
+                <p><strong className="text-slate-700">이름</strong> — 성명, 성함, 직원명</p>
+                <p><strong className="text-slate-700">이메일</strong> — 메일, E-mail</p>
+                <p><strong className="text-slate-700">부서</strong> — 부서명, 소속, 팀</p>
+                <p><strong className="text-slate-700">직급</strong> — 직위, 직책, 등급</p>
+                <p><strong className="text-slate-700">입사일</strong> — 입사일자, 시작일</p>
+              </div>
+              <p className="text-slate-400 mt-1">선택: 전화번호, 비밀번호 (미입력 시 랜덤 생성)</p>
+              <p className="text-slate-400">최대 <strong>5MB</strong> / <strong>1,000건</strong></p>
             </div>
             <Input
               ref={fileInputRef}

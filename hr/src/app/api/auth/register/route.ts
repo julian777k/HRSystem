@@ -20,6 +20,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if self-registration is enabled for this tenant
+    const selfRegConfig = await prisma.systemConfig.findFirst({
+      where: { key: 'self_register_enabled' },
+    });
+    if (selfRegConfig && selfRegConfig.value === 'false') {
+      return NextResponse.json(
+        { message: '자가 등록이 비활성화되어 있습니다. 관리자에게 문의하세요.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { name, email, password, phone, departmentId, positionId, employeeNumber, departmentName, positionName } = body;
 
@@ -128,6 +139,12 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(password);
 
+    // 셀프등록 자동승인 설정 확인 (기본값: 자동승인)
+    const autoApproveConfig = await prisma.systemConfig.findFirst({
+      where: { key: 'self_register_auto_approve' },
+    });
+    const autoApprove = !autoApproveConfig || autoApproveConfig.value !== 'false';
+
     const employee = await prisma.employee.create({
       data: {
         employeeNumber: finalEmployeeNumber,
@@ -138,14 +155,16 @@ export async function POST(request: NextRequest) {
         departmentId: deptId,
         positionId: posId,
         hireDate: new Date(),
-        status: 'ACTIVE',
+        status: autoApprove ? 'ACTIVE' : 'PENDING',
         role: 'BASIC',
       },
     });
 
     return NextResponse.json(
       {
-        message: '회원가입이 완료되었습니다. 바로 로그인할 수 있습니다.',
+        message: autoApprove
+          ? '회원가입이 완료되었습니다. 바로 로그인할 수 있습니다.'
+          : '회원가입이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.',
         employee: {
           name: employee.name,
           email: employee.email,

@@ -1,9 +1,14 @@
 /**
  * Password hashing using Web Crypto API PBKDF2
  * Replaces bcryptjs for Cloudflare Workers Edge Runtime compatibility
+ *
+ * 600K iterations (NIST SP 800-132 recommendation for PBKDF2-SHA256).
+ * Safe on CF Workers: crypto.subtle runs as native code, NOT counted as JS CPU time.
+ * Wall-clock ~200-500ms per hash, well within 30s limit.
+ * verifyPassword reads stored iteration count, so old 100K hashes still work.
  */
 
-const ITERATIONS = 100000;
+const ITERATIONS = 600000;
 const KEY_LENGTH = 32;
 const SALT_LENGTH = 16;
 const MAX_PASSWORD_LENGTH = 128;

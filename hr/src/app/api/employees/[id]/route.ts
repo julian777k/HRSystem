@@ -75,7 +75,7 @@ export async function PUT(
     }
 
     if (email && email !== existing.email) {
-      const emailTaken = await prisma.employee.findFirst({ where: { email } });
+      const emailTaken = await prisma.employee.findFirst({ where: { email, tenantId: existing.tenantId } });
       if (emailTaken) {
         return NextResponse.json(
           { message: '이미 사용 중인 이메일입니다.' },
@@ -84,10 +84,17 @@ export async function PUT(
       }
     }
 
-    // Role validation: only SYSTEM_ADMIN can assign SYSTEM_ADMIN role
-    if (role === 'SYSTEM_ADMIN' && user.role !== 'SYSTEM_ADMIN') {
+    // Role validation: enforce role hierarchy + prevent self-promotion
+    const ADMIN_ROLES_SET = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
+    if (role && ADMIN_ROLES_SET.includes(role) && user.role !== 'SYSTEM_ADMIN') {
       return NextResponse.json(
-        { message: 'SYSTEM_ADMIN 역할은 시스템 관리자만 부여할 수 있습니다.' },
+        { message: '관리자 역할은 시스템 관리자만 부여할 수 있습니다.' },
+        { status: 403 }
+      );
+    }
+    if (role && id === user.id && role !== user.role) {
+      return NextResponse.json(
+        { message: '본인의 역할은 변경할 수 없습니다.' },
         { status: 403 }
       );
     }

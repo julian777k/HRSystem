@@ -98,45 +98,63 @@ export async function POST(request: NextRequest) {
         // Adjust to actual last day of month
         periodEnd.setDate(new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, 0).getDate());
 
-        // Create carry-over grant
-        await prisma.leaveGrant.create({
-          data: {
-            employeeId: balance.employeeId,
-            leaveTypeCode: 'ANNUAL',
-            grantDays: carryDays,
-            remainDays: carryDays,
-            grantReason: `${fromYear}년 이월`,
-            periodStart,
-            periodEnd,
-          },
-        });
+        // Transaction: grant + balance atomic (prevents double carry-over)
+        await prisma.$transaction(async (tx) => {
+          // Double-check inside transaction to prevent concurrent duplicates
+          const existing = await tx.leaveGrant.findFirst({
+            where: {
+              employeeId: balance.employeeId,
+              leaveTypeCode: 'ANNUAL',
+              grantReason: { contains: `${fromYear}년 이월` },
+              periodStart: { gte: new Date(toYear, 0, 1) },
+            },
+          });
+          if (existing) {
+            throw new Error('SKIP_DUPLICATE');
+          }
 
-        // Update or create balance for toYear (findUnique + if/else → upsert)
-        await prisma.leaveBalance.upsert({
-          where: {
-            tenantId_employeeId_year_leaveTypeCode: {
-              tenantId,
+          await tx.leaveGrant.create({
+            data: {
+              employeeId: balance.employeeId,
+              leaveTypeCode: 'ANNUAL',
+              grantDays: carryDays,
+              remainDays: carryDays,
+              grantReason: `${fromYear}년 이월`,
+              periodStart,
+              periodEnd,
+            },
+          });
+
+          await tx.leaveBalance.upsert({
+            where: {
+              tenantId_employeeId_year_leaveTypeCode: {
+                tenantId,
+                employeeId: balance.employeeId,
+                year: toYear,
+                leaveTypeCode: 'ANNUAL',
+              },
+            },
+            create: {
               employeeId: balance.employeeId,
               year: toYear,
               leaveTypeCode: 'ANNUAL',
+              totalGranted: carryDays,
+              totalUsed: 0,
+              totalRemain: carryDays,
             },
-          },
-          create: {
-            employeeId: balance.employeeId,
-            year: toYear,
-            leaveTypeCode: 'ANNUAL',
-            totalGranted: carryDays,
-            totalUsed: 0,
-            totalRemain: carryDays,
-          },
-          update: {
-            totalGranted: { increment: carryDays },
-            totalRemain: { increment: carryDays },
-          },
+            update: {
+              totalGranted: { increment: carryDays },
+              totalRemain: { increment: carryDays },
+            },
+          });
         });
 
         carryOverCount++;
       } catch (err) {
+        if (err instanceof Error && err.message === 'SKIP_DUPLICATE') {
+          skippedCount++;
+          continue;
+        }
         errors.push(
           `${balance.employee.name}(${balance.employee.employeeNumber}): ${err instanceof Error ? err.message : '알 수 없는 오류'}`
         );

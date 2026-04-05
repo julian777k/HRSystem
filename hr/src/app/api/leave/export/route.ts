@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: '대기',
@@ -24,6 +25,15 @@ export async function GET(request: NextRequest) {
 
     if (!['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role)) {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
+    }
+
+    // Rate limit: 10 exports per 15 minutes per user
+    const rl = await checkRateLimit(`export:leave:${user.id}`, 10, 15 * 60 * 1000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 }
+      );
     }
 
     const { searchParams } = new URL(request.url);

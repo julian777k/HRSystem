@@ -6,10 +6,12 @@ import { isSaaSMode } from './deploy-config';
 
 export async function setAuthCookie(token: string) {
   const cookieStore = await cookies();
+  // No domain set → host-only cookie (safe: company-a.keystonehr.app cookie NOT sent to company-b)
+  // sameSite: 'strict' prevents cross-site request forgery in SaaS mode
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
     maxAge: 60 * 60 * 24, // 24 hours
   });
@@ -20,7 +22,7 @@ export async function clearAuthCookie() {
   cookieStore.set(COOKIE_NAME, '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
     maxAge: 0,
   });
@@ -37,7 +39,12 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   if (isSaaSMode()) {
     const subdomainTenantId = await getTenantIdSafe();
     if (!subdomainTenantId || result.user.tenantId !== subdomainTenantId) {
-      return null; // No tenant (suspended/invalid) or tenant mismatch
+      // Clear stale cookie so user can log in fresh on correct tenant
+      await clearAuthCookie();
+      console.warn(
+        `[Auth] Cross-tenant mismatch — jwt.tenantId=${result.user.tenantId}, subdomain.tenantId=${subdomainTenantId}, userId=${result.user.id}`
+      );
+      return null;
     }
   }
 
@@ -47,21 +54,6 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     select: { id: true },
   });
   if (!employee) return null;
-
-  // Session IP consistency check (monitoring only — not blocking, as mobile users change IPs)
-  try {
-    const hdrs = await headers();
-    const currentIp = hdrs.get('cf-connecting-ip') || hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const session = await basePrismaClient.session.findFirst({
-      where: { employeeId: result.user.id, token },
-      select: { ipAddress: true },
-    });
-    if (session?.ipAddress && session.ipAddress !== 'unknown' && currentIp !== 'unknown' && session.ipAddress !== currentIp) {
-      console.warn(`[Auth] Session IP mismatch — userId=${result.user.id}, session=${session.ipAddress}, current=${currentIp}`);
-    }
-  } catch {
-    // Non-critical: don't block auth if IP check fails
-  }
 
   return result.user;
 }
@@ -78,7 +70,11 @@ export async function getCurrentUserWithRefresh(): Promise<{ user: AuthUser; sho
   if (isSaaSMode()) {
     const subdomainTenantId = await getTenantIdSafe();
     if (!subdomainTenantId || result.user.tenantId !== subdomainTenantId) {
-      return null; // No tenant (suspended/invalid) or tenant mismatch
+      await clearAuthCookie();
+      console.warn(
+        `[Auth] Cross-tenant mismatch — jwt.tenantId=${result.user.tenantId}, subdomain.tenantId=${subdomainTenantId}, userId=${result.user.id}`
+      );
+      return null;
     }
   }
 
@@ -87,21 +83,6 @@ export async function getCurrentUserWithRefresh(): Promise<{ user: AuthUser; sho
     select: { id: true },
   });
   if (!employee) return null;
-
-  // Session IP consistency check (monitoring only — not blocking, as mobile users change IPs)
-  try {
-    const hdrs = await headers();
-    const currentIp = hdrs.get('cf-connecting-ip') || hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const session = await basePrismaClient.session.findFirst({
-      where: { employeeId: result.user.id, token },
-      select: { ipAddress: true },
-    });
-    if (session?.ipAddress && session.ipAddress !== 'unknown' && currentIp !== 'unknown' && session.ipAddress !== currentIp) {
-      console.warn(`[Auth] Session IP mismatch — userId=${result.user.id}, session=${session.ipAddress}, current=${currentIp}`);
-    }
-  } catch {
-    // Non-critical: don't block auth if IP check fails
-  }
 
   return result;
 }

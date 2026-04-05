@@ -3,12 +3,22 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { notifyRequestResult } from '@/lib/notifications';
 import { createLeaveAttendance } from '@/lib/attendance-utils';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ message: '인증 필요' }, { status: 401 });
+    }
+
+    // Rate limit: 30 approvals per 15 minutes per user
+    const rl = await checkRateLimit(`approval:${user.id}`, 30, 15 * 60 * 1000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -136,6 +146,7 @@ export async function POST(request: NextRequest) {
                   employeeId: lr.employeeId,
                   year,
                   leaveTypeCode: balanceCode,
+                  totalRemain: { gte: lr.requestDays },
                 },
                 data: {
                   totalUsed: { increment: lr.requestDays },

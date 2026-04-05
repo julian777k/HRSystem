@@ -3,6 +3,7 @@ import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { containsFilter } from '@/lib/db-utils';
+import { getTenantId } from '@/lib/tenant-context';
 
 export async function GET(request: NextRequest) {
   try {
@@ -103,7 +104,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingEmail = await prisma.employee.findFirst({ where: { email } });
+    const tenantId = await getTenantId();
+    const existingEmail = await prisma.employee.findFirst({ where: { email, tenantId } });
     if (existingEmail) {
       return NextResponse.json(
         { message: '이미 사용 중인 이메일입니다.' },
@@ -128,7 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     const existingNumber = await prisma.employee.findFirst({
-      where: { employeeNumber },
+      where: { employeeNumber, tenantId },
     });
     if (existingNumber) {
       return NextResponse.json(
@@ -137,11 +139,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Role validation: only SYSTEM_ADMIN can assign SYSTEM_ADMIN role
+    // Role validation: enforce role hierarchy
     const assignedRole = role || 'BASIC';
-    if (assignedRole === 'SYSTEM_ADMIN' && user.role !== 'SYSTEM_ADMIN') {
+    const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
+    if (ADMIN_ROLES.includes(assignedRole) && user.role !== 'SYSTEM_ADMIN') {
       return NextResponse.json(
-        { message: 'SYSTEM_ADMIN 역할은 시스템 관리자만 부여할 수 있습니다.' },
+        { message: '관리자 역할은 시스템 관리자만 부여할 수 있습니다.' },
         { status: 403 }
       );
     }

@@ -3,11 +3,21 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { notifyApprovers } from '@/lib/notifications';
 import { getTenantId } from '@/lib/tenant-context';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ message: '인증 필요' }, { status: 401 });
+
+    // Rate limit: 20 leave requests per 15 minutes per user
+    const rl = await checkRateLimit(`leave-req:${user.id}`, 20, 15 * 60 * 1000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 }
+      );
+    }
 
     const tenantId = await getTenantId();
     const body = await request.json();
@@ -15,6 +25,12 @@ export async function POST(request: NextRequest) {
 
     if (!leaveTypeId || !startDate || !endDate || !useUnit || !requestDays) {
       return NextResponse.json({ message: '필수 항목을 입력해주세요.' }, { status: 400 });
+    }
+
+    // Validate requestDays is positive and reasonable
+    const days = parseFloat(String(requestDays));
+    if (!Number.isFinite(days) || days <= 0 || days > 365) {
+      return NextResponse.json({ message: '유효하지 않은 휴가 일수입니다.' }, { status: 400 });
     }
 
     // Validate endDate >= startDate
@@ -138,7 +154,7 @@ export async function POST(request: NextRequest) {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         useUnit,
-        requestDays: parseFloat(String(requestDays)),
+        requestDays: days,
         requestHours,
         reason: reason || null,
         status: approvalRecords.length > 0 ? 'PENDING' : 'APPROVED',
@@ -160,18 +176,28 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // No approval line → auto-approve and deduct balance
+      // Use conditional update to prevent negative balance (race condition guard)
       const balanceCode2 = (leaveType.isAnnualDeduct && leaveType.code !== 'ANNUAL') ? 'ANNUAL' : leaveType.code;
-      await prisma.leaveBalance.updateMany({
+      const updated = await prisma.leaveBalance.updateMany({
         where: {
           employeeId: user.id,
           year,
           leaveTypeCode: balanceCode2,
+          totalRemain: { gte: days },
         },
         data: {
-          totalUsed: { increment: parseFloat(String(requestDays)) },
-          totalRemain: { decrement: parseFloat(String(requestDays)) },
+          totalUsed: { increment: days },
+          totalRemain: { decrement: days },
         },
       });
+      if (updated.count === 0) {
+        // Race condition: balance was already deducted by concurrent request
+        await prisma.leaveRequest.update({
+          where: { id: leaveRequest.id },
+          data: { status: 'CANCELLED' },
+        });
+        return NextResponse.json({ message: '잔여 휴가가 부족합니다. (동시 요청으로 잔여일 변경)' }, { status: 409 });
+      }
     }
 
     // Notify approvers (async, don't block response)

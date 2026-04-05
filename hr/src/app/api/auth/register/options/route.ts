@@ -7,6 +7,17 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET() {
   try {
+    // Block if self-registration is disabled
+    const selfRegConfig = await prisma.systemConfig.findFirst({
+      where: { key: 'self_register_enabled' },
+    });
+    if (selfRegConfig && selfRegConfig.value === 'false') {
+      return NextResponse.json(
+        { message: '자가 등록이 비활성화되어 있습니다.' },
+        { status: 403 }
+      );
+    }
+
     const [departments, positions] = await Promise.all([
       prisma.department.findMany({
         where: { isActive: true },

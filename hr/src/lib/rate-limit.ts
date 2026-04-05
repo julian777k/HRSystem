@@ -1,75 +1,42 @@
 /**
- * Rate limiter: KV-backed on Cloudflare, in-memory for self-hosted.
+ * Rate limiter: in-memory for all environments.
+ *
+ * Previously used KV on Cloudflare, but KV free tier only allows 1,000 writes/day.
+ * Each login = 2 KV writes → 500 logins/day hits the limit → service outage.
+ * In-memory is sufficient: isolate restarts reset counters, but brute-force
+ * protection still works within each isolate's lifetime (minutes to hours).
  */
 
-// In-memory fallback (self-hosted / development)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-// Clean up expired entries periodically (self-hosted only)
-if (typeof setInterval !== 'undefined') {
-  try {
-    setInterval(() => {
-      const now = Date.now();
-      for (const [key, value] of rateLimitMap) {
-        if (now > value.resetTime) {
-          rateLimitMap.delete(key);
-        }
-      }
-    }, 60 * 1000);
-  } catch {
-    // setInterval not available in some edge runtimes
-  }
-}
-
-interface KVNamespaceLike {
-  get(key: string, type: 'json'): Promise<unknown>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-}
-
-async function getKVNamespace(): Promise<KVNamespaceLike | null> {
-  if (process.env.DEPLOY_TARGET !== 'cloudflare') return null;
-  try {
-    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-    const { env } = await getCloudflareContext();
-    return (env as any).HR_CACHE || null;
-  } catch {
-    return null;
-  }
-}
+let lastCleanupTime = 0;
+const CLEANUP_INTERVAL_MS = 30_000;
 
 export async function checkRateLimit(
   key: string,
   maxAttempts: number,
   windowMs: number
 ): Promise<{ success: boolean; retryAfterMs?: number }> {
-  const kv = await getKVNamespace();
+  const now = Date.now();
 
-  if (kv) {
-    // KV-backed rate limiting (Cloudflare Workers)
-    const kvKey = `rate:${key}`;
-    const now = Date.now();
-
-    const stored = await kv.get(kvKey, 'json') as { count: number; resetTime: number } | null;
-
-    if (!stored || now > stored.resetTime) {
-      await kv.put(kvKey, JSON.stringify({ count: 1, resetTime: now + windowMs }), {
-        expirationTtl: Math.ceil(windowMs / 1000) + 60,
-      });
-      return { success: true };
+  // Periodic cleanup (every 30s, not every call)
+  if (now - lastCleanupTime > CLEANUP_INTERVAL_MS) {
+    lastCleanupTime = now;
+    for (const [k, v] of rateLimitMap) {
+      if (now > v.resetTime) {
+        rateLimitMap.delete(k);
+      }
     }
-
-    if (stored.count >= maxAttempts) {
-      return { success: false, retryAfterMs: stored.resetTime - now };
+    // Emergency cap: evict oldest entries instead of clearing all
+    if (rateLimitMap.size > 1000) {
+      const entries = [...rateLimitMap.entries()]
+        .sort((a, b) => a[1].resetTime - b[1].resetTime);
+      const toRemove = entries.slice(0, entries.length - 500);
+      for (const [k] of toRemove) {
+        rateLimitMap.delete(k);
+      }
     }
-
-    await kv.put(kvKey, JSON.stringify({ count: stored.count + 1, resetTime: stored.resetTime }), {
-      expirationTtl: Math.ceil((stored.resetTime - now) / 1000) + 60,
-    });
-    return { success: true };
   }
 
-  // In-memory fallback (self-hosted)
-  const now = Date.now();
   const entry = rateLimitMap.get(key);
 
   if (!entry || now > entry.resetTime) {

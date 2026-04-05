@@ -3,6 +3,7 @@ import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { writeAuditLog } from '@/lib/audit-log';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 function generateRandomPassword(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
@@ -19,6 +20,15 @@ export async function POST(request: NextRequest) {
 
     if (user.role !== 'SYSTEM_ADMIN' && user.role !== 'COMPANY_ADMIN') {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
+    }
+
+    // Rate limit: 3 imports per 15 minutes per user (expensive bulk operation)
+    const rl = await checkRateLimit(`import:${user.id}`, 3, 15 * 60 * 1000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.retryAfterMs || 0) / 1000)) } }
+      );
     }
 
     const formData = await request.formData();

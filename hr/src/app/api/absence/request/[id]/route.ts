@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
+import { getTenantId } from '@/lib/tenant-context';
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
 
@@ -18,13 +19,14 @@ export async function PUT(
 
     const { id } = await params;
     const { status, comment } = await request.json();
+    const tenantId = await getTenantId();
 
     if (!['APPROVED', 'REJECTED'].includes(status)) {
       return NextResponse.json({ message: '유효하지 않은 상태입니다.' }, { status: 400 });
     }
 
     const rows = await (prisma as any).$queryRawUnsafe(
-      `SELECT id, employeeId, status FROM leave_of_absences WHERE id = ?`, id
+      `SELECT id, employeeId, status FROM leave_of_absences WHERE id = ? AND tenantId = ?`, id, tenantId
     );
     const existing = rows?.[0];
     if (!existing) {
@@ -37,8 +39,8 @@ export async function PUT(
     const now = new Date().toISOString();
 
     await (prisma as any).$executeRawUnsafe(
-      `UPDATE leave_of_absences SET status = ?, adminComment = ?, approvedBy = ?, approvedAt = ?, updatedAt = ? WHERE id = ?`,
-      status, comment || null, user.id, now, now, id
+      `UPDATE leave_of_absences SET status = ?, adminComment = ?, approvedBy = ?, approvedAt = ?, updatedAt = ? WHERE id = ? AND tenantId = ?`,
+      status, comment || null, user.id, now, now, id, tenantId
     );
 
     // On APPROVED: set employee status to ON_LEAVE
@@ -67,8 +69,9 @@ export async function DELETE(
     const { id } = await params;
     const isAdmin = ADMIN_ROLES.includes(user.role);
 
+    const tenantId = await getTenantId();
     const rows = await (prisma as any).$queryRawUnsafe(
-      `SELECT id, employeeId, status FROM leave_of_absences WHERE id = ?`, id
+      `SELECT id, employeeId, status FROM leave_of_absences WHERE id = ? AND tenantId = ?`, id, tenantId
     );
     const existing = rows?.[0];
     if (!existing) {
@@ -93,7 +96,7 @@ export async function DELETE(
     }
 
     await (prisma as any).$executeRawUnsafe(
-      `UPDATE leave_of_absences SET status = 'CANCELLED', updatedAt = ? WHERE id = ?`, now, id
+      `UPDATE leave_of_absences SET status = 'CANCELLED', updatedAt = ? WHERE id = ? AND tenantId = ?`, now, id, tenantId
     );
 
     return NextResponse.json({ message: '휴직 신청이 취소되었습니다.' });

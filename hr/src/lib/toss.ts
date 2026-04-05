@@ -6,14 +6,21 @@
 const TOSS_API_URL = 'https://api.tosspayments.com/v1';
 
 export function getTossSecretKey(): string {
-  const key = process.env.TOSS_SECRET_KEY || process.env.test_secret_key;
+  const key = process.env.TOSS_SECRET_KEY;
   if (!key) throw new Error('TOSS_SECRET_KEY is not configured');
+  // Block test keys in production
+  if (process.env.NODE_ENV === 'production' && key.startsWith('test_')) {
+    throw new Error('Test payment key must not be used in production');
+  }
   return key.trim();
 }
 
 export function getTossClientKey(): string {
-  const key = process.env.TOSS_CLIENT_KEY || process.env.test_client_key;
+  const key = process.env.TOSS_CLIENT_KEY;
   if (!key) throw new Error('TOSS_CLIENT_KEY is not configured');
+  if (process.env.NODE_ENV === 'production' && key.startsWith('test_')) {
+    throw new Error('Test payment key must not be used in production');
+  }
   return key.trim();
 }
 
@@ -35,6 +42,7 @@ export async function confirmPayment(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ paymentKey, orderId, amount }),
+      signal: AbortSignal.timeout(10_000), // 10 second timeout
     });
 
     const data = await res.json();
@@ -56,6 +64,47 @@ export async function confirmPayment(
       error: {
         code: 'NETWORK_ERROR',
         message: err instanceof Error ? err.message : '네트워크 오류가 발생했습니다.',
+      },
+    };
+  }
+}
+
+/** Toss Payments cancel/refund API */
+export async function cancelPayment(
+  paymentKey: string,
+  cancelReason: string
+): Promise<{ success: boolean; error?: { code: string; message: string } }> {
+  const secretKey = getTossSecretKey();
+  const authHeader = 'Basic ' + btoa(secretKey + ':');
+
+  try {
+    const res = await fetch(`${TOSS_API_URL}/payments/${paymentKey}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ cancelReason }),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      return {
+        success: false,
+        error: {
+          code: data.code || 'CANCEL_FAILED',
+          message: data.message || '결제 취소에 실패했습니다.',
+        },
+      };
+    }
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: err instanceof Error ? err.message : '결제 취소 중 네트워크 오류가 발생했습니다.',
       },
     };
   }

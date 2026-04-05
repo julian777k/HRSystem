@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { getWorkSettings } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // 수동 출퇴근 모드에서 직원이 직접 출근을 기록하는 API
 // 회사 설정의 attendance_mode가 MANUAL일 때 사용
@@ -11,6 +12,15 @@ export async function POST() {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ message: '인증 필요' }, { status: 401 });
+    }
+
+    // Rate limit: 10 clock-in per 15 minutes per user
+    const rl = await checkRateLimit(`clockin:${user.id}`, 10, 15 * 60 * 1000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 }
+      );
     }
 
     const tenantId = await getTenantId();

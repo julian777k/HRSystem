@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -174,8 +175,9 @@ function buildGroup(records: RegisterRecord[]): GroupedRequest {
 
 export default function LeaveRequestsPage() {
   const router = useRouter();
-  const [userRole, setUserRole] = useState('');
-  const [roleLoaded, setRoleLoaded] = useState(false);
+  const { user } = useAuth();
+  const userRole = user?.role ?? '';
+  const roleLoaded = user !== null;
   const [tab, setTab] = useState('pending');
   const [records, setRecords] = useState<RegisterRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,17 +206,10 @@ export default function LeaveRequestsPage() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me").then(r => { if (r.status === 401) { window.location.href = '/login'; return null; } return r.ok ? r.json() : null; }).then(d => {
-      if (d?.user?.role) {
-        setUserRole(d.user.role);
-        if (!ADMIN_ROLES.includes(d.user.role)) {
-          router.replace('/dashboard');
-          return;
-        }
-      }
-      setRoleLoaded(true);
-    }).catch(() => setRoleLoaded(true));
-  }, [router]);
+    if (roleLoaded && !ADMIN_ROLES.includes(userRole)) {
+      router.replace('/dashboard');
+    }
+  }, [roleLoaded, userRole, router]);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -271,19 +266,20 @@ export default function LeaveRequestsPage() {
     let fail = 0;
 
     try {
-      for (const id of approvalTargetIds) {
-        try {
-          const res = await fetch(`/api/leave/request/${id}`, {
+      const results = await Promise.allSettled(
+        approvalTargetIds.map(id =>
+          fetch(`/api/leave/request/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus, comment: approvalComment }),
-          });
-          if (res.ok) success++;
-          else fail++;
-        } catch {
-          fail++;
-        }
-      }
+          }).then(res => {
+            if (!res.ok) throw new Error('failed');
+            return res.json();
+          })
+        )
+      );
+      success = results.filter(r => r.status === 'fulfilled').length;
+      fail = results.filter(r => r.status === 'rejected').length;
 
       setApprovalDialog(false);
 
@@ -383,7 +379,7 @@ export default function LeaveRequestsPage() {
   if (!roleLoaded) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-400">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
         불러오는 중...
       </div>
     );
@@ -393,7 +389,7 @@ export default function LeaveRequestsPage() {
     <div>
       {/* Unified Header */}
       <div className="flex items-center gap-3 mb-6">
-        <ClipboardCheck className="w-7 h-7 text-emerald-600" />
+        <ClipboardCheck className="w-7 h-7 text-emerald-600" aria-hidden="true" />
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">결재 관리</h1>
           <p className="text-sm text-gray-500 mt-0.5">휴가 신청을 승인하거나 반려합니다.</p>
@@ -447,7 +443,7 @@ export default function LeaveRequestsPage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-12 text-gray-400">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
                   불러오는 중...
                 </div>
               ) : error ? (
@@ -457,7 +453,7 @@ export default function LeaveRequestsPage() {
                 </div>
               ) : groupedRecords.length === 0 ? (
                 <div className="text-center py-12">
-                  <ClipboardCheck className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <ClipboardCheck className="w-10 h-10 text-gray-300 mx-auto mb-3" aria-hidden="true" />
                   <p className="text-gray-400 mb-4">결재 대기 중인 신청이 없습니다.</p>
                 </div>
               ) : (
@@ -480,7 +476,7 @@ export default function LeaveRequestsPage() {
                           onClick={handleBatchApprove}
                           disabled={batchProcessing}
                         >
-                          <Check className="w-4 h-4 mr-1" />
+                          <Check className="w-4 h-4 mr-1" aria-hidden="true" />
                           일괄 승인 ({selectedIds.size}건)
                         </Button>
                         <Button
@@ -493,7 +489,7 @@ export default function LeaveRequestsPage() {
                           )}
                           disabled={batchProcessing}
                         >
-                          <X className="w-4 h-4 mr-1" />
+                          <X className="w-4 h-4 mr-1" aria-hidden="true" />
                           일괄 반려
                         </Button>
                       </div>
@@ -529,7 +525,7 @@ export default function LeaveRequestsPage() {
                                 {' | '}
                                 {UNIT_LABELS[record.useUnit] || record.useUnit}
                                 {' | '}
-                                {record.requestDays}일
+                                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{record.requestDays}일</span>
                               </div>
                               {record.reason && (
                                 <div className="text-sm text-muted-foreground truncate">사유: {record.reason}</div>
@@ -542,7 +538,7 @@ export default function LeaveRequestsPage() {
                               className="w-full sm:w-auto"
                               onClick={() => openApprovalDialog([record.id], `${record.employeeName}님의 ${record.leaveTypeName}`, 'approve')}
                             >
-                              <Check className="w-4 h-4 mr-1" />
+                              <Check className="w-4 h-4 mr-1" aria-hidden="true" />
                               승인
                             </Button>
                             <Button
@@ -551,7 +547,7 @@ export default function LeaveRequestsPage() {
                               className="w-full sm:w-auto"
                               onClick={() => openApprovalDialog([record.id], `${record.employeeName}님의 ${record.leaveTypeName}`, 'reject')}
                             >
-                              <X className="w-4 h-4 mr-1" />
+                              <X className="w-4 h-4 mr-1" aria-hidden="true" />
                               반려
                             </Button>
                           </div>
@@ -571,7 +567,7 @@ export default function LeaveRequestsPage() {
                             />
                             <div className="space-y-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Users className="w-4 h-4 text-emerald-600" />
+                                <Users className="w-4 h-4 text-emerald-600" aria-hidden="true" />
                                 <span className="font-semibold text-emerald-800">{group.employeeName}</span>
                                 <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">
                                   연속 {group.records.length}건
@@ -583,7 +579,7 @@ export default function LeaveRequestsPage() {
                                 {' | '}
                                 {formatDateWithDay(group.rangeStart)} ~ {formatDateWithDay(group.rangeEnd)}
                                 {' | '}
-                                총 {group.totalDays}일
+                                총 <span style={{ fontVariantNumeric: 'tabular-nums' }}>{group.totalDays}일</span>
                               </div>
                             </div>
                           </div>
@@ -593,7 +589,7 @@ export default function LeaveRequestsPage() {
                               size="sm"
                               onClick={() => toggleGroupExpand(group.key)}
                             >
-                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              {isExpanded ? <ChevronDown className="w-4 h-4" aria-hidden="true" /> : <ChevronRight className="w-4 h-4" aria-hidden="true" />}
                               <span className="ml-1 text-xs">상세</span>
                             </Button>
                             <Button
@@ -605,7 +601,7 @@ export default function LeaveRequestsPage() {
                                 'approve'
                               )}
                             >
-                              <Check className="w-4 h-4 mr-1" />
+                              <Check className="w-4 h-4 mr-1" aria-hidden="true" />
                               일괄 승인
                             </Button>
                             <Button
@@ -618,7 +614,7 @@ export default function LeaveRequestsPage() {
                                 'reject'
                               )}
                             >
-                              <X className="w-4 h-4 mr-1" />
+                              <X className="w-4 h-4 mr-1" aria-hidden="true" />
                               일괄 반려
                             </Button>
                           </div>
@@ -643,7 +639,7 @@ export default function LeaveRequestsPage() {
                                       {' | '}
                                       {UNIT_LABELS[record.useUnit] || record.useUnit}
                                       {' | '}
-                                      {record.requestDays}일
+                                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{record.requestDays}일</span>
                                     </div>
                                     {record.reason && (
                                       <div className="text-muted-foreground truncate">사유: {record.reason}</div>
@@ -687,7 +683,7 @@ export default function LeaveRequestsPage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-12 text-gray-400">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
                   불러오는 중...
                 </div>
               ) : error ? (
@@ -697,7 +693,7 @@ export default function LeaveRequestsPage() {
                 </div>
               ) : records.length === 0 ? (
                 <div className="text-center py-12">
-                  <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" aria-hidden="true" />
                   <p className="text-gray-400 mb-4">신청 내역이 없습니다.</p>
                 </div>
               ) : (
@@ -719,15 +715,15 @@ export default function LeaveRequestsPage() {
                     <tbody>
                       {records.map((record) => (
                         <tr key={record.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-2">{formatDate(record.appliedAt)}</td>
+                          <td className="py-3 px-2" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(record.appliedAt)}</td>
                           <td className="py-3 px-2 font-medium">{record.employeeName}</td>
                           <td className="py-3 px-2 hidden sm:table-cell">{record.departmentName}</td>
                           <td className="py-3 px-2">{record.leaveTypeName}</td>
-                          <td className="py-3 px-2">
+                          <td className="py-3 px-2" style={{ fontVariantNumeric: 'tabular-nums' }}>
                             {formatDate(record.startDate)}
                             {formatDate(record.startDate) !== formatDate(record.endDate) && ` ~ ${formatDate(record.endDate)}`}
                           </td>
-                          <td className="py-3 px-2">{record.requestDays}일</td>
+                          <td className="py-3 px-2" style={{ fontVariantNumeric: 'tabular-nums' }}>{record.requestDays}일</td>
                           <td className="py-3 px-2">
                             <Badge variant="outline" className={getStatusStyle(record.status)}>
                               {STATUS_LABELS[record.status] || record.status}
@@ -739,28 +735,28 @@ export default function LeaveRequestsPage() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <MoreVertical className="w-4 h-4" />
+                                    <MoreVertical className="w-4 h-4" aria-hidden="true" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => openApprovalDialog([record.id], `${record.employeeName}님의 ${record.leaveTypeName}`, 'approve')}>
-                                    <Check className="w-4 h-4 mr-2 text-green-600" />
+                                    <Check className="w-4 h-4 mr-2 text-green-600" aria-hidden="true" />
                                     승인
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => openApprovalDialog([record.id], `${record.employeeName}님의 ${record.leaveTypeName}`, 'reject')}>
-                                    <X className="w-4 h-4 mr-2 text-red-600" />
+                                    <X className="w-4 h-4 mr-2 text-red-600" aria-hidden="true" />
                                     반려
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem onClick={() => openDeleteDialog(record.id)} className="text-red-600">
-                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
                                     삭제
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             ) : (
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-red-500" onClick={() => openDeleteDialog(record.id)}>
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" aria-hidden="true" />
                               </Button>
                             )}
                           </td>

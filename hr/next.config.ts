@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   serverExternalPackages: [
     // Prisma must be external for OpenNext to patch the generated client
     "@prisma/client",

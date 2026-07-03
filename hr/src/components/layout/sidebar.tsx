@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { canAccessModule, type PermissionModule } from "@/lib/permissions";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Building2,
   Calendar,
@@ -137,27 +138,20 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<string>("BASIC");
-  const [customPermissions, setCustomPermissions] = useState<string | null>(null);
+  const { user } = useAuth();
+  const userRole = user?.role || '';
+  const customPermissions = user?.customPermissions || null;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (res.status === 401) { window.location.href = '/login'; return null; }
-        return res.ok ? res.json() : null;
-      })
-      .then((data) => {
-        if (data?.user?.role) setUserRole(data.user.role);
-        if (data?.user?.customPermissions) setCustomPermissions(data.user.customPermissions);
-      })
-      .catch(() => {});
-  }, []);
 
   // Initialize open groups from localStorage + auto-expand active group
   useEffect(() => {
-    const saved = localStorage.getItem("sidebar-groups");
-    const initial: Record<string, boolean> = saved ? JSON.parse(saved) : {};
+    let initial: Record<string, boolean> = {};
+    try {
+      const saved = localStorage.getItem("sidebar-groups");
+      if (saved) initial = JSON.parse(saved);
+    } catch {
+      localStorage.removeItem("sidebar-groups");
+    }
 
     // Auto-expand group containing current path
     menuItems.forEach((group) => {
@@ -184,7 +178,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const navContent = (
-    <nav className="p-4 space-y-1">
+    <nav className="p-4 space-y-1" aria-label="내비게이션">
       {menuItems.map((group) => {
         const visibleItems = group.items.filter((item) =>
           canSee(userRole, item.role, customPermissions, item.permModule)
@@ -208,6 +202,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           >
             <button
               onClick={() => toggleGroup(group.group)}
+              aria-expanded={openGroups[group.group] || false}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all duration-150",
                 isOpen
@@ -221,13 +216,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 <group.icon className={cn(
                   "w-3.5 h-3.5 transition-colors",
                   isOpen ? "text-blue-600" : hasActivePath ? "text-blue-500" : "text-gray-400"
-                )} />
+                )} aria-hidden="true" />
                 {group.group}
               </div>
               <ChevronDown className={cn(
                 "w-3.5 h-3.5 transition-transform duration-200",
                 isOpen ? "rotate-0" : "-rotate-90"
-              )} />
+              )} aria-hidden="true" />
             </button>
             <div
               className={cn(
@@ -254,7 +249,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                         <item.icon className={cn(
                           "w-4 h-4 shrink-0",
                           isActive ? "text-blue-600" : "text-gray-400"
-                        )} />
+                        )} aria-hidden="true" />
                         {item.label}
                       </Link>
                     </li>
@@ -275,6 +270,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden"
           onClick={onClose}
+          onKeyDown={(e) => { if (e.key === 'Escape') onClose?.(); }}
+          tabIndex={-1}
+          role="presentation"
         />
       )}
 
@@ -292,8 +290,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <button
             onClick={onClose}
             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500"
+            aria-label="사이드바 닫기"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
         {navContent}

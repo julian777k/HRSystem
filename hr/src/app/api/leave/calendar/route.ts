@@ -12,6 +12,11 @@ export async function GET(request: NextRequest) {
     const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1));
     const departmentId = searchParams.get('departmentId');
 
+    // Validate year/month to prevent abuse
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12 || year < 2000 || year > 2100) {
+      return NextResponse.json({ message: '잘못된 날짜입니다.' }, { status: 400 });
+    }
+
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59);
 
@@ -38,6 +43,7 @@ export async function GET(request: NextRequest) {
         leaveType: { select: { name: true, code: true } },
       },
       orderBy: { startDate: 'asc' },
+      take: 500,
     });
 
     // Get holidays for this month

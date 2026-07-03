@@ -16,9 +16,29 @@ interface DeductionResult {
 }
 
 /**
- * 보상 정책 조회 (캐시 없이 매번 DB 조회)
+ * 보상 정책 조회 (5분 인메모리 캐시)
  */
+interface CompensationPolicyData {
+  id: string;
+  compensationType: string;
+  weekdayMultiplier: number;
+  nightMultiplier: number;
+  holidayMultiplier: number;
+  dailyWorkHours: number;
+  halfDayHours: number;
+  minUseUnit: number;
+  deductionOrder: string;
+  autoSplitDeduct: boolean;
+  isActive: boolean;
+}
+let _policyCache: { data: CompensationPolicyData; expiresAt: number } | null = null;
+const POLICY_CACHE_TTL = 5 * 60 * 1000; // 5분
+
 export async function getCompensationPolicy() {
+  if (_policyCache && Date.now() < _policyCache.expiresAt) {
+    return _policyCache.data;
+  }
+
   let policy = await prisma.compensationPolicy.findFirst({
     where: { isActive: true },
   });
@@ -40,6 +60,7 @@ export async function getCompensationPolicy() {
     });
   }
 
+  _policyCache = { data: policy, expiresAt: Date.now() + POLICY_CACHE_TTL };
   return policy;
 }
 

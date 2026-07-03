@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   CalendarDays,
   ClipboardCheck,
@@ -22,13 +20,9 @@ import {
   ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth-context";
 
-interface UserInfo {
-  name: string;
-  role: string;
-  positionName: string;
-  departmentName: string;
-}
+/* UserInfo fields come from useAuth() context */
 
 interface PendingItem {
   id: string;
@@ -90,8 +84,7 @@ interface DashboardData {
 const ADMIN_ROLES = ["SYSTEM_ADMIN", "COMPANY_ADMIN"];
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showTimeWallet, setShowTimeWallet] = useState(false);
@@ -99,20 +92,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [userRes, dashRes] = await Promise.all([
-          fetch("/api/auth/me"),
-          fetch("/api/dashboard"),
-        ]);
-
-        if (userRes.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          if (userData?.user) setUser(userData.user);
-        }
+        const dashRes = await fetch("/api/dashboard");
 
         if (dashRes.ok) {
           const dashData = await dashRes.json();
@@ -128,8 +108,8 @@ export default function DashboardPage() {
     fetchAll();
   }, []);
 
-  const formatDate = (dateStr: string) => {
-    return dateStr ? dateStr.split("T")[0] : "-";
+  const formatDate = (date: string | Date) => {
+    return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(date));
   };
 
   const isAdmin = user && ADMIN_ROLES.includes(user.role);
@@ -233,7 +213,7 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
         <div className="flex items-center gap-3">
-          <LayoutDashboard className="w-7 h-7 text-blue-600" />
+          <LayoutDashboard className="w-7 h-7 text-blue-600" aria-hidden="true" />
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               {user ? `${user.name}님, 환영합니다!` : "대시보드"}
@@ -247,24 +227,21 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2">
           {isAdmin && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 sm:flex-none"
-              onClick={() => router.push("/settings/employees")}
+            <Link
+              href="/settings/employees"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 flex-1 sm:flex-none"
             >
-              <Users className="w-4 h-4 mr-1" />
+              <Users className="w-4 h-4 mr-1" aria-hidden="true" />
               직원관리
-            </Button>
+            </Link>
           )}
-          <Button
-            size="sm"
-            className="flex-1 sm:flex-none"
-            onClick={() => router.push("/leave/my")}
+          <Link
+            href="/leave/my"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 flex-1 sm:flex-none"
           >
-            <Plus className="w-4 h-4 mr-1" />
+            <Plus className="w-4 h-4 mr-1" aria-hidden="true" />
             휴가신청
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -277,13 +254,13 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
                   {card.title}
                 </CardTitle>
-                <card.icon className={`w-5 h-5 ${card.color}`} />
+                <card.icon className={`w-5 h-5 ${card.color}`} aria-hidden="true" />
               </CardHeader>
               <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-                <div className="text-lg sm:text-2xl font-bold">
+                <div className="text-lg sm:text-2xl font-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {loading ? "-" : card.value}
                 </div>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-1">{card.description}</p>
               </CardContent>
             </Card>
           </Link>
@@ -297,10 +274,10 @@ export default function DashboardPage() {
             onClick={() => setShowTimeWallet(!showTimeWallet)}
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            {showTimeWallet ? <ChevronDown className="w-4 h-4" /> : <ChevronRightIcon className="w-4 h-4" />}
-            <Wallet className="w-4 h-4 text-indigo-600" />
+            {showTimeWallet ? <ChevronDown className="w-4 h-4" aria-hidden="true" /> : <ChevronRightIcon className="w-4 h-4" aria-hidden="true" />}
+            <Wallet className="w-4 h-4 text-indigo-600" aria-hidden="true" />
             시간 지갑 잔액
-            <span className="text-xs text-indigo-600 font-medium">{data.timeWallet.totalRemainHours}h</span>
+            <span className="text-xs text-indigo-600 font-medium" style={{ fontVariantNumeric: 'tabular-nums' }}>{data.timeWallet.totalRemainHours}h</span>
           </button>
           {showTimeWallet && (
             <Card className="mt-2">
@@ -308,22 +285,22 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">보상시간 잔액</p>
-                    <p className="text-lg font-bold text-indigo-600">{data.timeWallet.compTime.remain}h</p>
-                    <p className="text-xs text-gray-400">적립 {data.timeWallet.compTime.earned}h / 사용 {data.timeWallet.compTime.used}h</p>
+                    <p className="text-lg font-bold text-indigo-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{data.timeWallet.compTime.remain}h</p>
+                    <p className="text-xs text-gray-400" style={{ fontVariantNumeric: 'tabular-nums' }}>적립 {data.timeWallet.compTime.earned}h / 사용 {data.timeWallet.compTime.used}h</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">연차시간 잔액</p>
-                    <p className="text-lg font-bold text-blue-600">{data.timeWallet.annual.remain}h</p>
-                    <p className="text-xs text-gray-400">부여 {data.timeWallet.annual.earned}h / 사용 {data.timeWallet.annual.used}h</p>
+                    <p className="text-lg font-bold text-blue-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{data.timeWallet.annual.remain}h</p>
+                    <p className="text-xs text-gray-400" style={{ fontVariantNumeric: 'tabular-nums' }}>부여 {data.timeWallet.annual.earned}h / 사용 {data.timeWallet.annual.used}h</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">총 잔여 시간</p>
-                    <p className="text-lg font-bold">{data.timeWallet.totalRemainHours}h</p>
+                    <p className="text-lg font-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>{data.timeWallet.totalRemainHours}h</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">총 잔여 일수</p>
-                    <p className="text-lg font-bold">{data.timeWallet.totalRemainDays}일</p>
-                    <p className="text-xs text-gray-400">1일 = {data.timeWallet.dailyWorkHours}시간</p>
+                    <p className="text-lg font-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>{data.timeWallet.totalRemainDays}일</p>
+                    <p className="text-xs text-gray-400" style={{ fontVariantNumeric: 'tabular-nums' }}>1일 = {data.timeWallet.dailyWorkHours}시간</p>
                   </div>
                 </div>
               </CardContent>
@@ -342,37 +319,37 @@ export default function DashboardPage() {
                 href="/attendance/overtime/requests"
                 className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
               >
-                연장근무 <ArrowRight className="w-3 h-3" />
+                연장근무 <ArrowRight className="w-3 h-3" aria-hidden="true" />
               </Link>
               <Link
                 href="/leave/requests"
                 className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
               >
-                휴가결재 <ArrowRight className="w-3 h-3" />
+                휴가결재 <ArrowRight className="w-3 h-3" aria-hidden="true" />
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12 text-gray-400">
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
                 불러오는 중...
               </div>
             ) : !data?.pendingItems?.length && !data?.pendingWelfareItems?.length ? (
               <div className="text-center py-12">
-                <ClipboardCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <ClipboardCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" aria-hidden="true" />
                 <p className="text-gray-400">대기중인 결재가 없습니다.</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {data?.pendingItems?.map((item) => (
-                  <div
+                  <Link
                     key={item.id}
+                    href={item.overtime ? "/attendance/overtime/requests" : "/leave/requests"}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => router.push(item.overtime ? "/attendance/overtime/requests" : "/leave/requests")}
                   >
                     <div className="flex items-center gap-2">
-                      {item.overtime && <Clock className="w-4 h-4 text-indigo-500 flex-shrink-0" />}
+                      {item.overtime && <Clock className="w-4 h-4 text-indigo-500 flex-shrink-0" aria-hidden="true" />}
                       <div>
                         {item.leaveRequest ? (
                           <>
@@ -408,18 +385,18 @@ export default function DashboardPage() {
                       >
                         {item.overtime ? "연장근무" : "대기"}
                       </Badge>
-                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                      <ArrowRight className="w-4 h-4 text-gray-400" aria-hidden="true" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
                 {data?.pendingWelfareItems?.map((wItem) => (
-                  <div
+                  <Link
                     key={`welfare-${wItem.id}`}
+                    href="/welfare/request"
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => router.push("/welfare/request")}
                   >
                     <div className="flex items-center gap-2">
-                      <Heart className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                      <Heart className="w-4 h-4 text-purple-500 flex-shrink-0" aria-hidden="true" />
                       <div>
                         <p className="font-medium text-sm">
                           {wItem.employee?.name ?? '알 수 없음'} - {wItem.item?.category?.name ?? '미분류'}/{wItem.item?.name ?? '항목'}
@@ -436,9 +413,9 @@ export default function DashboardPage() {
                       >
                         복지
                       </Badge>
-                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                      <ArrowRight className="w-4 h-4 text-gray-400" aria-hidden="true" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

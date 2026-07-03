@@ -5,7 +5,7 @@ import { isSaaSMode } from '@/lib/deploy-config';
 
 export const SUPER_ADMIN_COOKIE = 'super_admin_token';
 
-function getSuperAdminJwtSecret(): Uint8Array {
+async function getSuperAdminJwtSecret(): Promise<Uint8Array> {
   if (isSaaSMode()) {
     // In SaaS mode, super admin MUST have a separate JWT secret
     const secret = process.env.SUPER_ADMIN_JWT_SECRET;
@@ -23,7 +23,10 @@ function getSuperAdminJwtSecret(): Uint8Array {
   if (!baseSecret) {
     throw new Error('JWT_SECRET 또는 NEXTAUTH_SECRET 환경변수가 설정되지 않았습니다.');
   }
-  return new TextEncoder().encode(baseSecret + '_super_admin');
+  // Derive secret using SHA-256 hash (prevents trivial derivation from base secret)
+  const combined = `hmac:${baseSecret}:super_admin_jwt_v1`;
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(combined));
+  return new Uint8Array(hash);
 }
 
 export interface SuperAdminUser {
@@ -37,7 +40,7 @@ export async function verifySuperAdmin(request: NextRequest): Promise<SuperAdmin
   const token = request.cookies.get(SUPER_ADMIN_COOKIE)?.value;
   if (!token) return null;
   try {
-    const secret = getSuperAdminJwtSecret();
+    const secret = await getSuperAdminJwtSecret();
     const { payload } = await jwtVerify(token, secret);
     if (payload.role !== 'SUPER_ADMIN') return null;
 
@@ -73,7 +76,7 @@ export function requirePasswordChanged(admin: SuperAdminUser): NextResponse | nu
 }
 
 export async function signSuperAdminToken(admin: { id: string; email: string; name: string }): Promise<string> {
-  const secret = getSuperAdminJwtSecret();
+  const secret = await getSuperAdminJwtSecret();
   return new SignJWT({
     email: admin.email,
     name: admin.name,

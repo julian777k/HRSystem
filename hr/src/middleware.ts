@@ -10,8 +10,10 @@ import { isSaaSMode, SAAS_BASE_DOMAIN } from '@/lib/deploy-config';
 // ──────────────────────────────────────────────
 const API_RATE_LIMIT = 100;
 const API_RATE_WINDOW_MS = 60_000;
+const CLEANUP_INTERVAL_MS = 30_000; // cleanup every 30s, not every request
 
 const apiRateLimitMap = new Map<string, { count: number; timestamp: number }>();
+let lastCleanupTime = 0;
 
 function checkApiRateLimit(request: NextRequest): Response | null {
   const { pathname } = request.nextUrl;
@@ -35,10 +37,17 @@ function checkApiRateLimit(request: NextRequest): Response | null {
 
   const now = Date.now();
 
-  // Cleanup stale entries (older than the window)
-  for (const [key, entry] of apiRateLimitMap) {
-    if (now - entry.timestamp > API_RATE_WINDOW_MS) {
-      apiRateLimitMap.delete(key);
+  // Periodic cleanup instead of every-request iteration
+  if (now - lastCleanupTime > CLEANUP_INTERVAL_MS) {
+    lastCleanupTime = now;
+    for (const [key, entry] of apiRateLimitMap) {
+      if (now - entry.timestamp > API_RATE_WINDOW_MS) {
+        apiRateLimitMap.delete(key);
+      }
+    }
+    // Emergency cap: prevent unbounded growth
+    if (apiRateLimitMap.size > 500) {
+      apiRateLimitMap.clear();
     }
   }
 
@@ -162,7 +171,7 @@ async function selfHostedMiddleware(request: NextRequest) {
   if (['/login', '/register', '/privacy', '/terms'].includes(pathname)) {
     if (user && pathname === '/login') {
       const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
-      return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     return NextResponse.next();
   }
@@ -175,7 +184,7 @@ async function selfHostedMiddleware(request: NextRequest) {
   // Role-based root redirect
   if (pathname === '/') {
     const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
-    return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/dashboard', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
@@ -299,7 +308,7 @@ async function saasMiddleware(request: NextRequest) {
   if (['/login', '/register'].includes(pathname)) {
     if (user && pathname === '/login') {
       const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
-      return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     return NextResponse.next({
       request: { headers: requestHeaders },
@@ -314,7 +323,7 @@ async function saasMiddleware(request: NextRequest) {
   // Role-based root redirect
   if (pathname === '/') {
     const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
-    return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/dashboard', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next({

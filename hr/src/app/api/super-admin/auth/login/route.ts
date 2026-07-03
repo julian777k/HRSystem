@@ -39,6 +39,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // IP-based rate limit: 10 attempts per IP per 15 minutes (prevents credential stuffing)
+    const ip = request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ipRateLimit = await checkRateLimit(`super-admin-login-ip:${ip}`, 10, 15 * 60 * 1000);
+    if (!ipRateLimit.success) {
+      const retryMinutes = Math.ceil((ipRateLimit.retryAfterMs || 0) / 60000);
+      return NextResponse.json(
+        { message: `로그인 시도가 너무 많습니다. ${retryMinutes > 0 ? retryMinutes + '분' : '잠시'} 후 다시 시도해주세요.` },
+        { status: 429 }
+      );
+    }
+
     // Rate limit: 5 attempts per email per 15 minutes
     const rateLimitResult = await checkRateLimit(`super-admin-login:${email}`, 5, 900 * 1000);
     if (!rateLimitResult.success) {

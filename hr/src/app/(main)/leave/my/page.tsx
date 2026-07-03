@@ -101,8 +101,8 @@ function getStatusStyle(status: string) {
   }
 }
 
-function formatDate(dateStr: string) {
-  return dateStr.split('T')[0];
+function formatDate(date: string | Date) {
+  return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(date));
 }
 
 function calculateWorkingDaysClient(
@@ -313,14 +313,14 @@ export default function MyLeavePage() {
       {/* Unified Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <Palmtree className="w-7 h-7 text-emerald-600" />
+          <Palmtree className="w-7 h-7 text-emerald-600" aria-hidden="true" />
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">나의 휴가</h1>
             <p className="text-sm text-gray-500 mt-0.5">나의 휴가 현황과 신청 내역을 확인합니다.</p>
           </div>
         </div>
         <Button className="w-full sm:w-auto" onClick={() => setDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
           휴가 신청
         </Button>
       </div>
@@ -331,19 +331,19 @@ export default function MyLeavePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
             <div className="p-4 text-center">
               <p className="text-xs text-gray-500 mb-1">총 부여</p>
-              <p className="text-2xl font-bold">{summary.totalGranted}일</p>
+              <p className="text-2xl font-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>{summary.totalGranted}일</p>
             </div>
             <div className="p-4 text-center">
               <p className="text-xs text-gray-500 mb-1">총 사용</p>
-              <p className="text-2xl font-bold">{summary.totalUsed}일</p>
+              <p className="text-2xl font-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>{summary.totalUsed}일</p>
             </div>
             <div className="p-4 text-center">
               <p className="text-xs text-gray-500 mb-1">총 잔여</p>
-              <p className="text-2xl font-bold text-emerald-600">{summary.totalRemain}일</p>
+              <p className="text-2xl font-bold text-emerald-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{summary.totalRemain}일</p>
             </div>
             <div className="p-4 text-center">
               <p className="text-xs text-gray-500 mb-1">사용률</p>
-              <p className="text-2xl font-bold mb-2">{summary.usageRate}%</p>
+              <p className="text-2xl font-bold mb-2" style={{ fontVariantNumeric: 'tabular-nums' }}>{summary.usageRate}%</p>
               <Progress value={summary.usageRate} className="h-2" />
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function MyLeavePage() {
             onClick={() => setShowBalanceByType(!showBalanceByType)}
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            {showBalanceByType ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            {showBalanceByType ? <ChevronDown className="w-4 h-4" aria-hidden="true" /> : <ChevronRight className="w-4 h-4" aria-hidden="true" />}
             유형별 휴가 잔여
           </button>
           {showBalanceByType && (
@@ -385,7 +385,7 @@ export default function MyLeavePage() {
             onClick={() => setShowTimeWallet(!showTimeWallet)}
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            {showTimeWallet ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            {showTimeWallet ? <ChevronDown className="w-4 h-4" aria-hidden="true" /> : <ChevronRight className="w-4 h-4" aria-hidden="true" />}
             시간 지갑
             <span className="text-xs text-indigo-600 font-medium">{timeWallet.totalRemainHours}h</span>
           </button>
@@ -422,20 +422,20 @@ export default function MyLeavePage() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12 text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
               불러오는 중...
             </div>
           ) : error ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12" aria-live="polite">
               <p className="text-red-500 mb-4">{error}</p>
               <Button variant="outline" onClick={fetchData}>다시 시도</Button>
             </div>
           ) : requests.length === 0 ? (
             <div className="text-center py-12">
-              <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" aria-hidden="true" />
               <p className="text-gray-400 mb-4">휴가 신청 내역이 없습니다.</p>
               <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
                 휴가 신청하기
               </Button>
             </div>
@@ -478,7 +478,7 @@ export default function MyLeavePage() {
                             size="sm"
                             onClick={() => handleCancel(req.id)}
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4" aria-hidden="true" />
                             <span className="hidden sm:inline ml-1">취소</span>
                           </Button>
                         )}

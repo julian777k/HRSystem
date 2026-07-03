@@ -118,7 +118,7 @@ export default function LoginPage() {
             <div className="space-y-5">
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-start gap-2.5 mb-3">
-                  <Building2 className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <Building2 className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-medium text-blue-900">회사 전용 주소에서 로그인하세요</p>
                     <p className="text-xs text-blue-700 mt-1">
@@ -132,10 +132,12 @@ export default function LoginPage() {
                   <div className="flex-1 flex items-center">
                     <input
                       type="text"
+                      name="subdomain"
+                      aria-label="서브도메인"
                       value={subdomainInput}
                       onChange={(e) => setSubdomainInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                       placeholder="회사 서브도메인"
-                      className="w-full px-3 py-2 border border-blue-300 rounded-l-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-l-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white"
                     />
                     <span className="px-2 py-2 bg-blue-100 border border-l-0 border-blue-300 rounded-r-lg text-xs text-blue-600 whitespace-nowrap">
                       .keystonehr.app
@@ -176,7 +178,7 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               {error && (
                 <Alert variant="destructive" className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <AlertDescription className="text-sm">{error}</AlertDescription>
                 </Alert>
               )}
@@ -190,7 +192,8 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="h-11 text-base"
+                  spellCheck={false}
+                  className="h-11 text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 />
               </div>
               <div className="space-y-2">
@@ -203,7 +206,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="h-11 text-base"
+                  className="h-11 text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 />
               </div>
               <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
@@ -214,7 +217,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <LogIn className="mr-2 h-5 w-5" />
+                    <LogIn className="mr-2 h-5 w-5" aria-hidden="true" />
                     로그인
                   </>
                 )}

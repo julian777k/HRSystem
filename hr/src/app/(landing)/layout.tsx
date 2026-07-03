@@ -59,7 +59,7 @@ export default function LandingLayout({
               <a href="https://docs.google.com/forms/d/e/1FAIpQLSfegtqPf6yW27R_nyK_lCxTC46cwT5lznY_QuHvMWiZuIwK9A/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700">문의하기</a>
             </div>
             <div className="text-gray-400 text-xs leading-relaxed text-center">
-              <p>상호: KeystoneHR | 대표: 김영홍 | 사업자등록번호: 614-30-01348</p>
+              <p>상호: 어나니무명스 | 대표: 김영홍 | 사업자등록번호: 614-30-01348</p>
               <p>이메일: anonymoomyungs@gmail.com</p>
             </div>
             <div className="text-gray-400 text-xs">

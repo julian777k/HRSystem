@@ -52,6 +52,7 @@ export async function PUT(request: NextRequest) {
       'lunch_end_time',
       'server_url',
       'attendance_mode',
+      'self_register_auto_approve',
     ];
 
     for (const [key, value] of Object.entries(settings)) {

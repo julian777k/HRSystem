@@ -811,7 +811,7 @@ export default function LeaveUsagePage() {
                       불러오는 중...
                     </div>
                   ) : (
-                    <table className="w-full border-collapse min-w-[640px]">
+                    <table className="w-full border-collapse min-w-[640px] table-fixed">
                       <thead>
                         <tr>
                           {DAY_LABELS.map((label, i) => (

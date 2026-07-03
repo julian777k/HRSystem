@@ -84,9 +84,16 @@ async function getDepartmentWorkSettings(departmentId: string): Promise<Partial<
 }
 
 /**
- * 회사 전체 근무시간 설정 조회 (SystemConfig)
+ * 회사 전체 근무시간 설정 조회 (SystemConfig, 5분 캐시)
  */
+let _workSettingsCache: { data: WorkSettings; expiresAt: number } | null = null;
+const WORK_SETTINGS_CACHE_TTL = 5 * 60 * 1000;
+
 export async function getCompanyWorkSettings(): Promise<WorkSettings> {
+  if (_workSettingsCache && Date.now() < _workSettingsCache.expiresAt) {
+    return _workSettingsCache.data;
+  }
+
   const configs = await prisma.systemConfig.findMany({
     where: { group: 'company' },
   });
@@ -94,12 +101,14 @@ export async function getCompanyWorkSettings(): Promise<WorkSettings> {
   for (const cfg of configs) {
     settings[cfg.key] = cfg.value;
   }
-  return {
+  const result: WorkSettings = {
     workStartTime: settings['work_start_time'] || '09:00',
     workEndTime: settings['work_end_time'] || '18:00',
     lunchStartTime: settings['lunch_start_time'] || '12:00',
     lunchEndTime: settings['lunch_end_time'] || '13:00',
   };
+  _workSettingsCache = { data: result, expiresAt: Date.now() + WORK_SETTINGS_CACHE_TTL };
+  return result;
 }
 
 /**
@@ -113,20 +122,20 @@ export async function getAttendanceMode(): Promise<'AUTO' | 'MANUAL'> {
 }
 
 /**
- * 공휴일 + 회사휴무 + 부서휴무 통합 확인
+ * 공휴일 + 회사휴무 + 부서휴무 통합 확인 (반복공휴일 10분 캐시)
  */
+let _recurringHolidaysCache: { data: Array<{ date: Date | string }>; expiresAt: number } | null = null;
+const RECURRING_CACHE_TTL = 10 * 60 * 1000;
+
 export async function isHoliday(date: Date, departmentId?: string): Promise<boolean> {
   const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 
   const whereConditions: Array<Record<string, unknown>> = [
-    // 공휴일
     { type: 'PUBLIC', date: { gte: startOfDay, lte: endOfDay } },
-    // 회사 휴무일
     { type: 'COMPANY', date: { gte: startOfDay, lte: endOfDay } },
   ];
 
-  // 부서 휴무일
   if (departmentId) {
     whereConditions.push({
       type: 'DEPARTMENT',
@@ -141,19 +150,25 @@ export async function isHoliday(date: Date, departmentId?: string): Promise<bool
 
   if (holiday) return true;
 
-  // Check recurring holidays by comparing month/day
+  // Recurring holidays — cached (data doesn't change intra-day)
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  const recurringHolidays = await prisma.holiday.findMany({
-    where: { isRecurring: true },
-  });
-  const isRecurringMatch = recurringHolidays.some(h => {
+
+  let recurringHolidays: Array<{ date: Date | string }>;
+  if (_recurringHolidaysCache && Date.now() < _recurringHolidaysCache.expiresAt) {
+    recurringHolidays = _recurringHolidaysCache.data;
+  } else {
+    recurringHolidays = await prisma.holiday.findMany({
+      where: { isRecurring: true },
+      select: { date: true },
+    });
+    _recurringHolidaysCache = { data: recurringHolidays, expiresAt: Date.now() + RECURRING_CACHE_TTL };
+  }
+
+  return recurringHolidays.some(h => {
     const hDate = new Date(h.date);
     return hDate.getMonth() + 1 === month && hDate.getDate() === day;
   });
-  if (isRecurringMatch) return true;
-
-  return false;
 }
 
 /**

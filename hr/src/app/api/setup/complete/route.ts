@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { isSQLiteMode } from '@/lib/db-utils';
-import { isSetupComplete } from '@/lib/setup-config';
+import { checkSetupGuard } from '@/lib/setup-guard';
 import { getTenantId } from '@/lib/tenant-context';
 
 async function seedDatabaseWithPrisma(
@@ -369,22 +369,8 @@ async function seedDatabaseWithPg(
 
 export async function POST(request: NextRequest) {
   try {
-    // Optional setup secret check (if SETUP_SECRET is configured, require it)
-    const setupSecret = process.env.SETUP_SECRET;
-    if (setupSecret && request.headers.get('x-setup-secret') !== setupSecret) {
-      return NextResponse.json(
-        { success: false, message: '설정 권한이 없습니다.' },
-        { status: 403 }
-      );
-    }
-
-    // Guard: block if setup already completed
-    if (await isSetupComplete()) {
-      return NextResponse.json(
-        { message: '이미 초기 설정이 완료되었습니다.' },
-        { status: 403 }
-      );
-    }
+    const guardResult = await checkSetupGuard(request);
+    if (guardResult) return guardResult;
 
     const data = await request.json();
     const { db, company, admin, policies } = data;

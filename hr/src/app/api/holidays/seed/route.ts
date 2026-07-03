@@ -75,33 +75,37 @@ export async function POST(request: NextRequest) {
 
     const holidays = getKoreanHolidays(year);
 
-    let created = 0;
-    let skipped = 0;
+    // Batch: fetch all existing holidays for this year in one query
+    const yearStart = new Date(`${year}-01-01`);
+    const yearEnd = new Date(`${year}-12-31`);
+    const existingHolidays = await prisma.holiday.findMany({
+      where: {
+        date: { gte: yearStart, lte: yearEnd },
+      },
+      select: { name: true, date: true },
+    });
 
-    for (const h of holidays) {
-      const dateObj = new Date(h.date);
-      // Check if already exists for this date
-      const existing = await prisma.holiday.findFirst({
-        where: {
-          date: dateObj,
+    const existingSet = new Set(
+      existingHolidays.map((h: { name: string; date: Date }) => `${h.name}|${new Date(h.date).toISOString().split('T')[0]}`)
+    );
+
+    const toCreate = holidays.filter(
+      (h) => !existingSet.has(`${h.name}|${h.date}`)
+    );
+
+    // Batch create all new holidays
+    if (toCreate.length > 0) {
+      await prisma.holiday.createMany({
+        data: toCreate.map((h) => ({
           name: h.name,
-        },
-      });
-
-      if (existing) {
-        skipped++;
-        continue;
-      }
-
-      await prisma.holiday.create({
-        data: {
-          name: h.name,
-          date: dateObj,
+          date: new Date(h.date),
           isRecurring: false,
-        },
+        })),
       });
-      created++;
     }
+
+    const created = toCreate.length;
+    const skipped = holidays.length - created;
 
     return NextResponse.json({
       message: `${year}년 법정공휴일이 생성되었습니다.`,

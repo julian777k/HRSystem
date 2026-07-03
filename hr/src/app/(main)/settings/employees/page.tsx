@@ -472,6 +472,7 @@ export default function EmployeesPage() {
           <Label htmlFor="employeeNumber">사번 {editOpen ? '' : '(미입력시 자동생성)'}</Label>
           <Input
             id="employeeNumber"
+            name="employeeNumber"
             value={form.employeeNumber}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, employeeNumber: e.target.value }))
@@ -484,6 +485,7 @@ export default function EmployeesPage() {
           <Label htmlFor="name">이름 *</Label>
           <Input
             id="name"
+            name="name"
             value={form.name}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, name: e.target.value }))
@@ -496,11 +498,14 @@ export default function EmployeesPage() {
           <Label htmlFor="email">이메일 *</Label>
           <Input
             id="email"
+            name="email"
             type="email"
             value={form.email}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, email: e.target.value }))
             }
+            spellCheck={false}
+            autoComplete="off"
           />
         </div>
         <div className="space-y-2">
@@ -509,11 +514,13 @@ export default function EmployeesPage() {
           </Label>
           <Input
             id="password"
+            name="password"
             type="password"
             value={form.password}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, password: e.target.value }))
             }
+            autoComplete={editOpen ? "off" : "new-password"}
           />
         </div>
       </div>
@@ -522,6 +529,7 @@ export default function EmployeesPage() {
           <Label htmlFor="phone">전화번호</Label>
           <Input
             id="phone"
+            name="phone"
             value={form.phone}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, phone: e.target.value }))
@@ -532,6 +540,7 @@ export default function EmployeesPage() {
           <Label htmlFor="hireDate">입사일 *</Label>
           <Input
             id="hireDate"
+            name="hireDate"
             type="date"
             value={form.hireDate}
             onChange={(e) =>
@@ -661,7 +670,7 @@ export default function EmployeesPage() {
   if (!roleLoaded) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-400">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
         불러오는 중...
       </div>
     );
@@ -671,7 +680,7 @@ export default function EmployeesPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <Users className="w-7 h-7 text-purple-600" />
+          <Users className="w-7 h-7 text-purple-600" aria-hidden="true" />
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">직원관리</h1>
             <p className="text-sm text-gray-500 mt-0.5">직원 정보를 등록하고 관리합니다.</p>
@@ -684,11 +693,11 @@ export default function EmployeesPage() {
             className="w-full sm:w-auto"
             onClick={() => setImportOpen(true)}
           >
-            <Upload className="w-4 h-4 mr-1" />
+            <Upload className="w-4 h-4 mr-1" aria-hidden="true" />
             엑셀 가져오기
           </Button>
           <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-1" />
+            <Download className="w-4 h-4 mr-1" aria-hidden="true" />
             엑셀 내보내기
           </Button>
           <Button
@@ -700,7 +709,7 @@ export default function EmployeesPage() {
               setCreateOpen(true);
             }}
           >
-            <Plus className="w-4 h-4 mr-1" />
+            <Plus className="w-4 h-4 mr-1" aria-hidden="true" />
             직원 등록
           </Button>
         </div>
@@ -716,7 +725,7 @@ export default function EmployeesPage() {
             <div className="flex-1 min-w-[200px]">
               <Label className="text-xs text-gray-500 mb-1 block">검색</Label>
               <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" aria-hidden="true" />
                 <Input
                   placeholder="이름, 사번, 이메일 검색"
                   value={searchInput}
@@ -807,15 +816,15 @@ export default function EmployeesPage() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12 text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              <Loader2 className="w-5 h-5 animate-spin mr-2" aria-hidden="true" />
               불러오는 중...
             </div>
           ) : employees.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" aria-hidden="true" />
               <p className="text-gray-400 mb-4">등록된 직원이 없습니다.</p>
               <Button onClick={() => { setForm(emptyForm); setFormError(""); setCreateOpen(true); }}>
-                <Plus className="w-4 h-4 mr-1" />
+                <Plus className="w-4 h-4 mr-1" aria-hidden="true" />
                 직원 등록하기
               </Button>
             </div>
@@ -837,11 +846,11 @@ export default function EmployeesPage() {
                 <tbody>
                   {employees.map((emp) => (
                     <tr key={emp.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-3">{emp.employeeNumber}</td>
+                      <td className="py-3 px-3" style={{ fontVariantNumeric: 'tabular-nums' }}>{emp.employeeNumber}</td>
                       <td className="py-3 px-3 font-medium">{emp.name}</td>
                       <td className="py-3 px-3">{emp.department.name}</td>
                       <td className="py-3 px-3 hidden sm:table-cell">{emp.position.name}</td>
-                      <td className="py-3 px-3 hidden sm:table-cell">{formatDate(emp.hireDate)}</td>
+                      <td className="py-3 px-3 hidden sm:table-cell" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(emp.hireDate)}</td>
                       <td className="py-3 px-3">
                         <Badge
                           variant="secondary"
@@ -859,16 +868,18 @@ export default function EmployeesPage() {
                               size="sm"
                               onClick={() => handleApprove(emp)}
                               title="승인"
+                              aria-label="승인"
                             >
-                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <CheckCircle className="w-4 h-4 text-green-600" aria-hidden="true" />
                             </Button>
                           )}
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openEdit(emp)}
+                            aria-label="수정"
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-4 h-4" aria-hidden="true" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -878,8 +889,9 @@ export default function EmployeesPage() {
                               setDeleteOpen(true);
                             }}
                             disabled={emp.status === "RESIGNED"}
+                            aria-label="퇴직 처리"
                           >
-                            <Trash2 className="w-4 h-4 text-red-500" />
+                            <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
                           </Button>
                         </div>
                       </td>
@@ -893,7 +905,7 @@ export default function EmployeesPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 전체 {total}명 중 {(page - 1) * limit + 1}-
                 {Math.min(page * limit, total)}명
               </div>
@@ -903,10 +915,11 @@ export default function EmployeesPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
+                  aria-label="이전 페이지"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4" aria-hidden="true" />
                 </Button>
-                <span className="text-sm">
+                <span className="text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {page} / {totalPages}
                 </span>
                 <Button
@@ -914,8 +927,9 @@ export default function EmployeesPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
+                  aria-label="다음 페이지"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -1032,7 +1046,7 @@ export default function EmployeesPage() {
               }}
               className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 p-6 cursor-pointer transition hover:border-blue-400 hover:bg-blue-50/50 ${submitting ? 'opacity-50 pointer-events-none' : ''}`}
             >
-              <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
               <p className="text-sm text-gray-600 font-medium">CSV 파일을 드래그하거나 클릭하여 선택</p>

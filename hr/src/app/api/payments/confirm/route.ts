@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { basePrismaClient } from '@/lib/prisma';
-import { confirmPayment, PLANS, type PlanKey } from '@/lib/toss';
+import { confirmPayment, cancelPayment, PLANS, type PlanKey } from '@/lib/toss';
 import { seedTenantData } from '@/lib/tenant-seed';
 import { SAAS_BASE_DOMAIN } from '@/lib/deploy-config';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 interface GuestData {
   companyName: string;
@@ -22,6 +23,17 @@ interface GuestData {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 payment confirms per IP per 15 minutes
+    const ip = request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rateResult = await checkRateLimit(`payment-confirm:${ip}`, 10, 15 * 60 * 1000);
+    if (!rateResult.success) {
+      return NextResponse.json(
+        { message: '결제 확인 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { paymentKey, orderId, amount } = body as {
       paymentKey: string;
@@ -36,34 +48,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Look up existing payment record
+    // Atomically claim the payment (prevents race condition with concurrent confirms)
+    const now0 = new Date().toISOString();
+    const claimed = await (basePrismaClient as any).$executeRaw(
+      `UPDATE payments SET status = 'PROCESSING', updatedAt = ? WHERE orderId = ? AND status = 'PENDING'`,
+      now0, orderId
+    );
+
+    if (claimed === 0) {
+      // Either not found or already processed
+      const existing = await (basePrismaClient as any).$queryRaw(
+        `SELECT status FROM payments WHERE orderId = ?`, orderId
+      ) as any[];
+      if (!existing?.length) {
+        return NextResponse.json(
+          { message: '결제 정보를 찾을 수 없습니다.' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { message: `이미 처리된 결제입니다. (상태: ${existing[0].status})` },
+        { status: 409 }
+      );
+    }
+
+    // Fetch full payment data (now safely claimed as PROCESSING)
     const payments = await (basePrismaClient as any).$queryRaw(
       `SELECT id, tenantId, plan, amount, status, guestData FROM payments WHERE orderId = ?`,
       orderId
     ) as any[];
-
-    if (!payments || payments.length === 0) {
-      return NextResponse.json(
-        { message: '결제 정보를 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-
     const payment = payments[0];
 
     // Verify amount matches
     if (payment.amount !== amount) {
+      // Revert to PENDING since amount doesn't match
+      await (basePrismaClient as any).$executeRaw(
+        `UPDATE payments SET status = 'PENDING', updatedAt = ? WHERE orderId = ?`,
+        now0, orderId
+      );
       return NextResponse.json(
         { message: '결제 금액이 일치하지 않습니다.' },
         { status: 400 }
-      );
-    }
-
-    // Verify payment is still PENDING
-    if (payment.status !== 'PENDING') {
-      return NextResponse.json(
-        { message: `이미 처리된 결제입니다. (상태: ${payment.status})` },
-        { status: 409 }
       );
     }
 
@@ -123,13 +148,17 @@ export async function POST(request: NextRequest) {
         where: { subdomain: guest.subdomain },
       });
       if (existingTenant) {
-        // Subdomain was taken between request and confirm — refund would be needed
-        // For now, return error; the Toss payment was already confirmed so manual handling needed
+        // Subdomain was taken — auto-refund via Toss API
         console.error(`Subdomain conflict during confirm: ${guest.subdomain} (orderId: ${orderId})`);
+        const refund = await cancelPayment(paymentKey, '서브도메인 충돌로 인한 자동 환불');
+        await (basePrismaClient as any).$executeRaw(
+          `UPDATE payments SET status = ?, failureReason = ?, updatedAt = ? WHERE id = ?`,
+          refund.success ? 'REFUNDED' : 'REFUND_FAILED', '서브도메인 충돌', now, payment.id
+        );
         return NextResponse.json(
           {
             success: false,
-            message: '서브도메인이 이미 사용 중입니다. 고객센터에 문의해주세요. 결제는 자동 환불 처리됩니다.',
+            message: '서브도메인이 이미 사용 중입니다. ' + (refund.success ? '결제가 자동 환불되었습니다.' : '환불 처리 중 문제가 발생했습니다. 고객센터에 문의해주세요.'),
           },
           { status: 409 }
         );
@@ -140,11 +169,17 @@ export async function POST(request: NextRequest) {
         where: { ownerEmail: guest.adminEmail },
       });
       if (existingOwner) {
+        // Email conflict — auto-refund via Toss API
         console.error(`Email conflict during confirm: ${guest.adminEmail} (orderId: ${orderId})`);
+        const refund = await cancelPayment(paymentKey, '이메일 충돌로 인한 자동 환불');
+        await (basePrismaClient as any).$executeRaw(
+          `UPDATE payments SET status = ?, failureReason = ?, updatedAt = ? WHERE id = ?`,
+          refund.success ? 'REFUNDED' : 'REFUND_FAILED', '이메일 충돌', now, payment.id
+        );
         return NextResponse.json(
           {
             success: false,
-            message: '이미 등록된 이메일입니다. 고객센터에 문의해주세요. 결제는 자동 환불 처리됩니다.',
+            message: '이미 등록된 이메일입니다. ' + (refund.success ? '결제가 자동 환불되었습니다.' : '환불 처리 중 문제가 발생했습니다. 고객센터에 문의해주세요.'),
           },
           { status: 409 }
         );

@@ -1068,22 +1068,52 @@ function createModelDelegate(db: D1Database, modelName: string) {
       select?: Record<string, boolean>;
     }) {
       const resolvedWhere = resolveCompositeWhere(table, args.where);
-      const existing = await this.findFirst({ where: resolvedWhere });
 
-      if (existing) {
-        return this.update({
-          where: resolvedWhere,
-          data: args.update,
-          include: args.include,
-          select: args.select,
-        });
+      // Determine conflict columns from the where clause
+      const conflictCols = Object.keys(resolvedWhere);
+
+      // Prepare create data
+      const createData = { ...args.create };
+      if (!createData.id) createData.id = generateCuid();
+      const now = new Date().toISOString();
+      if (!NO_CREATED_AT.has(table) && !createData.createdAt) createData.createdAt = now;
+      if (!NO_UPDATED_AT.has(table) && !createData.updatedAt) createData.updatedAt = now;
+
+      // Prepare update data
+      const updateData = { ...args.update };
+      if (!NO_UPDATED_AT.has(table) && !updateData.updatedAt) updateData.updatedAt = now;
+
+      // Build INSERT columns and values
+      const insertCols = Object.keys(createData).filter(k => createData[k] !== undefined);
+      const insertVals = insertCols.map(k => toSqlValue(createData[k]));
+
+      // Build ON CONFLICT DO UPDATE SET clause
+      const updateEntries = Object.entries(updateData).filter(([, v]) => v !== undefined);
+
+      if (updateEntries.length > 0 && conflictCols.length > 0) {
+        const updateParts = updateEntries.map(([k]) => `"${k}" = ?`);
+        const updateVals = updateEntries.map(([, v]) => toSqlValue(v));
+
+        const sql = `INSERT INTO "${table}" (${insertCols.map(c => `"${c}"`).join(', ')})
+          VALUES (${insertCols.map(() => '?').join(', ')})
+          ON CONFLICT (${conflictCols.map(c => `"${c}"`).join(', ')})
+          DO UPDATE SET ${updateParts.join(', ')}`;
+
+        await db.prepare(sql).bind(...insertVals, ...updateVals).run();
       } else {
-        return this.create({
-          data: args.create,
-          include: args.include,
-          select: args.select,
-        });
+        // No update data or no conflict columns — fall back to INSERT OR IGNORE
+        const sql = `INSERT OR IGNORE INTO "${table}" (${insertCols.map(c => `"${c}"`).join(', ')})
+          VALUES (${insertCols.map(() => '?').join(', ')})`;
+        await db.prepare(sql).bind(...insertVals).run();
       }
+
+      // Return the upserted record
+      const result = await this.findFirst({
+        where: resolvedWhere,
+        include: args.include,
+        select: args.select,
+      });
+      return result!;
     },
 
     async groupBy(args: {
@@ -1370,7 +1400,8 @@ export function createD1Client(db: D1Database) {
       // $executeRaw, $queryRaw
       if (prop === '$executeRaw' || prop === '$executeRawUnsafe') {
         return async (sql: string, ...params: unknown[]) => {
-          await db.prepare(sql).bind(...params).run();
+          const result = await db.prepare(sql).bind(...params).run();
+          return result.meta?.changes ?? 0;
         };
       }
       if (prop === '$queryRaw' || prop === '$queryRawUnsafe') {

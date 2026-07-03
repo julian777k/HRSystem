@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { isSetupComplete } from '@/lib/setup-config';
+import { checkSetupGuard } from '@/lib/setup-guard';
 import { getTenantId } from '@/lib/tenant-context';
 
 const departments = [
@@ -32,24 +32,10 @@ const leaveTypes = [
   { name: '공가', code: 'PUBLIC', isPaid: true, requiresDoc: true, isAnnualDeduct: false, sortOrder: 8 },
 ];
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Optional setup secret check (if SETUP_SECRET is configured, require it)
-    const setupSecret = process.env.SETUP_SECRET;
-    if (setupSecret && request.headers.get('x-setup-secret') !== setupSecret) {
-      return NextResponse.json(
-        { success: false, message: '설정 권한이 없습니다.' },
-        { status: 403 }
-      );
-    }
-
-    // Guard: block if setup already completed
-    if (await isSetupComplete()) {
-      return NextResponse.json(
-        { success: false, message: '이미 초기 설정이 완료되었습니다.' },
-        { status: 403 }
-      );
-    }
+    const guardResult = await checkSetupGuard(request);
+    if (guardResult) return guardResult;
 
     const tenantId = await getTenantId();
 

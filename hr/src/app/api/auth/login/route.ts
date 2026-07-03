@@ -20,6 +20,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // IP-based rate limit: 20 attempts per IP per 15 minutes (prevents credential stuffing across emails)
+    const ip = request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ipRateLimit = await checkRateLimit(`login-ip:${ip}`, 20, 15 * 60 * 1000);
+    if (!ipRateLimit.success) {
+      const retryMinutes = Math.ceil((ipRateLimit.retryAfterMs || 0) / 60000);
+      return NextResponse.json(
+        { message: `로그인 시도가 너무 많습니다. ${retryMinutes > 0 ? retryMinutes + '분' : '잠시'} 후 다시 시도해주세요.` },
+        { status: 429 }
+      );
+    }
+
     // Rate limit: 5 attempts per email per 15 minutes
     const rateLimitResult = await checkRateLimit(`login:${email}`, 5, 15 * 60 * 1000);
     if (!rateLimitResult.success) {
@@ -40,8 +52,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
     const employee = await prisma.employee.findFirst({
       where: { email, tenantId },

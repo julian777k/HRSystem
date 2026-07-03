@@ -1,27 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Toaster } from "sonner";
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
 
 function TrialBanner() {
-  const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  const { tenantTrial } = useAuth();
 
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.tenantTrial?.trialExpiresAt) {
-          const expires = new Date(data.tenantTrial.trialExpiresAt);
-          const now = new Date();
-          const diff = Math.ceil((expires.getTime() - now.getTime()) / 86400000);
-          setDaysLeft(Math.max(0, diff));
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const daysLeft = (() => {
+    if (!tenantTrial?.trialExpiresAt) return null;
+    const expires = new Date(tenantTrial.trialExpiresAt);
+    const now = new Date();
+    const diff = Math.ceil((expires.getTime() - now.getTime()) / 86400000);
+    return Math.max(0, diff);
+  })();
 
   if (daysLeft === null) return null;
 
@@ -44,25 +39,30 @@ export default function MainLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-gray-50 flex flex-col">
-      <Header onMenuToggle={() => setSidebarOpen((v) => !v)} />
-      <TrialBanner />
-      <div className="flex flex-1">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 px-3 py-4 sm:p-6 pt-16 sm:pt-20 lg:ml-60 pb-20 sm:pb-6">
-          {children}
-        </main>
+    <AuthProvider>
+      <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-blue-600 focus:underline">
+          본문으로 건너뛰기
+        </a>
+        <Header onMenuToggle={() => setSidebarOpen((v) => !v)} />
+        <TrialBanner />
+        <div className="flex flex-1">
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <main id="main-content" className="flex-1 px-3 py-4 sm:p-6 pt-16 sm:pt-20 lg:ml-60 pb-20 sm:pb-6">
+            {children}
+          </main>
+        </div>
+        <footer className="lg:ml-60 border-t border-gray-200 bg-white px-4 py-3 flex justify-center gap-4 text-xs text-gray-400">
+          <Link href="/privacy" className="hover:text-gray-600 transition-colors">개인정보처리방침</Link>
+          <span className="text-gray-300">·</span>
+          <Link href="/terms" className="hover:text-gray-600 transition-colors">이용약관</Link>
+          <span className="text-gray-300">·</span>
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfegtqPf6yW27R_nyK_lCxTC46cwT5lznY_QuHvMWiZuIwK9A/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">문의하기</a>
+          <span className="text-gray-300">·</span>
+          <Link href="/billing" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">결제하기</Link>
+        </footer>
+        <Toaster position="top-center" richColors closeButton />
       </div>
-      <footer className="lg:ml-60 border-t border-gray-200 bg-white px-4 py-3 flex justify-center gap-4 text-xs text-gray-400">
-        <Link href="/privacy" className="hover:text-gray-600 transition-colors">개인정보처리방침</Link>
-        <span className="text-gray-300">·</span>
-        <Link href="/terms" className="hover:text-gray-600 transition-colors">이용약관</Link>
-        <span className="text-gray-300">·</span>
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfegtqPf6yW27R_nyK_lCxTC46cwT5lznY_QuHvMWiZuIwK9A/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">문의하기</a>
-        <span className="text-gray-300">·</span>
-        <Link href="/billing" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">결제하기</Link>
-      </footer>
-      <Toaster position="top-center" richColors closeButton />
-    </div>
+    </AuthProvider>
   );
 }

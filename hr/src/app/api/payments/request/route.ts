@@ -4,6 +4,7 @@ import { basePrismaClient } from '@/lib/prisma';
 import { getTenantId } from '@/lib/tenant-context';
 import { generateOrderId, getTossClientKey, PLANS, type PlanKey } from '@/lib/toss';
 import { hashPassword, validatePasswordPolicy } from '@/lib/password';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const RESERVED_SUBDOMAINS = [
   'www', 'api', 'admin', 'super-admin', 'app', 'mail', 'ftp',
@@ -21,6 +22,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { plan } = body as { plan: string };
+
+    // Rate limit: 5 payment requests per IP per hour
+    const ip = request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rateResult = await checkRateLimit(`payment-req:${ip}`, 5, 60 * 60 * 1000);
+    if (!rateResult.success) {
+      return NextResponse.json(
+        { message: '결제 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 }
+      );
+    }
 
     // Validate plan
     if (!plan || !(plan in PLANS)) {

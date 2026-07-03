@@ -38,6 +38,33 @@ export async function PUT(
     if (lunchStartTime !== undefined) updateData.lunchStartTime = lunchStartTime || null;
     if (lunchEndTime !== undefined) updateData.lunchEndTime = lunchEndTime || null;
 
+    // Circular hierarchy detection
+    if (parentId !== undefined && parentId !== null) {
+      if (parentId === id) {
+        return NextResponse.json(
+          { message: '부서를 자기 자신의 하위로 설정할 수 없습니다.' },
+          { status: 400 }
+        );
+      }
+      // Walk parent chain to detect cycles (max depth 20)
+      let currentParentId: string | null = parentId;
+      const visited = new Set<string>([id]);
+      for (let depth = 0; depth < 20 && currentParentId; depth++) {
+        if (visited.has(currentParentId)) {
+          return NextResponse.json(
+            { message: '순환 구조가 감지되었습니다. 상위 부서를 확인해주세요.' },
+            { status: 400 }
+          );
+        }
+        visited.add(currentParentId);
+        const parent = await prisma.department.findUnique({
+          where: { id: currentParentId },
+          select: { parentId: true },
+        });
+        currentParentId = parent?.parentId || null;
+      }
+    }
+
     const department = await prisma.department.update({
       where: { id },
       data: updateData,

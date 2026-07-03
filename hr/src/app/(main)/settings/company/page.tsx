@@ -32,6 +32,7 @@ interface CompanySettings {
   lunch_end_time: string;
   server_url: string;
   attendance_mode: string;
+  self_register_auto_approve: string;
 }
 
 const defaultSettings: CompanySettings = {
@@ -45,6 +46,7 @@ const defaultSettings: CompanySettings = {
   lunch_end_time: "13:00",
   server_url: "",
   attendance_mode: "AUTO",
+  self_register_auto_approve: "true",
 };
 
 const ADMIN_ROLES = ["SYSTEM_ADMIN", "COMPANY_ADMIN"];
@@ -239,6 +241,46 @@ export default function CompanySettingsPage() {
                 <p className="font-semibold text-sm mb-1">수동 기록</p>
                 <p className="text-xs text-gray-500 leading-relaxed">
                   직원이 직접 출근/퇴근 버튼을 눌러 기록합니다. 실제 시각 기준.
+                </p>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 직원 등록 설정 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">직원 등록 설정</CardTitle>
+            <CardDescription>직원 셀프 등록(회원가입) 시 승인 방식을 설정합니다.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => updateSetting("self_register_auto_approve", "true")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  settings.self_register_auto_approve !== "false"
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <p className="font-semibold text-sm mb-1">자동 승인</p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  직원이 회원가입하면 즉시 로그인할 수 있습니다. 소규모 회사에 적합합니다.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSetting("self_register_auto_approve", "false")}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  settings.self_register_auto_approve === "false"
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <p className="font-semibold text-sm mb-1">관리자 승인 필요</p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  직원이 회원가입하면 관리자 승인 후 로그인할 수 있습니다. 보안이 중요한 회사에 적합합니다.
                 </p>
               </button>
             </div>

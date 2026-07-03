@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ALL_FEATURES } from '@/constants/features';
 
 const HIGHLIGHTS = [
@@ -63,12 +64,18 @@ function ClickableImage({ src, alt, width, height, className, priority, caption 
   return (
     <>
       <div className="cursor-zoom-in" onClick={() => setOpen(true)}>
-        <Image src={src} alt={alt} width={width} height={height} className={className} priority={priority} />
+        <Image src={src} alt={alt} width={width} height={height} className={className} priority={priority} loading={priority ? undefined : 'lazy'} />
       </div>
       {open && (
         <div
           className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="이미지 확대"
+          onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
+          tabIndex={-1}
+          ref={(el) => el?.focus()}
         >
           <div className="relative max-w-[95vw] max-h-[95vh]">
             <Image
@@ -77,6 +84,7 @@ function ClickableImage({ src, alt, width, height, className, priority, caption 
               width={2880}
               height={1800}
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              loading="lazy"
             />
             {caption && (
               <p className="text-white/80 text-sm text-center mt-3">{caption}</p>
@@ -84,6 +92,7 @@ function ClickableImage({ src, alt, width, height, className, priority, caption 
             <button
               onClick={(e) => { e.stopPropagation(); setOpen(false); }}
               className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 shadow-lg text-lg font-bold"
+              aria-label="닫기"
             >
               &times;
             </button>
@@ -104,7 +113,7 @@ export default function LandingPage() {
             <p className="text-blue-600 font-semibold text-sm mb-3 tracking-wide">
               KeystoneHR — 중소기업을 위한 올인원 HR 솔루션
             </p>
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-gray-900 mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-gray-900 mb-6 leading-tight" style={{ textWrap: 'balance' }}>
               HR 솔루션이{' '}
               <span className="text-red-500">월 4,083원?</span>
               <br />
@@ -127,7 +136,7 @@ export default function LandingPage() {
             <p className="text-blue-400 font-bold text-sm sm:text-base mb-4 tracking-wide">
               직원 20명 기준 · 3년 비용 비교 · VAT 별도
             </p>
-            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black mb-4 leading-tight">
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black mb-4 leading-tight" style={{ textWrap: 'balance' }}>
               3년에 <span className="text-slate-400">864만원</span> 쓸 건가요?<br />
               <span className="text-red-400">49만원</span>이면 <span className="text-red-400">10년</span> 씁니다.
             </h2>
@@ -209,12 +218,12 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row justify-center gap-3 mt-10">
-            <a
+            <Link
               href="/start"
               className="px-8 py-3.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition shadow-lg shadow-red-500/30 text-center"
             >
               7일 무료 체험 시작하기
-            </a>
+            </Link>
             <a
               href="#pricing"
               className="px-8 py-3.5 border border-slate-600 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition text-center"
@@ -230,7 +239,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-blue-600 font-bold text-sm mb-3 tracking-wide">잠깐, 가격만 싼 게 아닙니다</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
               타사 <span className="text-red-500">유료 추가 기능</span>,<br />
               KeystoneHR은 <span className="text-blue-600">전부 무료</span>입니다
             </h2>
@@ -366,6 +375,7 @@ export default function LandingPage() {
                 width={390}
                 height={844}
                 className="w-full"
+                loading="lazy"
               />
             </div>
           </div>
@@ -400,7 +410,7 @@ export default function LandingPage() {
       <section id="features" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
               KeystoneHR은 다릅니다
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -457,7 +467,7 @@ export default function LandingPage() {
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
               KeystoneHR, 기본도 탄탄합니다
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -492,7 +502,7 @@ export default function LandingPage() {
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
               결재도 온라인으로
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -519,7 +529,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
               KeystoneHR 요금제
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -542,7 +552,7 @@ export default function LandingPage() {
               <div className="space-y-2.5 mb-8">
                 {ALL_FEATURES.map((feature) => (
                   <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
-                    <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     {feature}
@@ -550,18 +560,18 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              <a
+              <Link
                 href="/start"
                 className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
               >
                 7일 무료 체험 시작하기
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/purchase?plan=standard"
                 className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 mt-3"
               >
                 바로 구매하기
-              </a>
+              </Link>
             </div>
 
             {/* 100명 플랜 */}
@@ -581,7 +591,7 @@ export default function LandingPage() {
               <div className="space-y-2.5 mb-8">
                 {ALL_FEATURES.map((feature) => (
                   <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
-                    <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     {feature}
@@ -589,18 +599,18 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              <a
+              <Link
                 href="/start"
                 className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
               >
                 7일 무료 체험 시작하기
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/purchase?plan=business"
                 className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 mt-3"
               >
                 바로 구매하기
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -609,25 +619,25 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="py-20 bg-blue-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4" style={{ textWrap: 'balance' }}>
             KeystoneHR, 지금 바로 시작하세요
           </h2>
           <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
             7일 무료 체험 후, 1회 구매로 10년 사용. 복잡한 설치 없이 바로 시작하세요.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a
+            <Link
               href="/start"
               className="px-8 py-3.5 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition"
             >
               7일 무료 체험
-            </a>
-            <a
+            </Link>
+            <Link
               href="/login"
               className="px-8 py-3.5 border border-white/30 text-white rounded-xl font-semibold hover:bg-white/10 transition"
             >
               로그인
-            </a>
+            </Link>
           </div>
           <p className="mt-6 text-blue-200 text-sm">
             궁금한 점이 있으신가요?{' '}

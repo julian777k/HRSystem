@@ -6,11 +6,7 @@ import Link from "next/link";
 import { LogOut, User, Menu, KeyRound } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-
-interface UserInfo {
-  name: string;
-  positionName: string;
-}
+import { useAuth } from "@/contexts/auth-context";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -18,7 +14,7 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const router = useRouter();
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const { user } = useAuth();
   const [companyName, setCompanyName] = useState("");
   const [hasLogo, setHasLogo] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -26,6 +22,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   // User menu state
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Password change modal state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -37,17 +34,18 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/auth/me").then((res) => {
-        if (res.status === 401) { window.location.href = '/login'; return null; }
-        return res.ok ? res.json() : null;
-      }),
-      fetch("/api/setup/status").then((res) => res.ok ? res.json() : null),
-    ]).then(([meData, statusData]) => {
-      if (meData?.user) setUser(meData.user);
-      if (statusData?.companyName) setCompanyName(statusData.companyName);
-      if (statusData?.hasLogo) setHasLogo(true);
-    }).catch(() => {});
+    fetch("/api/setup/status").then((res) => res.ok ? res.json() : null)
+      .then((statusData) => {
+        if (statusData?.companyName) setCompanyName(statusData.companyName);
+        if (statusData?.hasLogo) setHasLogo(true);
+      }).catch(() => {});
+  }, []);
+
+  // Cleanup redirect timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
+    };
   }, []);
 
   // Close dropdown on outside click
@@ -102,7 +100,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
-        setTimeout(() => {
+        redirectTimeoutRef.current = setTimeout(() => {
           window.location.href = "/login";
         }, 2000);
       } else {
@@ -125,8 +123,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
           <button
             onClick={onMenuToggle}
             className="p-1.5 rounded-md hover:bg-gray-100 lg:hidden shrink-0"
+            aria-label="메뉴 열기"
           >
-            <Menu className="w-5 h-5 text-gray-600" />
+            <Menu className="w-5 h-5 text-gray-600" aria-hidden="true" />
           </button>
 
           <Link
@@ -156,8 +155,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md px-2 py-1.5"
+              aria-expanded={showUserMenu}
+              aria-haspopup="true"
             >
-              <User className="w-4 h-4 shrink-0" />
+              <User className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">
                 {user ? `${user.name} (${user.positionName})` : "..."}
               </span>
@@ -167,23 +168,25 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1" role="menu">
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
                     setShowPasswordModal(true);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  role="menuitem"
                 >
-                  <KeyRound className="w-4 h-4" />
+                  <KeyRound className="w-4 h-4" aria-hidden="true" />
                   비밀번호 변경
                 </button>
                 <button
                   onClick={handleLogout}
                   disabled={loggingOut}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  role="menuitem"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4" aria-hidden="true" />
                   로그아웃
                 </button>
               </div>
@@ -194,7 +197,12 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Password Change Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label="비밀번호 변경"
+        >
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => {
@@ -202,54 +210,64 @@ export function Header({ onMenuToggle }: HeaderProps) {
               setPasswordError("");
               setPasswordSuccess("");
             }}
+            onKeyDown={(e) => { if (e.key === 'Escape') setShowPasswordModal(false); }}
           />
           <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
             <h2 className="text-lg font-semibold mb-4">비밀번호 변경</h2>
             <form onSubmit={handleChangePassword} className="space-y-4">
               {passwordError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600" aria-live="polite">
                   {passwordError}
                 </div>
               )}
               {passwordSuccess && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-600">
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-600" aria-live="polite">
                   {passwordSuccess}
                 </div>
               )}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
+                <label htmlFor="current-password" className="text-sm font-medium text-gray-700">
                   현재 비밀번호
                 </label>
                 <input
+                  id="current-password"
+                  name="current-password"
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
+                <label htmlFor="new-password" className="text-sm font-medium text-gray-700">
                   새 비밀번호
                 </label>
                 <input
+                  id="new-password"
+                  name="new-password"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="8자 이상"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoComplete="new-password"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
+                <label htmlFor="confirm-password" className="text-sm font-medium text-gray-700">
                   새 비밀번호 확인
                 </label>
                 <input
+                  id="confirm-password"
+                  name="confirm-password"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoComplete="new-password"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>

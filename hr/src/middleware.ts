@@ -390,5 +390,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // 정적 이미지(.png 등)는 인증 미들웨어에서 제외 — 로그인 전 화면(랜딩/로그인)에서
+  // 로고(/logo.png)가 /login으로 리다이렉트되어 깨지는 문제 방지.
+  // 민감 파일(.env 등)은 확장자가 달라 여전히 미들웨어의 차단 로직을 거친다.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)).*)'],
 };

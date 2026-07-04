@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { verifyPassword, DUMMY_PASSWORD_HASH } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { signToken, type AuthUser } from '@/lib/auth';
@@ -90,7 +90,12 @@ export async function POST(request: NextRequest) {
       } else if (newCount >= 5) {
         updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
       }
-      await prisma.employee.update({ where: { id: employee.id }, data: updateData });
+      // 실패 카운트 기록은 응답 후(after)로 미룬다 — 존재 계정만 DB write 지연이
+      // 생기는 타이밍 사이드채널(계정 열거)을 제거. after()는 Workers waitUntil로
+      // 실행이 보장되어 잠금 기록이 누락되지 않는다.
+      after(async () => {
+        await prisma.employee.update({ where: { id: employee.id }, data: updateData }).catch(() => {});
+      });
       return NextResponse.json(
         { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
         { status: 401 }

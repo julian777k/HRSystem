@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { containsFilter } from '@/lib/db-utils';
+import { writeAuditLog } from '@/lib/audit-log';
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,11 +76,29 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Prevent changing own role (safety)
-    if (employeeId === user.id && user.role === 'SYSTEM_ADMIN' && role !== 'SYSTEM_ADMIN') {
+    // 역할 값 화이트리스트 검증 (임의 값 주입 차단)
+    const VALID_ROLES = ['SYSTEM_ADMIN', 'COMPANY_ADMIN', 'DEPT_ADMIN', 'BASIC'];
+    if (!VALID_ROLES.includes(role)) {
       return NextResponse.json(
-        { message: '자신의 시스템 관리자 권한은 변경할 수 없습니다.' },
+        { message: '유효하지 않은 역할입니다.' },
         { status: 400 }
+      );
+    }
+
+    // 관리자 역할 부여는 시스템 관리자만 가능 (권한 상승 차단)
+    const ADMIN_ROLES_SET = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'];
+    if (ADMIN_ROLES_SET.includes(role) && user.role !== 'SYSTEM_ADMIN') {
+      return NextResponse.json(
+        { message: '관리자 역할은 시스템 관리자만 부여할 수 있습니다.' },
+        { status: 403 }
+      );
+    }
+
+    // 본인 역할 변경 금지 (자기 권한 상승·강등 차단)
+    if (employeeId === user.id && role !== user.role) {
+      return NextResponse.json(
+        { message: '본인의 역할은 변경할 수 없습니다.' },
+        { status: 403 }
       );
     }
 
@@ -108,6 +127,14 @@ export async function PUT(request: NextRequest) {
         });
       }
     }
+
+    writeAuditLog({
+      action: 'PERMISSION_CHANGE',
+      target: 'employee',
+      targetId: employeeId,
+      employeeId: user.id,
+      after: { role, viewScopes: viewScopes ?? null },
+    });
 
     return NextResponse.json({ message: '권한이 변경되었습니다.' });
   } catch (error) {

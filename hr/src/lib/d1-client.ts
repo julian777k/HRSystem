@@ -264,7 +264,21 @@ interface WhereResult {
   params: unknown[];
 }
 
-function buildWhere(where: Record<string, unknown> | undefined, params: unknown[] = [], contextModel?: string): WhereResult {
+// ─── 식별자 검증 & LIKE 이스케이프 (SQL 인젝션 심층 방어) ───
+// 컬럼 키는 반드시 유효한 식별자 형식이어야 함 — 따옴표·공백·특수문자를 통한
+// 식별자 컨텍스트 탈출(인젝션)을 차단한다. 정상 컬럼명은 모두 통과.
+function assertValidIdentifier(key: string): void {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+    throw new Error(`Invalid column identifier: ${key}`);
+  }
+}
+
+// LIKE 값의 와일드카드(%, _)와 이스케이프 문자(\)를 리터럴로 처리
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, '\\$&');
+}
+
+export function buildWhere(where: Record<string, unknown> | undefined, params: unknown[] = [], contextModel?: string): WhereResult {
   if (!where || Object.keys(where).length === 0) {
     return { sql: '', params };
   }
@@ -309,6 +323,9 @@ function buildWhere(where: Record<string, unknown> | undefined, params: unknown[
       }
       continue;
     }
+
+    // 이후 key는 컬럼명 또는 관계명 — 식별자 형식 검증 (인젝션 차단)
+    assertValidIdentifier(key);
 
     if (value === null) {
       conditions.push(`"${key}" IS NULL`);
@@ -365,21 +382,18 @@ function buildWhere(where: Record<string, unknown> | undefined, params: unknown[
       }
       if ('contains' in ops) {
         const mode = (ops as Record<string, unknown>).mode;
-        if (mode === 'insensitive') {
-          params.push(`%${ops.contains}%`);
-          conditions.push(`"${key}" LIKE ? COLLATE NOCASE`);
-        } else {
-          params.push(`%${ops.contains}%`);
-          conditions.push(`"${key}" LIKE ?`);
-        }
+        params.push(`%${escapeLike(String(ops.contains))}%`);
+        conditions.push(mode === 'insensitive'
+          ? `"${key}" LIKE ? ESCAPE '\\' COLLATE NOCASE`
+          : `"${key}" LIKE ? ESCAPE '\\'`);
       }
       if ('startsWith' in ops) {
-        params.push(`${ops.startsWith}%`);
-        conditions.push(`"${key}" LIKE ?`);
+        params.push(`${escapeLike(String(ops.startsWith))}%`);
+        conditions.push(`"${key}" LIKE ? ESCAPE '\\'`);
       }
       if ('endsWith' in ops) {
-        params.push(`%${ops.endsWith}`);
-        conditions.push(`"${key}" LIKE ?`);
+        params.push(`%${escapeLike(String(ops.endsWith))}`);
+        conditions.push(`"${key}" LIKE ? ESCAPE '\\'`);
       }
       if ('gte' in ops) {
         params.push(toSqlValue(ops.gte));
@@ -423,7 +437,7 @@ function sanitizeDirection(dir: string): string {
 
 // ─── ORDER BY builder (supports nested relation ordering) ───
 
-function buildOrderBy(orderBy: unknown, modelName?: string): string {
+export function buildOrderBy(orderBy: unknown, modelName?: string): string {
   if (!orderBy) return '';
 
   const outerTable = modelName ? MODEL_TABLE_MAP[modelName] : undefined;
@@ -431,11 +445,13 @@ function buildOrderBy(orderBy: unknown, modelName?: string): string {
   if (Array.isArray(orderBy)) {
     const parts = orderBy.map((item: Record<string, unknown>) => {
       const [field, dir] = Object.entries(item)[0];
+      assertValidIdentifier(field);
       // Nested relation ordering: { position: { level: 'desc' } }
       if (typeof dir === 'object' && dir !== null && modelName) {
         const relMeta = RELATIONS[modelName]?.[field];
         if (relMeta && relMeta.type === 'belongsTo') {
           const [nestedField, nestedDir] = Object.entries(dir as Record<string, string>)[0];
+          assertValidIdentifier(nestedField);
           const fkRef = outerTable ? `"${outerTable}"."${relMeta.foreignKey}"` : `"${relMeta.foreignKey}"`;
           return `(SELECT "${nestedField}" FROM "${relMeta.targetTable}" WHERE "id" = ${fkRef}) ${sanitizeDirection(nestedDir)}`;
         }
@@ -449,11 +465,13 @@ function buildOrderBy(orderBy: unknown, modelName?: string): string {
     const entries = Object.entries(orderBy as Record<string, unknown>);
     if (entries.length > 0) {
       const parts = entries.map(([field, dir]) => {
+        assertValidIdentifier(field);
         // Nested relation ordering: { position: { level: 'desc' } }
         if (typeof dir === 'object' && dir !== null && modelName) {
           const relMeta = RELATIONS[modelName]?.[field];
           if (relMeta && relMeta.type === 'belongsTo') {
             const [nestedField, nestedDir] = Object.entries(dir as Record<string, string>)[0];
+            assertValidIdentifier(nestedField);
             const fkRef = outerTable ? `"${outerTable}"."${relMeta.foreignKey}"` : `"${relMeta.foreignKey}"`;
             return `(SELECT "${nestedField}" FROM "${relMeta.targetTable}" WHERE "id" = ${fkRef}) ${sanitizeDirection(nestedDir)}`;
           }
@@ -469,11 +487,14 @@ function buildOrderBy(orderBy: unknown, modelName?: string): string {
 
 // ─── SELECT builder ───
 
-function buildSelectColumns(select: Record<string, unknown> | undefined): string {
+export function buildSelectColumns(select: Record<string, unknown> | undefined): string {
   if (!select) return '*';
   const cols = Object.entries(select)
     .filter(([, v]) => v === true)
-    .map(([k]) => `"${k}"`);
+    .map(([k]) => {
+      assertValidIdentifier(k);
+      return `"${k}"`;
+    });
   return cols.length > 0 ? cols.join(', ') : '*';
 }
 
@@ -874,6 +895,10 @@ function createModelDelegate(db: D1Database, modelName: string) {
         const childTable = nc.relMeta.targetTable;
         for (const item of nc.items) {
           const childData = { ...item, [nc.relMeta.foreignKey]: data.id };
+          // 부모가 테넌트 스코프면 자식에도 tenantId 전파 (격리 불변식 유지, M-1)
+          if (data.tenantId !== undefined && childData.tenantId === undefined) {
+            childData.tenantId = data.tenantId;
+          }
           if (!childData.id) childData.id = generateCuid();
           const childNow = new Date().toISOString();
           if (!NO_CREATED_AT.has(childTable) && !childData.createdAt) childData.createdAt = childNow;

@@ -17,10 +17,20 @@ export async function GET() {
 
     const { user, shouldRefresh } = result;
 
-    // Verify employee still exists in DB (handles DB re-seed case)
+    // DB에서 최신 권한/상태를 재조회 (강등·부서이동·퇴사를 토큰에 반영)
     const employee = await prisma.employee.findUnique({
       where: { id: user.id },
-      select: { id: true, customPermissions: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        departmentId: true,
+        customPermissions: true,
+        department: { select: { name: true } },
+        position: { select: { name: true } },
+      },
     });
 
     if (!employee) {
@@ -31,9 +41,30 @@ export async function GET() {
       );
     }
 
-    // 만료 4시간 전이면 자동 토큰 갱신 (사용자 끊김 방지)
-    if (shouldRefresh) {
-      const newToken = await signToken(user);
+    // 비활성화·퇴사 계정은 즉시 차단 (로그인 라우트와 동일 정책)
+    if (employee.status !== 'ACTIVE' && employee.status !== 'ON_LEAVE') {
+      await clearAuthCookie();
+      return NextResponse.json(
+        { message: '비활성화된 계정입니다. 관리자에게 문의하세요.' },
+        { status: 401 }
+      );
+    }
+
+    // DB 최신값으로 사용자 정보 재구성 (낡은 토큰 클레임 대신 신뢰 원천 사용)
+    const freshUser = {
+      ...user,
+      name: employee.name,
+      email: employee.email,
+      role: employee.role,
+      departmentId: employee.departmentId,
+      departmentName: employee.department?.name ?? user.departmentName,
+      positionName: employee.position?.name ?? user.positionName,
+    };
+
+    // 권한이 바뀌었거나 만료가 임박하면 최신 정보로 토큰 재발급
+    const roleChanged = freshUser.role !== user.role;
+    if (shouldRefresh || roleChanged) {
+      const newToken = await signToken(freshUser);
       await setAuthCookie(newToken);
     }
 
@@ -57,7 +88,7 @@ export async function GET() {
 
     return NextResponse.json({
       user: {
-        ...user,
+        ...freshUser,
         customPermissions: employee.customPermissions || null,
       },
       ...(tenantTrial && { tenantTrial }),

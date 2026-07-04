@@ -128,6 +128,9 @@ model Employee {
   role            String     @default("BASIC")
   profileImage    String?
   customPermissions  String?
+  failedLoginCount   Int       @default(0)       // 로그인 무차별 대입 방어
+  lockedUntil        DateTime?                    // 계정 잠금 해제 시각
+  lastLoginAt        DateTime?                    // 최근 로그인 시각
   workType        String?
   workStartTime   String?
   workEndTime     String?

@@ -344,6 +344,27 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // CSRF 방어: 상태변경 요청의 Origin이 대상 호스트와 일치하는지 검증
+  // (SameSite=strict 쿠키에 더한 심층 방어. Origin 헤더가 없는 요청은 통과)
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    const origin = request.headers.get('origin');
+    if (origin) {
+      const host = request.headers.get('host');
+      let originHost: string | null = null;
+      try {
+        originHost = new URL(origin).host;
+      } catch {
+        originHost = null;
+      }
+      if (originHost !== host) {
+        return new Response(
+          JSON.stringify({ message: '요청 출처가 올바르지 않습니다.' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+  }
+
   // Block path traversal attempts (../, %2e%2e, etc.)
   const decodedPath = decodeURIComponent(pathname);
   if (decodedPath.includes('..') || pathname.includes('..') || pathname.includes('%2e%2e') || pathname.includes('%2E%2E')) {

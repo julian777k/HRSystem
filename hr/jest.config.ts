@@ -11,7 +11,9 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
-  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/release/', '<rootDir>/dist-electron/'],
+  // release/·dist-electron/에는 빌드 산출물(.next/standalone)이 있어 haste 모듈 맵 중복을 유발 — 스캔에서 제외
+  modulePathIgnorePatterns: ['<rootDir>/release/', '<rootDir>/dist-electron/'],
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

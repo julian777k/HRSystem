@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPassword, hashPassword } from '@/lib/password';
+import { verifyPassword, hashPassword, DUMMY_PASSWORD_HASH } from '@/lib/password';
 import { basePrismaClient } from '@/lib/prisma';
 import { signSuperAdminToken, SUPER_ADMIN_COOKIE } from '@/lib/super-admin-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!admin) {
+      // 타이밍 균일화: 존재하지 않는 계정도 동일한 해시 검증 시간 소요 (사용자 열거 방지)
+      await verifyPassword(password, DUMMY_PASSWORD_HASH);
       return NextResponse.json(
         { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
         { status: 401 }

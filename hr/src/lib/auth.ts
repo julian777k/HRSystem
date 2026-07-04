@@ -14,7 +14,9 @@ function getJwtSecret(): Uint8Array {
   return _jwtSecret;
 }
 
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+// 토큰 수명은 짧게(1h) 유지 — 비밀번호 변경·권한 강등이 최대 1시간 내 반영되도록
+// (매 요청 DB 조회 없이 무효화 창을 24h→1h로 축소)
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
 
 export interface AuthUser {
   id: string;
@@ -69,9 +71,9 @@ export async function verifyToken(token: string): Promise<{ user: AuthUser; shou
       positionName: p.positionName,
       tenantId: p.tenantId || '',
     };
-    // 만료 4시간 전이면 갱신 필요 플래그
+    // 만료 15분 전이면 갱신 필요 플래그 (1h 토큰 대응 — 활동 중 끊김 방지)
     const exp = (payload.exp || 0) * 1000;
-    const shouldRefresh = exp - Date.now() < 4 * 60 * 60 * 1000;
+    const shouldRefresh = exp - Date.now() < 15 * 60 * 1000;
     return { user, shouldRefresh };
   } catch {
     return null;

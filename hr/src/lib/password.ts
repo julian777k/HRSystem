@@ -13,6 +13,11 @@ const KEY_LENGTH = 32;
 const SALT_LENGTH = 16;
 const MAX_PASSWORD_LENGTH = 128;
 
+// 타이밍 공격(사용자 열거) 방어용 더미 해시 — 존재하지 않는 계정 로그인 시도에도
+// verifyPassword를 실행해 실제 계정과 동일한 검증 시간이 소요되게 한다.
+export const DUMMY_PASSWORD_HASH =
+  'pbkdf2:600000:00000000000000000000000000000000:0000000000000000000000000000000000000000000000000000000000000000';
+
 function bufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
     .map(b => b.toString(16).padStart(2, '0'))

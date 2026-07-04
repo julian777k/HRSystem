@@ -128,6 +128,9 @@ model Employee {
   role            SystemRole     @default(BASIC)
   profileImage    String?
   customPermissions  String?
+  failedLoginCount   Int       @default(0)       // 로그인 무차별 대입 방어
+  lockedUntil        DateTime?                    // 계정 잠금 해제 시각
+  lastLoginAt        DateTime?                    // 최근 로그인 시각
   workType        String?                        // "FIXED" | "FLEXIBLE" | null(회사기본)
   workStartTime   String?                        // 개인 출근 시간 (HH:mm)
   workEndTime     String?                        // 개인 퇴근 시간

@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 빌드 산출물 — lint 대상 아님 (release/는 2.5GB 스캔 방지)
+    "release/**",
+    "dist-electron/**",
   ]),
 ]);
 

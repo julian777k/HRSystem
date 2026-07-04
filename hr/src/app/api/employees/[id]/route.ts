@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hashPassword } from '@/lib/password';
+import { hashPassword, validatePasswordPolicy } from '@/lib/password';
+import { writeAuditLog } from '@/lib/audit-log';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 
@@ -109,6 +110,10 @@ export async function PUT(
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
     if (password) {
+      const policyError = validatePasswordPolicy(password);
+      if (policyError) {
+        return NextResponse.json({ message: policyError }, { status: 400 });
+      }
       updateData.passwordHash = await hashPassword(password);
     }
     if (workType !== undefined) updateData.workType = workType;
@@ -132,6 +137,18 @@ export async function PUT(
     }
 
     const { passwordHash, ...sanitized } = employee;
+
+    writeAuditLog({
+      action: 'EMPLOYEE_UPDATE',
+      target: 'employee',
+      targetId: id,
+      employeeId: user.id,
+      after: {
+        ...(role !== undefined && { role }),
+        ...(status !== undefined && { status }),
+        ...(password ? { passwordChanged: true } : {}),
+      },
+    });
 
     return NextResponse.json({ employee: sanitized });
   } catch (error) {
@@ -173,6 +190,13 @@ export async function DELETE(
         status: 'RESIGNED',
         resignDate: new Date(),
       },
+    });
+
+    writeAuditLog({
+      action: 'EMPLOYEE_RESIGN',
+      target: 'employee',
+      targetId: id,
+      employeeId: user.id,
     });
 
     return NextResponse.json({ message: '직원이 퇴직 처리되었습니다.' });

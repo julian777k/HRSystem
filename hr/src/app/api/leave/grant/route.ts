@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { getTenantId } from '@/lib/tenant-context';
+import { writeAuditLog } from '@/lib/audit-log';
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,6 +93,15 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+
+    writeAuditLog({
+      action: 'LEAVE_GRANT',
+      target: 'employee',
+      targetId: employeeId,
+      employeeId: user.id,
+      after: { leaveTypeCode, grantDays, grantReason, periodStart, periodEnd },
+      ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+    });
 
     return NextResponse.json(grant, { status: 201 });
   } catch (error) {

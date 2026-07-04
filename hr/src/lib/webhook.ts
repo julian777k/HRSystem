@@ -14,10 +14,14 @@ const PRIVATE_IP_PATTERNS = [
   /^10\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
   /^192\.168\./,
-  /^169\.254\./,
+  /^169\.254\./,      // 링크로컬 (클라우드 메타데이터 169.254.169.254 포함)
   /^0\./,
   /^localhost$/i,
-  /^\[::1\]$/,
+  /^\[::1\]$/,        // IPv6 loopback
+  /^\[::ffff:/i,      // IPv4-mapped IPv6
+  /^\[fc[0-9a-f]/i,   // IPv6 unique local fc00::/8
+  /^\[fd[0-9a-f]/i,   // IPv6 unique local fd00::/8
+  /^\[fe[89ab]/i,     // IPv6 link-local fe80::/10
 ];
 
 export function isValidWebhookUrl(urlStr: string): boolean {
@@ -94,6 +98,7 @@ export async function sendWebhookNotification(event: string, message: string): P
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(5000),
+      redirect: 'error', // 리다이렉트로 사설망 우회하는 SSRF 차단
     });
 
     if (!res.ok) {

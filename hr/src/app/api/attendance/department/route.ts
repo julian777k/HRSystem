@@ -11,9 +11,9 @@ export async function GET(request: NextRequest) {
     }
 
     const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
-    const isManager = user.role === 'MANAGER';
+    const isDeptAdmin = user.role === 'DEPT_ADMIN';
 
-    if (!isAdmin && !isManager) {
+    if (!isAdmin && !isDeptAdmin) {
       return NextResponse.json(
         { message: '부서 근태 조회 권한이 없습니다.' },
         { status: 403 }

@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth-actions';
 import { notifyRequestResult } from '@/lib/notifications';
 import { createLeaveAttendance } from '@/lib/attendance-utils';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { writeAuditLog } from '@/lib/audit-log';
 
 export async function POST(request: NextRequest) {
   try {
@@ -189,6 +190,15 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    writeAuditLog({
+      action: action === 'APPROVED' ? 'APPROVAL_APPROVE' : 'APPROVAL_REJECT',
+      target: 'approval',
+      targetId: approvalId,
+      employeeId: user.id,
+      after: { action, comment: comment || null },
+      ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+    });
 
     return NextResponse.json({ message: '결재가 처리되었습니다.' });
   } catch (error) {

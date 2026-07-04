@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPassword } from '@/lib/password';
+import { verifyPassword, DUMMY_PASSWORD_HASH } from '@/lib/password';
 import { prisma } from '@/lib/prisma';
 import { signToken, type AuthUser } from '@/lib/auth';
 import { setAuthCookie } from '@/lib/auth-actions';
@@ -60,14 +60,37 @@ export async function POST(request: NextRequest) {
 
     if (!employee) {
       console.warn(`[Auth] Failed login: user not found — email=${email}, ip=${ip}`);
+      // 타이밍 균일화: 존재하지 않는 계정도 동일한 해시 검증 시간 소요 (사용자 열거 방지)
+      await verifyPassword(password, DUMMY_PASSWORD_HASH);
       return NextResponse.json(
         { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
         { status: 401 }
       );
     }
 
+    // 계정 잠금 확인 — DB 영속 카운터라 isolate 분산 무차별 대입도 차단
+    if (employee.lockedUntil) {
+      const lockedUntil = new Date(employee.lockedUntil as unknown as string);
+      if (lockedUntil > new Date()) {
+        const remainingMin = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+        return NextResponse.json(
+          { message: `계정이 잠겨 있습니다. ${remainingMin}분 후 다시 시도해주세요.` },
+          { status: 423 }
+        );
+      }
+    }
+
     if (!(await verifyPassword(password, employee.passwordHash))) {
       console.warn(`[Auth] Failed login: wrong password — email=${email}, ip=${ip}`);
+      // 실패 횟수 누적 + 임계 초과 시 잠금 (5회→30분, 10회→2시간)
+      const newCount = (employee.failedLoginCount || 0) + 1;
+      const updateData: Record<string, unknown> = { failedLoginCount: newCount };
+      if (newCount >= 10) {
+        updateData.lockedUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+      } else if (newCount >= 5) {
+        updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      }
+      await prisma.employee.update({ where: { id: employee.id }, data: updateData });
       return NextResponse.json(
         { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
         { status: 401 }
@@ -89,6 +112,12 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    // 로그인 성공: 실패 카운터 리셋 + 최근 로그인 시각 갱신
+    await prisma.employee.update({
+      where: { id: employee.id },
+      data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date().toISOString() },
+    });
 
     const authUser: AuthUser = {
       id: employee.id,

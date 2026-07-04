@@ -3,4 +3,8 @@
 *.png
 !hr/public/screenshots/*.png
 *.xlsx
-.claude/
+# .claude 개인 설정은 무시하되, 팀 공유용 배포 안전장치는 추적
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+!.claude/hooks/**

@@ -2,6 +2,7 @@
 *.dmg
 *.png
 !hr/public/screenshots/*.png
+!hr/public/*.png
 *.xlsx
 # .claude 개인 설정은 무시하되, 팀 공유용 배포 안전장치는 추적
 .claude/*

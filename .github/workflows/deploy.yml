@@ -33,8 +33,8 @@ jobs:
           cache-dependency-path: hr/package-lock.json
       - name: 의존성 설치
         run: npm ci
-      - name: Prisma 클라이언트 생성
-        run: npx prisma generate
+      - name: Prisma 클라이언트 생성 (D1/SQLite — 실제 배포 대상과 일치)
+        run: npx prisma generate --schema=prisma/schema.sqlite.prisma
       - name: 타입 체크
         run: npx tsc --noEmit
       - name: 유닛 테스트

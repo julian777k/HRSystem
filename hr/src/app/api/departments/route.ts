@@ -57,7 +57,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
     }
 
-    const { name, code, parentId, sortOrder } = await request.json();
+    // 근무시간 4개 필드는 수정(PUT)에서는 받는데 여기서 빠져 있어,
+    // 부서 추가 시 입력한 근무시간이 조용히 유실됐다.
+    const { name, code, parentId, sortOrder, workStartTime, workEndTime, lunchStartTime, lunchEndTime } =
+      await request.json();
 
     if (!name || !code) {
       return NextResponse.json(
@@ -72,6 +75,10 @@ export async function POST(request: NextRequest) {
         code,
         parentId: parentId || null,
         sortOrder: sortOrder || 0,
+        workStartTime: workStartTime || null,
+        workEndTime: workEndTime || null,
+        lunchStartTime: lunchStartTime || null,
+        lunchEndTime: lunchEndTime || null,
       },
     });
 

@@ -122,7 +122,9 @@ export default function LeaveRegisterPage() {
       ]);
       if (deptRes.ok) {
         const json = await deptRes.json();
-        setDepartments(Array.isArray(json) ? json : json.data || []);
+        // /api/departments 는 { departments, allDepartments } 를 반환한다.
+        // json.data 만 보면 부서 필터가 항상 비어 있게 된다.
+        setDepartments(Array.isArray(json) ? json : json.departments ?? json.data ?? []);
       }
       if (typeRes.ok) setLeaveTypes(await typeRes.json());
     } catch {

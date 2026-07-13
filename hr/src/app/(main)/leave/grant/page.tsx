@@ -145,8 +145,10 @@ export default function LeaveGrantPage() {
         const json = await usageRes.json();
         setUsageData(json.data);
       }
-      if (grantsRes.ok) setGrants(await grantsRes.json());
-      if (typesRes.ok) setLeaveTypes(await typesRes.json());
+      // /api/leave/grants 는 { data, total, page, limit } 를 반환한다.
+      // 응답 전체를 그대로 담으면 grants.map 에서 TypeError 로 화면이 죽는다.
+      if (grantsRes.ok) setGrants((await grantsRes.json()).data ?? []);
+      if (typesRes.ok) setLeaveTypes(await typesRes.json()); // 이 API는 배열을 직접 반환
     } catch {
       setError('데이터를 불러오는데 실패했습니다.');
     } finally {
@@ -163,7 +165,9 @@ export default function LeaveGrantPage() {
       const res = await fetch(`/api/employees?search=${encodeURIComponent(query)}&limit=10`);
       if (res.ok) {
         const json = await res.json();
-        const list = Array.isArray(json) ? json : json.data || [];
+        // /api/employees 는 { employees, total, page, limit } 를 반환한다.
+        // json.data 만 보면 항상 빈 배열이 되어 직원 검색 결과가 0건이 된다.
+        const list = Array.isArray(json) ? json : json.employees ?? json.data ?? [];
         setEmployees(list.map((e: Record<string, unknown>) => ({
           id: e.id as string,
           name: e.name as string,

@@ -93,7 +93,9 @@ export default function AdminAbsencePage() {
       const r = await fetch(`/api/absence/request/${targetId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: action === 'approve' ? 'APPROVED' : 'REJECTED', adminComment: comment }),
+        // 서버는 comment 키로 받아 adminComment 컬럼에 저장한다.
+        // adminComment 로 보내면 반려 사유가 조용히 유실된다.
+        body: JSON.stringify({ status: action === 'approve' ? 'APPROVED' : 'REJECTED', comment }),
       });
       if (r.ok) {
         toast.success(action === 'approve' ? '승인되었습니다.' : '반려되었습니다.');

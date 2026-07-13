@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    // 근무유형·근무시간 필드는 수정(PUT)에서는 받는데 여기서 빠져 있어,
+    // 직원 등록 다이얼로그에서 입력한 값이 조용히 유실됐다.
     const {
       employeeNumber: inputEmployeeNumber,
       name,
@@ -93,6 +95,11 @@ export async function POST(request: NextRequest) {
       phone,
       departmentId,
       positionId,
+      workType,
+      workStartTime,
+      workEndTime,
+      lunchStartTime,
+      lunchEndTime,
       hireDate,
       role,
     } = body;
@@ -162,6 +169,11 @@ export async function POST(request: NextRequest) {
         positionId,
         hireDate: new Date(hireDate),
         role: assignedRole,
+        workType: workType || null,
+        workStartTime: workStartTime || null,
+        workEndTime: workEndTime || null,
+        lunchStartTime: lunchStartTime || null,
+        lunchEndTime: lunchEndTime || null,
       },
       include: {
         department: { select: { id: true, name: true } },

@@ -79,7 +79,9 @@ export default function AdminPage() {
           totalEmployees: empData?.total || 0,
           activeEmployees: empData?.total || 0,
           totalDepartments: deptData?.allDepartments?.length || deptData?.departments?.length || 0,
-          pendingRequests: leaveData?.total || 0,
+          // /api/leave/register 는 total 을 pagination 안에 넣어 반환한다.
+          // 최상위 total 을 읽으면 결재 대기가 항상 0건으로 표시된다.
+          pendingRequests: leaveData?.pagination?.total ?? leaveData?.total ?? 0,
           approvedThisMonth: 0,
           totalLeaveTypes: 0,
         });

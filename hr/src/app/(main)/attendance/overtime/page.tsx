@@ -185,11 +185,15 @@ export default function OvertimePage() {
       fetch('/api/company/settings').then(r => r.ok ? r.json() : null),
       fetch('/api/settings/overtime').then(r => r.ok ? r.json() : null),
     ]).then(([company, overtime]) => {
+      // 두 API는 각각 { settings } / { policy } 로 한 겹 감싸 반환한다.
+      // 최상위에서 읽으면 항상 undefined라 회사 설정이 반영되지 않고 하드코딩 기본값이 쓰인다.
+      const settings = company?.settings ?? company;
+      const policy = overtime?.policy ?? overtime;
       setWs(prev => ({
         ...prev,
-        ...(company?.work_end_time && { workEndTime: company.work_end_time }),
-        ...(company?.work_start_time && { workStartTime: company.work_start_time }),
-        ...(overtime?.nightStartTime && { nightStartTime: overtime.nightStartTime }),
+        ...(settings?.work_end_time && { workEndTime: settings.work_end_time }),
+        ...(settings?.work_start_time && { workStartTime: settings.work_start_time }),
+        ...(policy?.nightStartTime && { nightStartTime: policy.nightStartTime }),
       }));
     }).catch(() => {});
   }, [fetchData]);

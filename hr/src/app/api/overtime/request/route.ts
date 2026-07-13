@@ -29,6 +29,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // hours 범위 검증. 이게 없으면 음수(-5시간)로 보상시간이 음수 적립되거나
+    // 비현실적인 큰 값(999시간)이 그대로 들어간다. 하루 최대 근무는 24시간을 넘을 수 없다.
+    const parsedHours = Number(hours);
+    if (!Number.isFinite(parsedHours) || parsedHours <= 0 || parsedHours > 24) {
+      return NextResponse.json(
+        { message: '연장근무 시간은 0보다 크고 24시간 이하여야 합니다.' },
+        { status: 400 }
+      );
+    }
+
     // Find default approval line for OVERTIME
     const approvalLine = await prisma.approvalLine.findFirst({
       where: { type: 'OVERTIME', isDefault: true, isActive: true },

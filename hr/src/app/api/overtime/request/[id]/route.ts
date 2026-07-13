@@ -37,7 +37,18 @@ export async function PUT(
         return NextResponse.json({ message: '대기/진행 상태의 신청만 처리할 수 있습니다.' }, { status: 400 });
       }
 
-      // 승인 시 보상시간 자동 적립
+      // 상태 전이를 먼저, 원자적으로 선점한다 (낙관적 잠금).
+      // read-then-write 사이에 다른 요청이 끼면 보상시간이 이중 적립되므로,
+      // status 를 조건에 건 UPDATE 로 승자를 하나만 정하고, 진 요청은 여기서 멈춘다.
+      const claimed = await prisma.overtimeRequest.updateMany({
+        where: { id, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+        data: { status: body.status },
+      });
+      if (claimed.count === 0) {
+        return NextResponse.json({ message: '이미 처리된 신청입니다.' }, { status: 409 });
+      }
+
+      // 상태 선점에 성공한 요청만 적립한다
       let earnedHours = 0;
       if (body.status === 'APPROVED') {
         const result = await accrueCompTime(
@@ -60,9 +71,8 @@ export async function PUT(
         },
       });
 
-      const updated = await prisma.overtimeRequest.update({
+      const updated = await prisma.overtimeRequest.findUnique({
         where: { id },
-        data: { status: body.status },
         include: { employee: { select: { name: true, employeeNumber: true } } },
       });
 

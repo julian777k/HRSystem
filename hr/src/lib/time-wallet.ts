@@ -215,26 +215,26 @@ export async function initAnnualWallet(
   totalHours: number
 ) {
   const tenantId = await getTenantId();
-  await prisma.timeWallet.upsert({
-    where: {
-      tenantId_employeeId_year_type: {
-        tenantId,
-        employeeId,
-        year,
-        type: 'ANNUAL',
-      },
-    },
-    create: {
-      employeeId,
-      year,
-      type: 'ANNUAL',
-      totalEarned: totalHours,
-      totalRemain: totalHours,
-    },
-    update: {
-      totalEarned: totalHours,
-      totalRemain: { set: totalHours },
-    },
+
+  // 이미 있는 지갑이면 사용분(totalEarned - totalRemain)을 보존해야 한다.
+  // remain 을 totalHours 로 통째로 리셋하면 이미 쓴 연차가 부활한다.
+  const existing = await prisma.timeWallet.findUnique({
+    where: { tenantId_employeeId_year_type: { tenantId, employeeId, year, type: 'ANNUAL' } },
+    select: { totalEarned: true, totalRemain: true },
+  });
+
+  if (!existing) {
+    await prisma.timeWallet.create({
+      data: { employeeId, year, type: 'ANNUAL', totalEarned: totalHours, totalRemain: totalHours },
+    });
+    return;
+  }
+
+  // 재부여: 새 부여량으로 earned 를 갱신하되, 이미 사용한 만큼은 remain 에서 뺀다.
+  const used = existing.totalEarned - existing.totalRemain;
+  await prisma.timeWallet.update({
+    where: { tenantId_employeeId_year_type: { tenantId, employeeId, year, type: 'ANNUAL' } },
+    data: { totalEarned: totalHours, totalRemain: Math.max(0, totalHours - used) },
   });
 }
 

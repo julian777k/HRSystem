@@ -76,6 +76,7 @@ const PUBLIC_API_ROUTES = [
   '/api/setup/',
   '/api/super-admin/auth/login',
   '/api/payments/',
+  '/api/demo/login', // 공개 데모 자동 로그인 (demo 서브도메인에서만 동작)
 ];
 
 function isPublicApiRoute(pathname: string): boolean {

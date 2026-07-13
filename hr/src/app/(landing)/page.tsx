@@ -5,12 +5,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ALL_FEATURES } from '@/constants/features';
 
+// 공개 데모 — 가입 없이 데모 테넌트로 자동 로그인된다
+const DEMO_URL = 'https://demo.keystonehr.app/api/demo/login';
+
 const HIGHLIGHTS = [
   {
     badge: '차별화 1',
-    title: '복지 관리 — 무료로 제공',
+    title: '복지 관리 — 기본 포함',
     description:
-      '다른 HR 솔루션에서는 유료 애드온인 복지 관리 기능을 기본 제공합니다. 카테고리별 복지 항목 등록, 직원 신청, 관리자 승인까지 한번에.',
+      '보통 유료 애드온으로 파는 복지 관리를 기본으로 제공합니다. 카테고리별 복지 항목 등록, 직원 신청, 관리자 승인까지 한번에.',
     screenshots: [
       { src: '/screenshots/10_welfare_catalog.png', alt: '복지 항목 목록', caption: '사원이 보는 복지 목록' },
       { src: '/screenshots/08_welfare_item_form.png', alt: '복지 항목 등록', caption: '관리자 복지 항목 등록' },
@@ -110,97 +113,170 @@ export default function LandingPage() {
       <section className="pt-16 sm:pt-24 pb-12 bg-gradient-to-b from-blue-50 via-white to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <p className="text-blue-600 font-semibold text-sm mb-3 tracking-wide">
-              KeystoneHR — 중소기업을 위한 올인원 HR 솔루션
+            <p className="text-brand-accent font-semibold text-sm mb-3 tracking-wide">
+              중소기업을 위한 올인원 HR
             </p>
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-gray-900 mb-6 leading-tight" style={{ textWrap: 'balance' }}>
-              HR 솔루션이{' '}
-              <span className="text-red-500">월 4,083원?</span>
-              <br />
-              <span className="text-gray-400 text-lg sm:text-3xl lg:text-4xl font-bold">네, 커피 한 잔 값으로 10년 쓰는 인사관리</span>
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              출퇴근, 휴가, 결재, 연장근무, 복지까지.
+            <h1 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-extrabold text-gray-900 mb-5 leading-tight tracking-tight" style={{ textWrap: 'balance' }}>
+              기능은 그대로,
               <br className="hidden sm:block" />
-              구독료 없이 1회 결제(49만원), 10년 사용.
+              가격은 <span className="text-brand-primary tabular-nums">1/60</span>
+            </h1>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 tabular-nums">
+              직원 1인당 <span className="text-brand-primary">월 82원</span>
+            </p>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto mb-3 leading-relaxed">
+              구독형 HR이 인당 월 5,000~12,000원을 받는 동안,
+              <br className="hidden sm:block" />
+              KeystoneHR은 1회 도입으로 10년. 출퇴근·휴가·전자결재·연장근무·복지 전부 포함입니다.
+            </p>
+            <p className="text-xs text-gray-400 mb-8">
+              49만원 ÷ 10년(120개월) ÷ 50명 = 인당 월 82원 (Standard 플랜, 정원 기준)
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <a
+                href={DEMO_URL}
+                className="px-8 py-3.5 bg-brand-primary text-white rounded-xl font-semibold hover:opacity-90 transition shadow-lg shadow-brand-primary/25 text-center"
+              >
+                데모 체험하기
+              </a>
+              <a
+                href="#pricing"
+                className="px-8 py-3.5 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition text-center"
+              >
+                요금제 보기
+              </a>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              가입 없이 바로 둘러볼 수 있습니다
             </p>
           </div>
         </div>
       </section>
 
-      {/* Price Comparison — 최상단 후킹 */}
-      <section className="py-16 sm:py-20 bg-gradient-to-b from-slate-900 to-slate-800 text-white">
+      {/* 통합 증명 — 기능 동등성 + 가격 격차를 한 섹션에서 논증 */}
+      <section className="py-24 bg-surface-navy text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Hooking message */}
-          <div className="text-center mb-4">
-            <p className="text-blue-400 font-bold text-sm sm:text-base mb-4 tracking-wide">
-              직원 20명 기준 · 3년 비용 비교 · VAT 별도
-            </p>
-            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black mb-4 leading-tight" style={{ textWrap: 'balance' }}>
-              3년에 <span className="text-slate-400">864만원</span> 쓸 건가요?<br />
-              <span className="text-red-400">49만원</span>이면 <span className="text-red-400">10년</span> 씁니다.
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-4xl font-bold mb-4 leading-tight tracking-tight" style={{ textWrap: 'balance' }}>
+              같은 기능. <span className="text-brand-accent">1/60 가격.</span>
             </h2>
-            <p className="text-slate-400 text-base sm:text-lg max-w-xl mx-auto">
-              구독형 HR 솔루션은 매달 인당 요금이 쌓입니다.<br className="hidden sm:block" />
-              KeystoneHR은 1회 결제, 10년 사용. 추가 비용 없습니다.
+            <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+              기능을 빼서 싸진 게 아닙니다.<br className="hidden sm:block" />
+              구독형이 유료 애드온으로 파는 기능까지 전부 포함하고도, 인당 월 82원입니다.
             </p>
           </div>
 
-          {/* Bar Chart */}
-          <div className="flex items-end justify-center gap-4 sm:gap-6 mt-4 sm:mt-6 mb-4 h-[180px] sm:h-[300px]">
+          {/* 기능 동등성 — 가격 격차의 전제 */}
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 max-w-2xl mx-auto mb-14">
+            <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-5 sm:p-6 text-center">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">구독형 (평균)</p>
+              <p className="text-3xl sm:text-4xl font-bold text-slate-300 tabular-nums">
+                7<span className="text-sm sm:text-base font-semibold text-slate-500"> / 13개</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-2">나머지는 별도 결제 또는 미지원</p>
+            </div>
+            <div className="bg-brand-primary/20 border-2 border-brand-accent/50 rounded-2xl p-5 sm:p-6 text-center">
+              <p className="text-xs font-semibold text-brand-accent uppercase tracking-wider mb-3">KeystoneHR</p>
+              <p className="text-3xl sm:text-4xl font-bold text-white tabular-nums">
+                13<span className="text-sm sm:text-base font-semibold text-brand-accent"> / 13개</span>
+              </p>
+              <p className="text-xs text-brand-accent mt-2">전체 기능 기본 포함 · 추가 과금 0원</p>
+            </div>
+          </div>
+
+          {/* 가격 격차 — 인당 월 비용 */}
+          <div className="text-center mb-6">
+            <p className="text-brand-accent font-semibold text-sm mb-2 tracking-wide">
+              직원 1인당 월 비용 · 50명 기준
+            </p>
+          </div>
+          <div className="max-w-2xl mx-auto space-y-3 mb-4">
             {[
-              { name: 'A사', total: 360, perPerson: '5,000', monthly: 10, height: '42%', barColor: 'bg-slate-500' },
-              { name: 'B사', total: 576, perPerson: '8,000', monthly: 16, height: '67%', barColor: 'bg-red-500/80' },
-              { name: 'C사', total: 864, perPerson: '12,000', monthly: 24, height: '100%', barColor: 'bg-red-600' },
+              { name: 'C사', cost: 12000, width: '100%' },
+              { name: 'B사', cost: 8000, width: '67%' },
+              { name: 'A사', cost: 5000, width: '42%' },
             ].map((item) => (
-              <div key={item.name} className="flex flex-col items-center w-16 sm:w-auto sm:flex-1 sm:max-w-[160px]">
-                <p className="text-sm sm:text-2xl font-black text-white mb-1">{item.total}<span className="text-[9px] sm:text-sm font-bold text-slate-400">만</span></p>
-                <div className={`w-full rounded-t-xl ${item.barColor} relative overflow-hidden`} style={{ height: item.height }}>
-                  <span className="absolute inset-0 hidden lg:flex items-center justify-center text-white/80 text-xs font-medium leading-tight text-center px-0.5">
-                    월 {item.monthly}만<br />× 36월
-                  </span>
+              <div key={item.name} className="flex items-center gap-3 sm:gap-4">
+                <span className="w-10 sm:w-14 text-xs sm:text-sm font-semibold text-slate-400 shrink-0">{item.name}</span>
+                <div className="flex-1 h-8 sm:h-10 bg-slate-800/50 rounded-lg overflow-hidden">
+                  <div className="h-full bg-slate-600 rounded-lg" style={{ width: item.width }} />
                 </div>
-                <div className="mt-1.5 sm:mt-3 text-center">
-                  <p className="font-bold text-slate-300 text-[11px] sm:text-base">{item.name}</p>
-                  <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 hidden md:block">인당 월 {item.perPerson}원</p>
-                  <p className="text-[9px] sm:text-[10px] text-slate-600 mt-0.5 hidden md:block">{item.perPerson}원 × 20명 = 월 {item.monthly}만원</p>
-                </div>
+                <span className="w-20 sm:w-24 text-right text-xs sm:text-sm font-semibold text-slate-300 tabular-nums shrink-0">
+                  {item.cost.toLocaleString()}원
+                </span>
               </div>
             ))}
-            <div className="flex flex-col items-center w-16 sm:w-auto sm:flex-1 sm:max-w-[160px]">
-              <p className="text-sm sm:text-2xl font-black text-red-400 mb-1">49<span className="text-[9px] sm:text-sm font-bold">만</span></p>
-              <div className="w-full rounded-t-xl bg-red-500 shadow-lg shadow-red-500/40 relative" style={{ height: '5.7%' }} />
-              <div className="mt-1.5 sm:mt-3 text-center">
-                <p className="font-bold text-red-400 text-[11px] sm:text-base">KeystoneHR</p>
-                <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">1회 결제 · 10년</p>
-                <p className="text-[9px] sm:text-[10px] text-slate-600 mt-0.5 hidden sm:block">50명 이하 기준</p>
+            <div className="flex items-center gap-3 sm:gap-4 pt-1">
+              <span className="w-10 sm:w-14 text-xs sm:text-sm font-bold text-brand-accent shrink-0">KHR</span>
+              <div className="flex-1 h-8 sm:h-10 bg-slate-800/50 rounded-lg overflow-hidden">
+                <div className="h-full bg-brand-accent rounded-lg shadow-lg shadow-brand-accent/40" style={{ width: '0.7%', minWidth: '4px' }} />
               </div>
+              <span className="w-20 sm:w-24 text-right text-sm sm:text-base font-bold text-brand-accent tabular-nums shrink-0">
+                82원
+              </span>
+            </div>
+          </div>
+          <p className="text-center text-xs text-slate-500 mb-16">
+            * KeystoneHR = 49만원 ÷ 120개월 ÷ 50명. 구독형은 시장 평균 기준이며 서비스별로 다를 수 있습니다.
+          </p>
+
+          {/* 근거 — 3년 총비용 */}
+          <div className="text-center mb-4">
+            <p className="text-brand-accent font-semibold text-sm sm:text-base mb-4 tracking-wide">
+              직원 20명 기준 · 3년 총비용 · VAT 별도
+            </p>
+            <h3 className="text-xl sm:text-2xl font-bold mb-4 leading-tight tracking-tight" style={{ textWrap: 'balance' }}>
+              구독은 쌓이고, 소유는 끝납니다
+            </h3>
+            <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+              구독형은 직원이 늘수록, 해가 갈수록 비용이 쌓입니다.<br className="hidden sm:block" />
+              KeystoneHR은 1회 도입으로 10년. 직원이 늘어도 플랜 안에서 추가 비용이 없습니다.
+            </p>
+          </div>
+
+          {/* 3년 총비용 — 가로 막대 */}
+          <div className="max-w-2xl mx-auto space-y-3 mt-8 mb-4">
+            {[
+              { name: 'C사', total: 864, detail: '월 24만 × 36월', width: '100%' },
+              { name: 'B사', total: 576, detail: '월 16만 × 36월', width: '67%' },
+              { name: 'A사', total: 360, detail: '월 10만 × 36월', width: '42%' },
+            ].map((item) => (
+              <div key={item.name} className="flex items-center gap-3 sm:gap-4">
+                <span className="w-10 sm:w-14 text-xs sm:text-sm font-semibold text-slate-400 shrink-0">{item.name}</span>
+                <div className="flex-1 h-8 sm:h-10 bg-slate-800/50 rounded-lg overflow-hidden">
+                  <div className="h-full bg-slate-600 rounded-lg flex items-center px-3" style={{ width: item.width }}>
+                    <span className="hidden sm:block text-[10px] text-white/70 font-medium truncate">{item.detail}</span>
+                  </div>
+                </div>
+                <span className="w-20 sm:w-24 text-right text-xs sm:text-sm font-semibold text-slate-300 tabular-nums shrink-0">
+                  {item.total}만원
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center gap-3 sm:gap-4 pt-1">
+              <span className="w-10 sm:w-14 text-xs sm:text-sm font-bold text-brand-accent shrink-0">KHR</span>
+              <div className="flex-1 h-8 sm:h-10 bg-slate-800/50 rounded-lg overflow-hidden">
+                <div className="h-full bg-brand-accent rounded-lg shadow-lg shadow-brand-accent/40" style={{ width: '5.7%' }} />
+              </div>
+              <span className="w-20 sm:w-24 text-right text-sm sm:text-base font-bold text-brand-accent tabular-nums shrink-0">
+                49만원
+              </span>
             </div>
           </div>
 
           {/* Calculation note */}
-          <p className="text-center text-xs text-slate-500 mb-8">
+          <p className="text-center text-xs text-slate-500 mb-10">
             * 구독형 = 인당 월 요금 × 20명 × 36개월. 시장 평균 기준이며, 실제 서비스별로 다를 수 있습니다.
+            <br className="hidden sm:block" />
+            구독형 최저가와 비교해도 3년 기준 약 311만원을 아낍니다.
           </p>
-
-          {/* Hooking callout */}
-          <div className="flex justify-center mb-10">
-            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-red-500/10 border border-red-400/30 rounded-2xl px-5 sm:px-8 py-4 sm:py-5 backdrop-blur max-w-full">
-              <span className="text-3xl sm:text-4xl">🔥</span>
-              <div className="text-center sm:text-left">
-                <p className="text-slate-300 text-xs sm:text-sm font-semibold">구독형 최저가 A사와 비교해도</p>
-                <p className="text-xl sm:text-3xl font-black text-white">7배 저렴합니다</p>
-                <p className="text-red-400 text-sm sm:text-lg font-bold">→ 311만원 절감</p>
-              </div>
-            </div>
-          </div>
 
           {/* Comparison table */}
           <div className="max-w-2xl mx-auto bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden">
             <div className="grid grid-cols-3 text-center text-xs sm:text-sm font-bold border-b border-slate-700 py-3 px-2 sm:px-4">
               <span className="text-slate-400">항목</span>
               <span className="text-slate-400">구독형</span>
-              <span className="text-red-400">KeystoneHR</span>
+              <span className="text-brand-accent">KeystoneHR</span>
             </div>
             {[
               { label: '과금 방식', sub: '인당 × 매월 반복', keystone: '1회 결제, 끝' },
@@ -212,23 +288,17 @@ export default function LandingPage() {
               <div key={row.label} className={`grid grid-cols-3 text-center text-xs sm:text-sm py-3 sm:py-3.5 px-2 sm:px-4 ${i % 2 === 0 ? 'bg-slate-800/30' : ''}`}>
                 <span className="text-slate-300 font-medium text-left">{row.label}</span>
                 <span className="text-slate-400 font-semibold">{row.sub}</span>
-                <span className="text-red-400 font-bold">✓ {row.keystone}</span>
+                <span className="text-brand-accent font-semibold">✓ {row.keystone}</span>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-3 mt-10">
-            <Link
-              href="/start"
-              className="px-8 py-3.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition shadow-lg shadow-red-500/30 text-center"
-            >
-              7일 무료 체험 시작하기
-            </Link>
+          <div className="flex justify-center mt-10">
             <a
               href="#pricing"
               className="px-8 py-3.5 border border-slate-600 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition text-center"
             >
-              요금제 자세히 보기
+              요금제 보기
             </a>
           </div>
         </div>
@@ -238,13 +308,13 @@ export default function LandingPage() {
       <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-blue-600 font-bold text-sm mb-3 tracking-wide">잠깐, 가격만 싼 게 아닙니다</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
-              타사 <span className="text-red-500">유료 추가 기능</span>,<br />
-              KeystoneHR은 <span className="text-blue-600">전부 무료</span>입니다
+            <p className="text-brand-accent font-semibold text-sm mb-3 tracking-wide">13개 기능, 하나씩 확인하세요</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight" style={{ textWrap: 'balance' }}>
+              무엇이 포함되고,<br />
+              무엇이 <span className="text-warn-500">별도 결제</span>인지
             </h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              구독형 서비스에서 기능당 월 1~3만원씩 추가 결제해야 하는 기능들, 전부 기본 포함
+              구독형 서비스에서 기능당 월 1~3만원씩 추가 결제해야 하는 기능까지 전부 기본 포함입니다
             </p>
           </div>
 
@@ -293,20 +363,20 @@ export default function LandingPage() {
                         <th className="text-center text-gray-400 font-bold py-2 sm:py-3 px-0.5 sm:px-1" style={{ width: '16%' }}>A사</th>
                         <th className="text-center text-gray-400 font-bold py-2 sm:py-3 px-0.5 sm:px-1" style={{ width: '16%' }}>B사</th>
                         <th className="text-center text-gray-400 font-bold py-2 sm:py-3 px-0.5 sm:px-1" style={{ width: '16%' }}>C사</th>
-                        <th className="text-center text-blue-600 font-bold py-2 sm:py-3 px-0.5 sm:px-1 relative" style={{ width: '16%' }}>
+                        <th className="text-center text-brand-primary font-bold py-2 sm:py-3 px-0.5 sm:px-1 relative" style={{ width: '16%' }}>
                           <span className="hidden sm:inline">KeystoneHR</span>
                           <span className="sm:hidden">KHR</span>
-                          <span className="absolute top-0 left-0.5 sm:left-1 right-0.5 sm:right-1 h-[3px] bg-blue-600 rounded-b" />
+                          <span className="absolute top-0 left-0.5 sm:left-1 right-0.5 sm:right-1 h-[3px] bg-brand-primary rounded-b" />
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       {section.rows.map((row, i) => {
                         const icon = (v: string) => {
-                          if (v === 'yes') return <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-50 text-blue-600 text-xs sm:text-sm">✓</span>;
-                          if (v === 'partial') return <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-amber-50 text-amber-500 text-xs sm:text-sm">△</span>;
-                          if (v === 'extra') return <span className="inline-flex items-center justify-center px-1 sm:px-2 py-0.5 sm:py-1 rounded-md bg-red-50 text-red-600 text-[9px] sm:text-[11px] font-bold">+별도</span>;
-                          return <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gray-100 text-gray-400 text-xs sm:text-sm font-bold">✕</span>;
+                          if (v === 'yes') return <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 text-positive-600 text-xs sm:text-sm">✓</span>;
+                          if (v === 'partial') return <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-amber-50 text-warn-500 text-xs sm:text-sm">△</span>;
+                          if (v === 'extra') return <span className="inline-flex items-center justify-center px-1 sm:px-2 py-0.5 sm:py-1 rounded-md bg-amber-50 text-warn-500 text-[9px] sm:text-[11px] font-semibold">+별도</span>;
+                          return <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-gray-100 text-gray-400 text-xs sm:text-sm font-semibold">✕</span>;
                         };
                         return (
                           <tr key={row.feat} className={i % 2 === 0 ? 'bg-gray-50/60' : ''}>
@@ -328,28 +398,10 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Summary cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6 text-center">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">일반 구독형 (평균)</p>
-              <p className="text-3xl sm:text-4xl font-black text-gray-600">7<span className="text-sm sm:text-base font-bold text-gray-400"> / 13개</span></p>
-              <p className="text-xs text-gray-400 mt-2">기능 기본 포함 · 나머지는 별도 결제 또는 미지원</p>
-            </div>
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 sm:p-6 text-center">
-              <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2 sm:mb-3">KeystoneHR</p>
-              <p className="text-3xl sm:text-4xl font-black text-blue-700">13<span className="text-sm sm:text-base font-bold text-blue-400"> / 13개</span></p>
-              <p className="text-xs text-blue-500 mt-2">전체 기능 기본 포함 · 추가 과금 항목 0개</p>
-            </div>
-          </div>
-
           {/* Callout */}
-          <div className="mt-8 flex gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-5">
-            <span className="text-xl shrink-0">⚠️</span>
-            <p className="text-sm text-amber-800">
-              구독형 서비스의 <strong>&quot;+별도&quot;는 기능당 월 1~3만원</strong>이 추가됩니다.
-              필요한 기능을 모두 켜면 실제 비용은 기본료의 <strong>2~3배</strong>까지 올라갈 수 있습니다.
-            </p>
-          </div>
+          <p className="mt-8 text-center text-xs text-gray-400">
+            * 구독형 서비스의 &quot;+별도&quot;는 기능당 월 1~3만원이 추가되며, 필요한 기능을 모두 켜면 실제 비용은 기본료의 2~3배까지 올라갈 수 있습니다.
+          </p>
         </div>
       </section>
 
@@ -426,7 +478,7 @@ export default function LandingPage() {
               >
                 {/* Text */}
                 <div className="lg:w-5/12">
-                  <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-4">
+                  <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-brand-primary text-xs font-semibold mb-4">
                     {item.badge}
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
@@ -529,12 +581,16 @@ export default function LandingPage() {
       <section id="pricing" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight" style={{ textWrap: 'balance' }}>
               KeystoneHR 요금제
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               추가 비용 없이, 모든 기능을 하나의 플랜으로
             </p>
+            {/* TODO: 셀프 온보딩 기준 안내 문구.
+                크몽에서는 온보딩 세팅 대행이 포함된 649,000원으로 판매하므로,
+                이 문구가 두 채널의 가격 차이를 "구성 차이"로 설명하는 유일한 장치다.
+                크몽·외부 채널을 절대 언급하지 말 것 (직거래 유도로 읽힘). */}
           </div>
 
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
@@ -544,7 +600,7 @@ export default function LandingPage() {
               <p className="text-gray-500 text-sm mb-6">50명 이하 중소기업</p>
 
               <div className="mb-2">
-                <span className="text-4xl font-bold text-gray-900">49</span>
+                <span className="text-4xl font-bold text-gray-900 tabular-nums">49</span>
                 <span className="text-xl font-bold text-gray-900">만원</span>
               </div>
               <p className="text-sm text-gray-400 mb-6">1회 구매 · 10년 사용 · 최대 50명</p>
@@ -552,7 +608,7 @@ export default function LandingPage() {
               <div className="space-y-2.5 mb-8">
                 {ALL_FEATURES.map((feature) => (
                   <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
-                    <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <svg className="w-4 h-4 text-positive-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     {feature}
@@ -561,37 +617,37 @@ export default function LandingPage() {
               </div>
 
               <Link
-                href="/start"
-                className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
-              >
-                7일 무료 체험 시작하기
-              </Link>
-              <Link
                 href="/purchase?plan=standard"
-                className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 mt-3"
+                className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-brand-primary text-white hover:opacity-90 shadow-lg shadow-brand-primary/25"
               >
-                바로 구매하기
+                구매하기
               </Link>
+              <a
+                href={DEMO_URL}
+                className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-brand-primary text-brand-primary hover:bg-blue-50 mt-3"
+              >
+                데모 먼저 둘러보기
+              </a>
             </div>
 
             {/* 100명 플랜 */}
-            <div className="p-8 rounded-2xl bg-white border-2 border-blue-600 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-lg">
+            <div className="p-8 rounded-2xl bg-white border-2 border-brand-primary shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-brand-primary text-white text-xs font-semibold px-4 py-1.5 rounded-bl-lg">
                 BEST
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-1">Business</h3>
-              <p className="text-gray-500 text-sm mb-6"><span className="text-red-500 font-bold">100명</span> 이하 중견기업</p>
+              <p className="text-gray-500 text-sm mb-6">100명 이하 중견기업</p>
 
               <div className="mb-2">
-                <span className="text-4xl font-bold text-gray-900">70</span>
+                <span className="text-4xl font-bold text-gray-900 tabular-nums">70</span>
                 <span className="text-xl font-bold text-gray-900">만원</span>
               </div>
-              <p className="text-sm text-gray-400 mb-6">1회 구매 · 10년 사용 · 최대 <span className="text-red-500 font-semibold">100명</span></p>
+              <p className="text-sm text-gray-400 mb-6">1회 구매 · 10년 사용 · 최대 100명</p>
 
               <div className="space-y-2.5 mb-8">
                 {ALL_FEATURES.map((feature) => (
                   <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
-                    <svg className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <svg className="w-4 h-4 text-positive-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     {feature}
@@ -600,38 +656,40 @@ export default function LandingPage() {
               </div>
 
               <Link
-                href="/start"
-                className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/25"
-              >
-                7일 무료 체험 시작하기
-              </Link>
-              <Link
                 href="/purchase?plan=business"
-                className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 mt-3"
+                className="block w-full py-3.5 rounded-xl font-semibold transition text-center bg-brand-primary text-white hover:opacity-90 shadow-lg shadow-brand-primary/25"
               >
-                바로 구매하기
+                구매하기
               </Link>
+              <a
+                href={DEMO_URL}
+                className="block w-full py-3.5 rounded-xl font-semibold transition text-center border-2 border-brand-primary text-brand-primary hover:bg-blue-50 mt-3"
+              >
+                데모 먼저 둘러보기
+              </a>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-blue-600">
+      <section className="py-24 bg-brand-primary">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4" style={{ textWrap: 'balance' }}>
-            KeystoneHR, 지금 바로 시작하세요
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight" style={{ textWrap: 'balance' }}>
+            설치 없이, 5분이면 시작합니다
           </h2>
           <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-            7일 무료 체험 후, 1회 구매로 10년 사용. 복잡한 설치 없이 바로 시작하세요.
+            1회 구매로 10년 사용. 복잡한 설치 없이 바로 시작하세요.
+            <br className="hidden sm:block" />
+            결정 전에 데모로 직접 확인해 보세요.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/start"
-              className="px-8 py-3.5 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition"
+            <a
+              href={DEMO_URL}
+              className="px-8 py-3.5 bg-white text-brand-primary rounded-xl font-semibold hover:bg-blue-50 transition"
             >
-              7일 무료 체험
-            </Link>
+              데모 체험하기
+            </a>
             <Link
               href="/login"
               className="px-8 py-3.5 border border-white/30 text-white rounded-xl font-semibold hover:bg-white/10 transition"

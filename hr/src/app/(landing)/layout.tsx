@@ -1,5 +1,8 @@
 import Image from 'next/image';
 
+// 공개 데모 — 가입 없이 데모 테넌트로 자동 로그인된다
+const DEMO_URL = 'https://demo.keystonehr.app/api/demo/login';
+
 export default function LandingLayout({
   children,
 }: {
@@ -26,10 +29,10 @@ export default function LandingLayout({
                 로그인
               </a>
               <a
-                href="/start"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
+                href={DEMO_URL}
+                className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-semibold hover:opacity-90 transition"
               >
-                7일 무료 체험
+                데모 체험
               </a>
             </nav>
             <div className="sm:hidden flex items-center gap-3">
@@ -37,10 +40,10 @@ export default function LandingLayout({
                 로그인
               </a>
               <a
-                href="/start"
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
+                href={DEMO_URL}
+                className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm font-semibold hover:opacity-90 transition"
               >
-                무료 체험
+                데모
               </a>
             </div>
           </div>

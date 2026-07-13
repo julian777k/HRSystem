@@ -31,7 +31,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 interface AbsenceReq {
   id: string;
-  absenceType: string;
+  type: string;
   startDate: string;
   endDate: string;
   reason: string | null;
@@ -74,7 +74,7 @@ export default function AdminAbsencePage() {
     try {
       const params = filter !== 'all' ? `?status=${filter}` : '';
       const r = await fetch(`/api/absence/request${params}`);
-      if (r.ok) setItems((await r.json()).data ?? []);
+      if (r.ok) setItems((await r.json()).absences ?? []);
     } catch { /* ignore */ } finally { setLoading(false); }
   }, [filter]);
 
@@ -170,7 +170,7 @@ export default function AdminAbsencePage() {
                         <td className="py-3 px-2">{fmtDate(item.createdAt)}</td>
                         <td className="py-3 px-2 font-medium">{item.employeeName}</td>
                         <td className="py-3 px-2 hidden sm:table-cell">{item.departmentName}</td>
-                        <td className="py-3 px-2">{TYPE_MAP[item.absenceType] ?? item.absenceType}</td>
+                        <td className="py-3 px-2">{TYPE_MAP[item.type] ?? item.type}</td>
                         <td className="py-3 px-2">
                           {fmtDate(item.startDate)}
                           {fmtDate(item.startDate) !== fmtDate(item.endDate) && ` ~ ${fmtDate(item.endDate)}`}

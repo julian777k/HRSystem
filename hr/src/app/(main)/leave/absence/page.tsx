@@ -35,7 +35,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 interface AbsenceReq {
   id: string;
-  absenceType: string;
+  type: string;
   startDate: string;
   endDate: string;
   reason: string | null;
@@ -64,7 +64,7 @@ export default function MyAbsencePage() {
     try {
       const r = await fetch('/api/absence/my');
       if (r.status === 401) { window.location.href = '/login'; return; }
-      if (r.ok) setItems((await r.json()).data ?? []);
+      if (r.ok) setItems((await r.json()).absences ?? []);
     } catch { /* ignore */ } finally { setLoading(false); }
   }, []);
 
@@ -79,7 +79,7 @@ export default function MyAbsencePage() {
       const r = await fetch('/api/absence/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ absenceType: fType, startDate: fStart, endDate: fEnd, reason: fReason }),
+        body: JSON.stringify({ type: fType, startDate: fStart, endDate: fEnd, reason: fReason }),
       });
       if (r.ok) {
         toast.success('휴직 신청이 완료되었습니다.');
@@ -148,7 +148,7 @@ export default function MyAbsencePage() {
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-gray-50">
                         <td className="py-3 px-2">{fmtDate(item.createdAt)}</td>
-                        <td className="py-3 px-2">{TYPE_MAP[item.absenceType] ?? item.absenceType}</td>
+                        <td className="py-3 px-2">{TYPE_MAP[item.type] ?? item.type}</td>
                         <td className="py-3 px-2">
                           {fmtDate(item.startDate)}
                           {fmtDate(item.startDate) !== fmtDate(item.endDate) && ` ~ ${fmtDate(item.endDate)}`}

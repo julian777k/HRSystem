@@ -5,6 +5,7 @@ import { notifyRequestResult } from '@/lib/notifications';
 import { createLeaveAttendance } from '@/lib/attendance-utils';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writeAuditLog } from '@/lib/audit-log';
+import { accrueCompTime, deductFromWallet, getCompensationPolicy } from '@/lib/time-wallet';
 
 export async function POST(request: NextRequest) {
   try {
@@ -178,6 +179,22 @@ export async function POST(request: NextRequest) {
         if (remainingPending === 0) {
           notifyRequestResult(approval.leaveRequestId, 'APPROVED').catch(() => {});
           const lr = approval.leaveRequest;
+
+          // 시간 지갑 차감 — 직접 승인 경로(api/leave/request/[id])와 동작을 일치시킨다.
+          // 이게 없으면 결재선을 쓰는 회사는 보상시간이 차감되지 않아 무한히 쓸 수 있게 된다.
+          const alreadyDeducted = await prisma.timeDeduction.findFirst({
+            where: { leaveRequestId: lr.id },
+          });
+          if (!alreadyDeducted) {
+            const policy = await getCompensationPolicy();
+            await deductFromWallet(
+              lr.employeeId,
+              lr.requestDays * policy.dailyWorkHours,
+              lr.startDate.getFullYear(),
+              lr.id
+            );
+          }
+
           const leaveType = await prisma.leaveType.findUnique({ where: { id: lr.leaveTypeId } });
           const leaveTypeName = leaveType?.name || '휴가';
           await createLeaveAttendance(
@@ -187,6 +204,23 @@ export async function POST(request: NextRequest) {
             lr.useUnit,
             leaveTypeName
           );
+        }
+      }
+
+      // 연장근무 최종 승인 → 보상시간 적립.
+      // accrueCompTime은 중복 방지를 하지 않으므로 적립 이력을 먼저 확인한다.
+      if (approval.overtimeId && approval.overtime) {
+        const remainingPending = await prisma.approval.count({
+          where: { overtimeId: approval.overtimeId, action: 'PENDING' },
+        });
+        if (remainingPending === 0) {
+          const alreadyAccrued = await prisma.compTimeAccrual.findFirst({
+            where: { overtimeRequestId: approval.overtimeId },
+          });
+          if (!alreadyAccrued) {
+            const ot = approval.overtime;
+            await accrueCompTime(ot.employeeId, ot.hours, ot.overtimeType, ot.id);
+          }
         }
       }
     }

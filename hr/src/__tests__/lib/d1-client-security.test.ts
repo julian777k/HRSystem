@@ -78,4 +78,17 @@ describe('d1-client SQL 조립 보안', () => {
     expect(buildSelectColumns({ id: true, name: true })).toBe('"id", "name"');
     expect(() => buildSelectColumns({ 'id" FROM employees --': true })).toThrow(/Invalid column identifier/);
   });
+
+  // OR: [] 를 조건 없이 넘기면 필터가 통째로 사라져 전체 행이 반환된다(의미 반전).
+  // 동적으로 만든 OR 배열이 비었을 때 권한 필터가 무력화되는 것을 막는다.
+  test('빈 OR 배열 → 아무 행도 매치하지 않는다 (필터 무력화 방지)', () => {
+    const { sql, params } = buildWhere({ tenantId: 't1', OR: [] });
+    const rows = run(sql, params);
+    expect(rows).toHaveLength(0);
+  });
+
+  test('내용이 있는 OR 배열은 정상 동작 (회귀 없음)', () => {
+    const { sql, params } = buildWhere({ tenantId: 't1', OR: [{ id: '1' }, { id: '2' }] });
+    expect(run(sql, params)).toHaveLength(2);
+  });
 });

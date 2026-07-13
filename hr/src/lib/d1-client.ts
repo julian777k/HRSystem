@@ -297,6 +297,11 @@ export function buildWhere(where: Record<string, unknown> | undefined, params: u
       }
       if (orConditions.length > 0) {
         conditions.push(`(${orConditions.join(' OR ')})`);
+      } else {
+        // Prisma는 OR: [] 를 "아무것도 매치하지 않음"으로 해석한다.
+        // 조건을 생략하면 필터가 통째로 사라져 전체 행이 반환되므로(의미 반전),
+        // 동적으로 만든 OR 배열이 비었을 때 권한 필터가 무력화될 수 있다.
+        conditions.push('1 = 0');
       }
       continue;
     }

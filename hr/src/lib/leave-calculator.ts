@@ -19,7 +19,12 @@ export function getMonthsWorked(hireDate: Date, referenceDate: Date = new Date()
   const hire = new Date(hireDate);
   const ref = new Date(referenceDate);
   let months = (ref.getFullYear() - hire.getFullYear()) * 12 + (ref.getMonth() - hire.getMonth());
-  if (ref.getDate() < hire.getDate()) {
+  // 참조일이 그 달 말일이면 한 달을 채운 것으로 본다.
+  // 이 보정이 없으면 1/31 입사자가 2/28에 평가될 때 28 < 31 로 한 달이 깎여
+  // 개근했는데 월차가 0이 된다 (29~31일 입사자에게만 발생).
+  const refIsLastDayOfMonth =
+    ref.getDate() === new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
+  if (ref.getDate() < hire.getDate() && !refIsLastDayOfMonth) {
     months--;
   }
   return Math.max(0, months);

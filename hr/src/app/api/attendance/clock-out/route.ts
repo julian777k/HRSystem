@@ -60,11 +60,25 @@ export async function POST() {
       );
     }
 
+    // 근무시간 설정 (개인 → 부서 → 회사) — 점심시간 차감과 조퇴 판정에 함께 쓴다
+    const settings = await getWorkSettings(user.id);
+
     const clockInTime = new Date(attendance.clockIn).getTime();
     const clockOutTime = now.getTime();
     const rawHours = (clockOutTime - clockInTime) / (1000 * 60 * 60);
+
+    // 점심시간을 근무시간에서 뺀다. 이게 없으면 09:00~18:00 정시 근무(실 8시간)가
+    // 9시간으로 계산돼 매일 1시간씩 허위 연장근무가 붙고 보상시간까지 적립된다.
+    let lunchHours = 0;
+    if (settings.lunchStartTime && settings.lunchEndTime) {
+      const [lsH, lsM] = settings.lunchStartTime.split(':').map(Number);
+      const [leH, leM] = settings.lunchEndTime.split(':').map(Number);
+      const lunch = ((leH * 60 + leM) - (lsH * 60 + lsM)) / 60;
+      if (Number.isFinite(lunch) && lunch > 0) lunchHours = lunch;
+    }
+
     // Prevent negative or absurdly large work hours
-    const workHours = parseFloat(Math.max(0, Math.min(rawHours, 24)).toFixed(2));
+    const workHours = parseFloat(Math.max(0, Math.min(rawHours - lunchHours, 24)).toFixed(2));
 
     // 연장근무 판정: CompensationPolicy의 dailyWorkHours 기준
     const standardHours = await getDailyWorkHours();
@@ -72,8 +86,6 @@ export async function POST() {
       ? parseFloat((workHours - standardHours).toFixed(2))
       : 0;
 
-    // 조퇴 판정: 근무시간 설정 기준 (개인 → 부서 → 회사)
-    const settings = await getWorkSettings(user.id);
     const [endH, endM] = settings.workEndTime.split(':').map(Number);
     // setHours 는 UTC 기준이라 18:00 설정이 KST 익일 03:00 임계값이 됐다
     // (정시 퇴근자가 전원 조퇴로 기록됨)

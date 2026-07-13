@@ -11,6 +11,8 @@ import { isSaaSMode } from '@/lib/deploy-config';
 // (테넌트 격리 유지 — 절대 쿠키 domain을 넓히지 말 것).
 const DEMO_SUBDOMAIN = 'demo';
 const DEMO_SESSION_HOURS = 2;
+// 방문자에게 "○○님, 환영합니다"로 보이는 계정. 실제 직원 이름이 뜨지 않도록 전용 계정을 쓴다.
+const DEMO_ACCOUNT_EMAIL = 'demo@keystonehr.app';
 
 export async function GET(request: NextRequest) {
     if (!isSaaSMode()) {
@@ -38,11 +40,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: 'Not found' }, { status: 404 });
     }
 
-    // 데모 테넌트의 관리자 계정 하나를 집어 세션을 발급한다
+    // 데모 전용 계정으로만 세션을 발급한다 (실제 직원 계정으로 로그인시키지 않는다)
     const employee = await prisma.employee.findFirst({
-        where: { tenantId, role: 'COMPANY_ADMIN', status: 'ACTIVE' },
+        where: { tenantId, email: DEMO_ACCOUNT_EMAIL, status: 'ACTIVE' },
         include: { department: true, position: true },
-        orderBy: { createdAt: 'asc' },
     });
 
     if (!employee) {

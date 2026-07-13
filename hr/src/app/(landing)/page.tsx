@@ -128,9 +128,8 @@ function BrowserFrame({ children }: { children: React.ReactNode }) {
 export default function LandingPage() {
   return (
     <main>
-      {/* Hero — 첫 화면은 임팩트. 논증은 스크롤 아래에서 한다 */}
-      {/* overflow는 열어둔다 — 제품 화면이 아래 섹션으로 넘어가며 이어져야 한다 */}
-      <section className="relative min-h-[88vh] flex flex-col bg-surface-navy text-white">
+      {/* Hero — 타이포만으로 승부한다. 제품 화면은 아래 섹션에서 보여준다 */}
+      <section className="relative min-h-[88vh] flex items-center bg-surface-navy text-white">
         {/* 단일 색조가 화면을 지배하도록 깔아두는 광원 */}
         <div
           className="absolute inset-0 opacity-70 pointer-events-none"
@@ -141,7 +140,7 @@ export default function LandingPage() {
           aria-hidden="true"
         />
 
-        <div className="relative flex-1 flex items-center justify-center px-4 sm:px-6 pt-20 sm:pt-24 pb-4">
+        <div className="relative w-full flex items-center justify-center px-4 sm:px-6 py-24">
           <div className="text-center max-w-4xl">
             <p className="text-brand-accent font-semibold text-xs sm:text-sm mb-6 sm:mb-8 tracking-[0.2em] uppercase">
               중소기업을 위한 올인원 HR
@@ -179,10 +178,19 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* 제품 화면이 다음 섹션 위로 넘어가며 이어진다 — 하단을 잘라 "더 있다"는 신호를 준다 */}
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-8 -mb-16 sm:-mb-24">
-          <BrowserFrame>
-            <div className="max-h-[240px] sm:max-h-[420px] overflow-hidden">
+      </section>
+
+      {/* 제품 화면 — 가격 논증에 들어가기 전, 실물부터 보여준다 */}
+      <section className="py-14 sm:py-24 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <p className="text-brand-primary font-semibold text-sm mb-3 tracking-wide">완성된 제품입니다</p>
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 tracking-tight" style={{ textWrap: 'balance' }}>
+              인원, 부서, 결재를 한 화면에서
+            </h2>
+          </div>
+          <div className="relative">
+            <BrowserFrame>
               <ClickableImage
                 src="/screenshots/03_dashboard.png"
                 alt="KeystoneHR 관리자 콘솔"
@@ -192,13 +200,23 @@ export default function LandingPage() {
                 priority
                 caption="관리자 콘솔 — 인원, 부서, 결재 현황을 한 화면에서"
               />
+            </BrowserFrame>
+            <div className="absolute -bottom-6 -right-2 sm:-right-6 w-24 sm:w-36 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/5">
+              <Image
+                src="/screenshots/25_mobile_dashboard.png"
+                alt="모바일 대시보드"
+                width={390}
+                height={844}
+                className="w-full"
+                loading="lazy"
+              />
             </div>
-          </BrowserFrame>
+          </div>
         </div>
       </section>
 
       {/* 통합 증명 — 기능 동등성 + 가격 격차를 한 섹션에서 논증 */}
-      <section id="proof" className="pt-32 sm:pt-44 pb-14 sm:pb-24 bg-white text-gray-900">
+      <section id="proof" className="py-14 sm:py-24 bg-white text-gray-900">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4 leading-tight tracking-tight" style={{ textWrap: 'balance' }}>

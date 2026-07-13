@@ -106,11 +106,30 @@ function ClickableImage({ src, alt, width, height, className, priority, caption 
   );
 }
 
+// 실제 서비스 중인 웹앱임을 즉시 전달하는 브라우저 크롬 목업
+function BrowserFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/5 bg-white">
+      <div className="flex items-center gap-2 px-4 py-3 bg-gray-100 border-b border-gray-200">
+        <span className="w-3 h-3 rounded-full bg-red-400" />
+        <span className="w-3 h-3 rounded-full bg-amber-400" />
+        <span className="w-3 h-3 rounded-full bg-emerald-400" />
+        <div className="flex-1 flex justify-center">
+          <span className="px-4 py-1 rounded-md bg-white border border-gray-200 text-xs text-gray-400 font-medium">
+            keystonehr.app
+          </span>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function LandingPage() {
   return (
     <main>
       {/* Hero */}
-      <section className="pt-16 sm:pt-24 pb-12 bg-gradient-to-b from-blue-50 via-white to-white">
+      <section className="pt-16 sm:pt-24 pb-24 sm:pb-32 bg-gradient-to-b from-blue-50 via-white to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <p className="text-brand-accent font-semibold text-sm mb-3 tracking-wide">
@@ -149,6 +168,31 @@ export default function LandingPage() {
             <p className="text-xs text-gray-400 mt-3">
               가입 없이 바로 둘러볼 수 있습니다
             </p>
+          </div>
+
+          {/* 제품 증거 — 말보다 화면을 먼저 */}
+          <div className="relative max-w-6xl mx-auto mt-16 sm:mt-20">
+            <BrowserFrame>
+              <ClickableImage
+                src="/screenshots/03_dashboard.png"
+                alt="KeystoneHR 관리자 콘솔"
+                width={1440}
+                height={900}
+                className="w-full"
+                priority
+                caption="관리자 콘솔 — 인원, 부서, 결재 현황을 한 화면에서"
+              />
+            </BrowserFrame>
+            <div className="absolute -bottom-8 -right-2 sm:-right-6 w-28 sm:w-40 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/5">
+              <Image
+                src="/screenshots/25_mobile_dashboard.png"
+                alt="모바일 대시보드"
+                width={390}
+                height={844}
+                className="w-full"
+                loading="lazy"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -305,7 +349,7 @@ export default function LandingPage() {
       </section>
 
       {/* Feature Comparison — 브릿지 */}
-      <section className="py-16 sm:py-20 bg-white">
+      <section className="py-14 sm:py-24 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-brand-accent font-semibold text-sm mb-3 tracking-wide">13개 기능, 하나씩 확인하세요</p>
@@ -405,35 +449,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Dashboard Screenshot */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative max-w-5xl mx-auto">
-            <div className="rounded-xl overflow-hidden shadow-2xl border border-gray-200">
-              <ClickableImage
-                src="/screenshots/03_dashboard.png"
-                alt="KeystoneHR 대시보드"
-                width={1440}
-                height={900}
-                className="w-full"
-                priority
-                caption="사원 대시보드 — 근태, 휴가, 결재 현황 한눈에"
-              />
-            </div>
-            <div className="absolute -bottom-6 -right-4 sm:right-8 w-24 sm:w-32 rounded-xl overflow-hidden shadow-xl border border-gray-200">
-              <Image
-                src="/screenshots/25_mobile_dashboard.png"
-                alt="모바일 대시보드"
-                width={390}
-                height={844}
-                className="w-full"
-                loading="lazy"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Trust bar */}
       <section className="py-8 border-y border-gray-100 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -459,7 +474,7 @@ export default function LandingPage() {
       </section>
 
       {/* Differentiators */}
-      <section id="features" className="py-20 bg-gray-50">
+      <section id="features" className="py-14 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
@@ -516,7 +531,7 @@ export default function LandingPage() {
       </section>
 
       {/* Core Features Grid */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-14 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
@@ -551,10 +566,10 @@ export default function LandingPage() {
       </section>
 
       {/* Approval Workflow */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-14 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4" style={{ textWrap: 'balance' }}>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight" style={{ textWrap: 'balance' }}>
               결재도 온라인으로
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -578,7 +593,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20">
+      <section id="pricing" className="py-14 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight" style={{ textWrap: 'balance' }}>

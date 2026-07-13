@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth-actions';
 import { getWorkSettings, getDailyWorkHours } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { kstStartOfDay, kstTimeToday } from '@/lib/kst';
 
 // 수동 출퇴근 모드에서 직원이 직접 퇴근을 기록하는 API
 // 회사 설정의 attendance_mode가 MANUAL일 때 사용
@@ -25,7 +26,8 @@ export async function POST() {
 
     const tenantId = await getTenantId();
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Workers는 UTC. KST 기준으로 잡지 않으면 오전 출근 기록을 못 찾는다.
+    const today = kstStartOfDay(now);
 
     const attendance = await prisma.attendance.findUnique({
       where: {
@@ -73,8 +75,9 @@ export async function POST() {
     // 조퇴 판정: 근무시간 설정 기준 (개인 → 부서 → 회사)
     const settings = await getWorkSettings(user.id);
     const [endH, endM] = settings.workEndTime.split(':').map(Number);
-    const earlyLeaveThreshold = new Date(today);
-    earlyLeaveThreshold.setHours(endH, endM, 0, 0);
+    // setHours 는 UTC 기준이라 18:00 설정이 KST 익일 03:00 임계값이 됐다
+    // (정시 퇴근자가 전원 조퇴로 기록됨)
+    const earlyLeaveThreshold = kstTimeToday(endH, endM, now);
 
     let status = attendance.status;
     if (now < earlyLeaveThreshold && status === 'NORMAL') {

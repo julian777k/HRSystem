@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { kstYear } from './kst';
 import { getTenantId } from '@/lib/tenant-context';
 
 interface DeductionResult {
@@ -165,7 +166,8 @@ export async function accrueCompTime(
   if (overtimeType === 'WEEKEND') multiplier = policy.weekdayMultiplier;
 
   const earnedHours = Math.round(overtimeHours * multiplier * 10) / 10;
-  const year = new Date().getFullYear();
+  // KST 기준 연도. UTC로 읽으면 새해 첫날 오전 적립분이 작년으로 들어간다.
+  const year = kstYear();
 
   // 지갑에 적립
   await prisma.timeWallet.upsert({

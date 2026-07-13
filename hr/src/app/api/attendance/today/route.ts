@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { getWorkSettings, getDailyWorkHours, isWorkday, buildDateTime, getAttendanceMode } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
+import { kstStartOfDay } from '@/lib/kst';
 
 export async function GET() {
   try {
@@ -13,7 +14,8 @@ export async function GET() {
 
     const tenantId = await getTenantId();
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // clock-in/out 이 KST 자정 기준으로 저장하므로 조회도 KST 기준이어야 한다
+    const today = kstStartOfDay(now);
 
     // Fetch work settings (Employee → Department → Company priority)
     const workSettings = await getWorkSettings(user.id);

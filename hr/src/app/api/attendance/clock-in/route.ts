@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth-actions';
 import { getWorkSettings } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { kstStartOfDay, kstTimeToday } from '@/lib/kst';
 
 // 수동 출퇴근 모드에서 직원이 직접 출근을 기록하는 API
 // 회사 설정의 attendance_mode가 MANUAL일 때 사용
@@ -25,7 +26,9 @@ export async function POST() {
 
     const tenantId = await getTenantId();
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Workers는 UTC로 동작한다. KST 기준으로 날짜·임계값을 계산하지 않으면
+    // KST 09:00 이전 출근이 전날 레코드로 저장되고 지각 판정이 9시간 어긋난다.
+    const today = kstStartOfDay(now);
 
     const existing = await prisma.attendance.findUnique({
       where: {
@@ -47,8 +50,8 @@ export async function POST() {
     // 지각 판정: 근무시간 설정 기준 (개인 → 부서 → 회사)
     const settings = await getWorkSettings(user.id);
     const [startH, startM] = settings.workStartTime.split(':').map(Number);
-    const lateThreshold = new Date(today);
-    lateThreshold.setHours(startH, startM, 0, 0);
+    // setHours 는 UTC 기준이라 09:00 설정이 KST 18:00 임계값이 됐다 (지각이 거의 안 잡힘)
+    const lateThreshold = kstTimeToday(startH, startM, now);
     const status = now > lateThreshold ? 'LATE' : 'NORMAL';
 
     const attendance = await prisma.attendance.create({

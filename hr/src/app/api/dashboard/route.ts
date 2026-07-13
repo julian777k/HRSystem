@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth-actions';
 import { getWalletBalance } from '@/lib/time-wallet';
 import { getWorkSettings, getDailyWorkHours, isWorkday as checkIsWorkday, buildDateTime } from '@/lib/attendance-utils';
 import { getTenantId } from '@/lib/tenant-context';
+import { kstStartOfDay, kstYear } from '@/lib/kst';
 
 export async function GET() {
   try {
@@ -13,10 +14,12 @@ export async function GET() {
     }
 
     const tenantId = await getTenantId();
-    const currentYear = new Date().getFullYear();
+    const currentYear = kstYear();
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    // KST 기준 월 경계 (UTC로 잡으면 월초·월말 하루가 어긋난다)
+    const kstToday = kstStartOfDay(now);
+    const monthStart = new Date(Date.UTC(kstYear(now), kstToday.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(kstYear(now), kstToday.getUTCMonth() + 1, 0));
 
     const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
 
@@ -122,7 +125,8 @@ export async function GET() {
     const actualPendingApprovals = pendingItems.length;
 
     // 8. Today's attendance (auto-record system compatible)
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // 근태 레코드가 KST 자정 기준으로 저장되므로 조회도 맞춰야 한다
+    const today = kstStartOfDay(now);
     const isWorkday = await checkIsWorkday(today, user.departmentId);
 
     let todayAttendance: any;

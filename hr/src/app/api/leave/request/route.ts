@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth-actions';
 import { notifyApprovers } from '@/lib/notifications';
 import { getTenantId } from '@/lib/tenant-context';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { calculateWorkingDays } from '@/lib/leave-calculator';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +43,40 @@ export async function POST(request: NextRequest) {
     const leaveType = await prisma.leaveType.findUnique({ where: { id: leaveTypeId, tenantId } });
     if (!leaveType || !leaveType.isActive) {
       return NextResponse.json({ message: '유효하지 않은 휴가 유형입니다.' }, { status: 400 });
+    }
+
+    // 클라이언트가 보낸 requestDays 를 신뢰하지 않고 서버에서 재계산해 검증한다.
+    // 이 검증이 없으면 직원이 API를 직접 호출해 requestDays: 0.5 로 열흘 휴가를
+    // 승인받고 잔여는 0.5일만 차감시킬 수 있다.
+    const isHalfDay = useUnit === 'AM_HALF' || useUnit === 'PM_HALF';
+    if (isHalfDay) {
+      // 반차는 하루짜리여야 한다
+      if (String(startDate).slice(0, 10) !== String(endDate).slice(0, 10)) {
+        return NextResponse.json({ message: '반차는 하루만 신청할 수 있습니다.' }, { status: 400 });
+      }
+      if (days !== 0.5) {
+        return NextResponse.json({ message: '반차 일수가 올바르지 않습니다.' }, { status: 400 });
+      }
+    } else {
+      // 종일 휴가: 서버가 근무일(주말·공휴일 제외)을 직접 세어 클라이언트 값과 대조
+      const holidayRows = await prisma.holiday.findMany({
+        where: { tenantId, date: { gte: new Date(startDate), lte: new Date(endDate) } },
+        select: { date: true },
+      });
+      const serverDays = calculateWorkingDays(
+        new Date(startDate),
+        new Date(endDate),
+        holidayRows.map((h) => h.date)
+      );
+      if (serverDays <= 0) {
+        return NextResponse.json({ message: '신청 가능한 근무일이 없습니다. (주말·공휴일만 포함)' }, { status: 400 });
+      }
+      if (days !== serverDays) {
+        return NextResponse.json(
+          { message: `휴가 일수가 올바르지 않습니다. (신청 기간의 근무일: ${serverDays}일)` },
+          { status: 400 }
+        );
+      }
     }
 
     // Check remaining balance

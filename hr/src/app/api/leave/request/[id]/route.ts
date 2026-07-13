@@ -46,25 +46,34 @@ export async function PUT(
         const policy = await getCompensationPolicy();
         const deductHours = existing.requestDays * policy.dailyWorkHours;
 
-        // 시간 지갑에서 자동 차감 (보상시간 → 연차 순서)
-        await deductFromWallet(existing.employeeId, deductHours, year, existing.id);
-
-        // isAnnualDeduct가 true인 유형(오전반차, 오후반차)은 연차(ANNUAL) 잔여에서 차감
         const balanceCode = (existing.leaveType.isAnnualDeduct && existing.leaveType.code !== 'ANNUAL')
           ? 'ANNUAL' : existing.leaveType.code;
 
-        // 기존 LeaveBalance도 업데이트 (일 기준 호환)
-        await prisma.leaveBalance.updateMany({
+        // 잔여 검증을 승인 시점에도 한 번 더 한다.
+        // 신청 후 다른 건이 먼저 승인되면 잔여가 부족해질 수 있는데, where 에 잔여 조건을
+        // 넣지 않으면 totalRemain 이 음수로 내려간다. gte 조건으로 차감이 0건이면 잔여 부족이다.
+        const deducted = await prisma.leaveBalance.updateMany({
           where: {
             employeeId: existing.employeeId,
             year,
             leaveTypeCode: balanceCode,
+            totalRemain: { gte: existing.requestDays },
           },
           data: {
             totalUsed: { increment: existing.requestDays },
             totalRemain: { decrement: existing.requestDays },
           },
         });
+
+        if (deducted.count === 0) {
+          return NextResponse.json(
+            { message: '승인할 수 없습니다. 신청자의 잔여 휴가가 부족합니다.' },
+            { status: 409 }
+          );
+        }
+
+        // 잔여 검증을 통과한 뒤에만 시간 지갑을 차감한다 (보상시간 → 연차 순서)
+        await deductFromWallet(existing.employeeId, deductHours, year, existing.id);
 
         // 휴가 승인 → 근태 자동 생성
         await createLeaveAttendance(

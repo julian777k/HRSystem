@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
               const year = lr.startDate.getFullYear();
               const balanceCode = (leaveType.isAnnualDeduct && leaveType.code !== 'ANNUAL')
                 ? 'ANNUAL' : leaveType.code;
-              await tx.leaveBalance.updateMany({
+              const deducted = await tx.leaveBalance.updateMany({
                 where: {
                   employeeId: lr.employeeId,
                   year,
@@ -155,6 +155,11 @@ export async function POST(request: NextRequest) {
                   totalRemain: { decrement: lr.requestDays },
                 },
               });
+              // 차감이 0건이면 잔여 부족이다. gte 조건이 음수는 막지만, 여기서 멈추지 않으면
+              // 위에서 이미 status='APPROVED'로 바꿔 놓아 "잔여는 안 깎였는데 승인된" 무료 휴가가 된다.
+              if (deducted.count === 0) {
+                throw new Error('INSUFFICIENT_LEAVE_BALANCE');
+              }
             }
           }
           if (approval.overtimeId) {
@@ -236,6 +241,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: '결재가 처리되었습니다.' });
   } catch (error) {
+    if (error instanceof Error && error.message === 'INSUFFICIENT_LEAVE_BALANCE') {
+      return NextResponse.json(
+        { message: '승인할 수 없습니다. 신청자의 잔여 휴가가 부족합니다.' },
+        { status: 409 }
+      );
+    }
     console.error('Approval process error:', error);
     return NextResponse.json(
       { message: '결재 처리 중 오류가 발생했습니다.' },

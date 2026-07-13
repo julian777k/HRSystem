@@ -544,7 +544,44 @@ interface SetResult {
   params: unknown[];
 }
 
-function buildSetClause(data: Record<string, unknown>): SetResult {
+/**
+ * upsert의 INSERT … ON CONFLICT … DO UPDATE SET 문을 조립한다.
+ *
+ * update 절은 반드시 buildSetClause를 거쳐야 한다. toSqlValue를 직접 쓰면
+ * { increment: n } 같은 연산자 객체가 '{"increment":n}' 문자열로 그대로 저장되어
+ * 값이 손상된다(보상시간 지갑 손상 사고의 원인).
+ */
+export function buildUpsertSql(
+  table: string,
+  createData: Record<string, unknown>,
+  updateData: Record<string, unknown>,
+  conflictCols: string[]
+): SetResult {
+  const insertCols = Object.keys(createData).filter((k) => createData[k] !== undefined);
+  const insertVals = insertCols.map((k) => toSqlValue(createData[k]));
+  const colSql = insertCols.map((c) => `"${c}"`).join(', ');
+  const valSql = insertCols.map(() => '?').join(', ');
+
+  const updateEntries = Object.entries(updateData).filter(([, v]) => v !== undefined);
+
+  if (updateEntries.length === 0 || conflictCols.length === 0) {
+    return {
+      sql: `INSERT OR IGNORE INTO "${table}" (${colSql}) VALUES (${valSql})`,
+      params: insertVals,
+    };
+  }
+
+  const setClause = buildSetClause(Object.fromEntries(updateEntries));
+  return {
+    sql: `INSERT INTO "${table}" (${colSql})
+          VALUES (${valSql})
+          ON CONFLICT (${conflictCols.map((c) => `"${c}"`).join(', ')})
+          DO UPDATE SET ${setClause.sql}`,
+    params: [...insertVals, ...setClause.params],
+  };
+}
+
+export function buildSetClause(data: Record<string, unknown>): SetResult {
   const parts: string[] = [];
   const params: unknown[] = [];
 
@@ -1108,29 +1145,8 @@ function createModelDelegate(db: D1Database, modelName: string) {
       const updateData = { ...args.update };
       if (!NO_UPDATED_AT.has(table) && !updateData.updatedAt) updateData.updatedAt = now;
 
-      // Build INSERT columns and values
-      const insertCols = Object.keys(createData).filter(k => createData[k] !== undefined);
-      const insertVals = insertCols.map(k => toSqlValue(createData[k]));
-
-      // Build ON CONFLICT DO UPDATE SET clause
-      const updateEntries = Object.entries(updateData).filter(([, v]) => v !== undefined);
-
-      if (updateEntries.length > 0 && conflictCols.length > 0) {
-        const updateParts = updateEntries.map(([k]) => `"${k}" = ?`);
-        const updateVals = updateEntries.map(([, v]) => toSqlValue(v));
-
-        const sql = `INSERT INTO "${table}" (${insertCols.map(c => `"${c}"`).join(', ')})
-          VALUES (${insertCols.map(() => '?').join(', ')})
-          ON CONFLICT (${conflictCols.map(c => `"${c}"`).join(', ')})
-          DO UPDATE SET ${updateParts.join(', ')}`;
-
-        await db.prepare(sql).bind(...insertVals, ...updateVals).run();
-      } else {
-        // No update data or no conflict columns — fall back to INSERT OR IGNORE
-        const sql = `INSERT OR IGNORE INTO "${table}" (${insertCols.map(c => `"${c}"`).join(', ')})
-          VALUES (${insertCols.map(() => '?').join(', ')})`;
-        await db.prepare(sql).bind(...insertVals).run();
-      }
+      const { sql, params } = buildUpsertSql(table, createData, updateData, conflictCols);
+      await db.prepare(sql).bind(...params).run();
 
       // Return the upserted record
       const result = await this.findFirst({

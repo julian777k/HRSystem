@@ -112,6 +112,21 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = await getTenantId();
+
+    // 부서·직급이 자기 테넌트 소속인지 검증한다.
+    // 이 검증이 없으면 타 테넌트의 departmentId/positionId 를 body에 넣어 참조할 수 있고,
+    // create 후 재조회의 include가 무필터라 타 테넌트 부서·직급 정보가 응답에 노출될 수 있다.
+    const [deptOk, posOk] = await Promise.all([
+      prisma.department.findFirst({ where: { id: departmentId, tenantId }, select: { id: true } }),
+      prisma.position.findFirst({ where: { id: positionId, tenantId }, select: { id: true } }),
+    ]);
+    if (!deptOk || !posOk) {
+      return NextResponse.json(
+        { message: '유효하지 않은 부서 또는 직급입니다.' },
+        { status: 400 }
+      );
+    }
+
     const existingEmail = await prisma.employee.findFirst({ where: { email, tenantId } });
     if (existingEmail) {
       return NextResponse.json(

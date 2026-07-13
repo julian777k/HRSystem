@@ -955,9 +955,14 @@ function createModelDelegate(db: D1Database, modelName: string) {
         }
       }
 
-      // Return created record
+      // Return created record.
+      // data.tenantId 를 재조회 where에 실어야 include 관계 서브쿼리가 tenant 필터를 탄다.
+      // 이게 없으면 body로 넘어온 타 테넌트 FK(departmentId 등)를 include 했을 때
+      // 그 관계 정보가 무필터로 조회되어 응답에 노출된다.
+      const reselectWhere: Record<string, unknown> =
+        data.tenantId !== undefined ? { id: data.id, tenantId: data.tenantId } : { id: data.id };
       const created = await this.findFirst({
-        where: { id: data.id },
+        where: reselectWhere,
         include: args.include,
         select: args.select,
       });

@@ -2,21 +2,22 @@
  * Password hashing using Web Crypto API PBKDF2
  * Replaces bcryptjs for Cloudflare Workers Edge Runtime compatibility
  *
- * 600K iterations (NIST SP 800-132 recommendation for PBKDF2-SHA256).
- * Safe on CF Workers: crypto.subtle runs as native code, NOT counted as JS CPU time.
- * Wall-clock ~200-500ms per hash, well within 30s limit.
- * verifyPassword reads stored iteration count, so old 100K hashes still work.
+ * Cloudflare Workers는 PBKDF2 반복을 100,000회로 제한한다(그 이상은 NotSupportedError throw).
+ * 600K로 두면 hashPassword() 와 더미 해시 검증이 Workers에서 무조건 throw 해,
+ * 회원가입·직원등록·비번변경·없는계정 로그인이 전부 500이 됐다.
+ * verifyPassword 는 저장된 해시의 반복 횟수를 읽으므로 기존 해시는 그대로 검증된다.
  */
 
-const ITERATIONS = 600000;
+const ITERATIONS = 100000; // Cloudflare Workers 상한
 const KEY_LENGTH = 32;
 const SALT_LENGTH = 16;
 const MAX_PASSWORD_LENGTH = 128;
 
 // 타이밍 공격(사용자 열거) 방어용 더미 해시 — 존재하지 않는 계정 로그인 시도에도
 // verifyPassword를 실행해 실제 계정과 동일한 검증 시간이 소요되게 한다.
+// 반복 횟수를 ITERATIONS 와 맞춰야 Workers 상한을 넘지 않는다.
 export const DUMMY_PASSWORD_HASH =
-  'pbkdf2:600000:00000000000000000000000000000000:0000000000000000000000000000000000000000000000000000000000000000';
+  'pbkdf2:100000:00000000000000000000000000000000:0000000000000000000000000000000000000000000000000000000000000000';
 
 function bufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))

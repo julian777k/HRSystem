@@ -131,12 +131,10 @@ export async function POST(request: NextRequest) {
               return;
             }
 
-            await tx.leaveRequest.update({
-              where: { id: approval.leaveRequestId },
-              data: { status: 'APPROVED' },
-            });
-
-            // Deduct from leave balance
+            // 순서 조정: 잔여 차감을 먼저 하고, 성공한 뒤에야 status를 바꾼다.
+            // 롤백이 없는 환경(D1)에서 status를 먼저 바꾸면, 차감이 실패했을 때
+            // "승인은 됐는데 잔여는 안 깎인" 무료 휴가가 남는다. 순서를 뒤집으면
+            // 최악의 경우라도 "차감은 됐는데 status가 PENDING"에 그쳐 재처리로 복구된다.
             const lr = approval.leaveRequest;
             const leaveType = await tx.leaveType.findUnique({ where: { id: lr.leaveTypeId } });
             if (leaveType) {
@@ -155,12 +153,16 @@ export async function POST(request: NextRequest) {
                   totalRemain: { decrement: lr.requestDays },
                 },
               });
-              // 차감이 0건이면 잔여 부족이다. gte 조건이 음수는 막지만, 여기서 멈추지 않으면
-              // 위에서 이미 status='APPROVED'로 바꿔 놓아 "잔여는 안 깎였는데 승인된" 무료 휴가가 된다.
               if (deducted.count === 0) {
                 throw new Error('INSUFFICIENT_LEAVE_BALANCE');
               }
             }
+
+            // 차감이 확정된 뒤에만 승인 상태로 전환
+            await tx.leaveRequest.update({
+              where: { id: approval.leaveRequestId },
+              data: { status: 'APPROVED' },
+            });
           }
           if (approval.overtimeId) {
             await tx.overtimeRequest.update({

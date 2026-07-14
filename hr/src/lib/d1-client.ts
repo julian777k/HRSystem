@@ -1462,6 +1462,18 @@ export function createD1Client(db: D1Database) {
         };
       }
 
+      // $batch: 여러 쓰기를 D1의 원자적 트랜잭션으로 실행한다.
+      // D1은 인터랙티브 트랜잭션(조회→판단→쓰기)을 지원하지 않으므로,
+      // 조회는 호출부에서 미리 하고, 확정된 쓰기 statement 목록만 여기로 넘긴다.
+      // db.batch()는 하나라도 실패하면 전체를 롤백한다(원자성 보장).
+      if (prop === '$batch') {
+        return async (statements: BatchStatement[]) => {
+          if (statements.length === 0) return [];
+          const prepared = statements.map((s) => db.prepare(s.sql).bind(...s.params));
+          return db.batch(prepared);
+        };
+      }
+
       // Model delegate
       if (MODEL_TABLE_MAP[prop]) {
         return getDelegate(prop);
@@ -1472,4 +1484,40 @@ export function createD1Client(db: D1Database) {
   });
 
   return client;
+}
+
+// ─── $batch용 statement 빌더 ───
+// 호출부가 raw SQL을 직접 쓰지 않고 안전하게 batch statement를 만들도록 돕는다.
+// where/set 조립은 기존 buildWhere/buildSetClause를 재사용해 인젝션·연산자 처리를 일관되게 유지한다.
+
+export interface BatchStatement {
+  sql: string;
+  params: unknown[];
+}
+
+function tableOf(model: string): string {
+  const t = MODEL_TABLE_MAP[model];
+  if (!t) throw new Error(`Unknown model for batch: ${model}`);
+  return t;
+}
+
+/** UPDATE ... SET ... WHERE ... 를 batch statement로 만든다 (increment/decrement 연산자 지원). */
+export function updateStmt(
+  model: string,
+  where: Record<string, unknown>,
+  data: Record<string, unknown>
+): BatchStatement {
+  const table = tableOf(model);
+  const set = buildSetClause(data);
+  const w = buildWhere(where);
+  const sql = `UPDATE "${table}" SET ${set.sql}${w.sql ? ` WHERE ${w.sql}` : ''}`;
+  return { sql, params: [...set.params, ...w.params] };
+}
+
+/** DELETE FROM ... WHERE ... 를 batch statement로 만든다. */
+export function deleteStmt(model: string, where: Record<string, unknown>): BatchStatement {
+  const table = tableOf(model);
+  const w = buildWhere(where);
+  const sql = `DELETE FROM "${table}"${w.sql ? ` WHERE ${w.sql}` : ''}`;
+  return { sql, params: w.params };
 }

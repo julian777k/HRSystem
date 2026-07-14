@@ -1,0 +1,52 @@
+name: 데이터 정합성 검사
+
+# 트랜잭션 원자성이 D1에서 완벽히 보장되지 않으므로(인터랙티브 트랜잭션 미지원),
+# 중간에 끊긴 쓰기를 회계 불변식으로 매일 사후 감지한다.
+# 위반이 하나라도 있으면 잡을 실패시켜 GitHub이 알림을 보낸다 → 수동 조사·복구.
+on:
+  schedule:
+    - cron: '30 18 * * *' # 매일 03:30 KST (데모 리셋 03:00 다음)
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 의존성 설치
+        working-directory: hr
+        run: npm ci
+
+      - name: 회계 불변식 검사
+        working-directory: hr
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -e
+          fail=0
+          check() {
+            local name="$1"; local sql="$2"
+            local out
+            out=$(npx wrangler d1 execute hr-saas-db --remote --json --command "$sql")
+            local cnt
+            cnt=$(echo "$out" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s);console.log(r[0].results[0].c)})")
+            if [ "$cnt" != "0" ]; then
+              echo "::error::[$name] 정합성 위반 $cnt 건"
+              fail=1
+            else
+              echo "✅ [$name] 정상"
+            fi
+          }
+          check "연차잔액 불변식" "SELECT COUNT(*) AS c FROM leave_balances WHERE ABS(totalGranted - totalUsed - totalRemain) > 0.001"
+          check "시간지갑 불변식" "SELECT COUNT(*) AS c FROM time_wallets WHERE ABS(totalEarned - totalUsed - totalRemain) > 0.001"
+          check "음수 연차잔액" "SELECT COUNT(*) AS c FROM leave_balances WHERE totalRemain < -0.001"
+          check "음수 시간지갑" "SELECT COUNT(*) AS c FROM time_wallets WHERE totalRemain < -0.001"
+          if [ "$fail" = "1" ]; then
+            echo "정합성 위반 감지 — 조사 필요. scripts/integrity-check.sql 로 상세 확인."
+            exit 1
+          fi
+          echo "모든 정합성 검사 통과."

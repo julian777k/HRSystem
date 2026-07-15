@@ -92,6 +92,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '유효하지 않은 복지 항목입니다.' }, { status: 400 });
     }
 
+    // 신청액이 항목 기준금액(한도)을 초과하면 차단. item.amount가 상한선이다.
+    if (amount !== undefined && amount !== null && item.amount != null && amount > item.amount) {
+      return NextResponse.json(
+        { message: `신청 금액이 한도(${item.amount.toLocaleString()}${item.unit})를 초과했습니다.` },
+        { status: 400 }
+      );
+    }
+
     if (item.maxPerYear) {
       const currentYear = new Date().getFullYear();
       const startOfYear = new Date(currentYear, 0, 1);

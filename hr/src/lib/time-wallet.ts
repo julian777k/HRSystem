@@ -30,6 +30,7 @@ interface CompensationPolicyData {
   minUseUnit: number;
   deductionOrder: string;
   autoSplitDeduct: boolean;
+  compTimeExpiryYears: number | null;
   isActive: boolean;
 }
 let _policyCache: { data: CompensationPolicyData; expiresAt: number } | null = null;
@@ -272,4 +273,73 @@ export async function getWalletBalance(employeeId: string, year: number) {
     dailyWorkHours: policy.dailyWorkHours,
     halfDayHours: policy.halfDayHours,
   };
+}
+
+/**
+ * 보상시간 만료 관리 (연도 기반)
+ * 적립연도 Y의 보상시간은 (Y + compTimeExpiryYears)년 말까지 유효. 이후 만료.
+ */
+export interface ExpiringCompTime {
+  employeeId: string;
+  employeeName: string;
+  year: number;
+  remain: number;
+  expiryYear: number;
+  status: 'EXPIRED' | 'EXPIRING';
+}
+
+// 만료됐거나 올해 말 만료 예정인 보상시간 목록. 소멸 미설정이면 빈 배열.
+export async function listExpiringCompTime(): Promise<ExpiringCompTime[]> {
+  const policy = await getCompensationPolicy();
+  if (policy.compTimeExpiryYears == null) return [];
+  const expiryYears = policy.compTimeExpiryYears;
+  const currentYear = kstYear();
+
+  const wallets = await prisma.timeWallet.findMany({
+    where: { type: 'COMP_TIME', totalRemain: { gt: 0 } },
+    include: { employee: { select: { name: true } } },
+  });
+
+  const result: ExpiringCompTime[] = [];
+  for (const w of wallets) {
+    const expiryYear = w.year + expiryYears;
+    if (currentYear > expiryYear) {
+      result.push({ employeeId: w.employeeId, employeeName: w.employee?.name ?? '', year: w.year, remain: w.totalRemain, expiryYear, status: 'EXPIRED' });
+    } else if (currentYear === expiryYear) {
+      result.push({ employeeId: w.employeeId, employeeName: w.employee?.name ?? '', year: w.year, remain: w.totalRemain, expiryYear, status: 'EXPIRING' });
+    }
+  }
+  return result;
+}
+
+// 특정 연도 보상시간을 만료 소멸 (관리자 수동). 유효기간이 지난 것만 허용.
+// 잔액을 0으로 내리고 totalExpired에 기록 — totalUsed는 건드리지 않아 '사용'과 구분된다.
+export async function expireCompTime(employeeId: string, year: number): Promise<{ expired: number }> {
+  const policy = await getCompensationPolicy();
+  if (policy.compTimeExpiryYears == null) {
+    throw new Error('소멸 정책이 설정되어 있지 않습니다.');
+  }
+  if (kstYear() <= year + policy.compTimeExpiryYears) {
+    throw new Error('아직 만료되지 않은 보상시간입니다.');
+  }
+  const tenantId = await getTenantId();
+  const wallet = await prisma.timeWallet.findUnique({
+    where: { tenantId_employeeId_year_type: { tenantId, employeeId, year, type: 'COMP_TIME' } },
+  });
+  if (!wallet || wallet.totalRemain <= 0) return { expired: 0 };
+
+  const amount = wallet.totalRemain;
+  await prisma.timeWallet.update({
+    where: { id: wallet.id },
+    data: { totalRemain: 0, totalExpired: { increment: amount } },
+  });
+  await prisma.timeDeduction.create({
+    data: {
+      employeeId,
+      walletType: 'COMP_TIME',
+      hours: amount,
+      description: `보상시간 만료 소멸 (${year}년 적립분, ${amount}시간)`,
+    },
+  });
+  return { expired: amount };
 }

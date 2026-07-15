@@ -50,6 +50,7 @@ export async function PUT(request: NextRequest) {
       minUseUnit,
       deductionOrder,
       autoSplitDeduct,
+      compTimeExpiryYears,
     } = body;
 
     const current = await getCompensationPolicy();
@@ -66,6 +67,12 @@ export async function PUT(request: NextRequest) {
         ...(minUseUnit !== undefined && { minUseUnit: parseFloat(String(minUseUnit)) }),
         ...(deductionOrder !== undefined && { deductionOrder }),
         ...(autoSplitDeduct !== undefined && { autoSplitDeduct }),
+        ...(compTimeExpiryYears !== undefined && {
+          compTimeExpiryYears:
+            compTimeExpiryYears === null || compTimeExpiryYears === ''
+              ? null
+              : parseInt(String(compTimeExpiryYears)),
+        }),
       },
     });
 

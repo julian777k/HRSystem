@@ -31,6 +31,7 @@ interface Policy {
   minUseUnit: number;
   deductionOrder: string;
   autoSplitDeduct: boolean;
+  compTimeExpiryYears: number | null;
 }
 
 export default function CompensationSettingsPage() {
@@ -306,6 +307,23 @@ export default function CompensationSettingsPage() {
                   />
                   <span className="text-sm text-gray-500 shrink-0">시간</span>
                 </div>
+              </div>
+              <div>
+                <Label>보상시간 소멸 기간</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="비우면 소멸 없음"
+                    value={policy.compTimeExpiryYears ?? ''}
+                    onChange={(e) =>
+                      setPolicy({ ...policy, compTimeExpiryYears: e.target.value === '' ? null : parseInt(e.target.value) })
+                    }
+                  />
+                  <span className="text-sm text-gray-500 shrink-0">년</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">적립 연도로부터 N년 후 만료. 만료분은 관리자가 확인·정산 후 수동 소멸.</p>
               </div>
             </div>
           </CardContent>

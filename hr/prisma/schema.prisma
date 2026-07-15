@@ -577,6 +577,7 @@ model TimeWallet {
   totalEarned Float          @default(0)
   totalUsed   Float          @default(0)
   totalRemain Float          @default(0)
+  totalExpired Float         @default(0)
   updatedAt   DateTime       @updatedAt
 
   @@unique([tenantId, employeeId, year, type])
@@ -631,6 +632,7 @@ model CompensationPolicy {
   minUseUnit        Float   @default(1)
   deductionOrder    String  @default("COMP_TIME,ANNUAL")
   autoSplitDeduct   Boolean @default(true)
+  compTimeExpiryYears Int?
   isActive          Boolean @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

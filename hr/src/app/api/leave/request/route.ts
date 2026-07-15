@@ -39,6 +39,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '종료일은 시작일 이후여야 합니다.' }, { status: 400 });
     }
 
+    // 연도를 걸친 휴가는 차단한다. 연도별로 나눠 신청하면 각 연도 잔여에서 정확히 차감된다.
+    // (연도 걸침을 자동 분할하면 차감 4개 지점 + 복원 로직이 얽혀 잔여 손상 위험이 크다)
+    if (new Date(startDate).getFullYear() !== new Date(endDate).getFullYear()) {
+      return NextResponse.json(
+        { message: '연도를 걸친 휴가는 연도별로 나눠 신청해주세요. (예: 12/29~12/31 신청 후 1/2~ 별도 신청)' },
+        { status: 400 }
+      );
+    }
+
     // Validate leave type (with tenantId to prevent cross-tenant access)
     const leaveType = await prisma.leaveType.findUnique({ where: { id: leaveTypeId, tenantId } });
     if (!leaveType || !leaveType.isActive) {
@@ -125,10 +134,23 @@ export async function POST(request: NextRequest) {
     // Fetch dailyWorkHours from CompensationPolicy (default 8)
     const compPolicy = await prisma.compensationPolicy.findFirst({
       where: { isActive: true },
-      select: { dailyWorkHours: true },
+      select: { dailyWorkHours: true, minUseUnit: true },
     });
     const dailyWorkHours = compPolicy?.dailyWorkHours ?? 8;
     const requestHours = requestDays * dailyWorkHours;
+
+    // 최소 사용 단위 강제 — 신청 시간이 minUseUnit의 배수여야 한다.
+    // 기본 1시간이면 항상 배수라 기존 동작 그대로(무동작). 회사가 값을 올릴 때만 제약.
+    const minUseUnit = compPolicy?.minUseUnit ?? 1;
+    if (minUseUnit > 0) {
+      const ratio = requestHours / minUseUnit;
+      if (Math.abs(ratio - Math.round(ratio)) > 1e-6) {
+        return NextResponse.json(
+          { message: `최소 사용 단위(${minUseUnit}시간) 단위로만 신청할 수 있습니다.` },
+          { status: 400 }
+        );
+      }
+    }
 
     // Find default approval line for LEAVE
     const approvalLine = await prisma.approvalLine.findFirst({

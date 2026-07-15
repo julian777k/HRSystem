@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ALL_FEATURES } from '@/constants/features';
+import SecuritySection from './sections/SecuritySection';
+import FaqSection from './sections/FaqSection';
 
 // 공개 데모 — 가입 없이 데모 테넌트로 자동 로그인된다
 const DEMO_URL = 'https://demo.keystonehr.app/api/demo/login';
@@ -142,6 +144,16 @@ export default function LandingPage() {
 
         <div className="relative w-full flex items-center justify-center px-4 sm:px-6 py-24">
           <div className="text-center max-w-4xl">
+            {/* 긴급성 — 선착순 100개사 하드캡. 가짜 카운터 없이 조건만 정직하게 */}
+            <div className="flex justify-center mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-accent/10 border border-brand-accent/30 text-brand-accent text-xs sm:text-sm font-semibold">
+                <span className="relative flex h-2 w-2" aria-hidden="true">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-accent opacity-60" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-accent" />
+                </span>
+                선착순 100개사 한정 · 1회 구매 특별가
+              </span>
+            </div>
             <p className="text-brand-accent font-semibold text-xs sm:text-sm mb-6 sm:mb-8 tracking-[0.2em] uppercase">
               중소기업을 위한 올인원 HR
             </p>
@@ -484,8 +496,8 @@ export default function LandingPage() {
               <p className="text-sm text-gray-500">사용 보장</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">SSL</p>
-              <p className="text-sm text-gray-500">보안 인증</p>
+              <p className="text-2xl font-bold text-gray-900">암호화</p>
+              <p className="text-sm text-gray-500">전 구간 · 감사로그</p>
             </div>
           </div>
         </div>
@@ -610,6 +622,9 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* S8. 보안·데이터 신뢰 */}
+      <SecuritySection />
+
       {/* Pricing */}
       <section id="pricing" className="py-14 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -620,10 +635,22 @@ export default function LandingPage() {
             <p className="text-gray-600 max-w-2xl mx-auto">
               추가 비용 없이, 모든 기능을 하나의 플랜으로
             </p>
-            {/* TODO: 셀프 온보딩 기준 안내 문구.
-                크몽에서는 온보딩 세팅 대행이 포함된 649,000원으로 판매하므로,
-                이 문구가 두 채널의 가격 차이를 "구성 차이"로 설명하는 유일한 장치다.
-                크몽·외부 채널을 절대 언급하지 말 것 (직거래 유도로 읽힘). */}
+            <p className="text-gray-400 text-sm mt-3">
+              표시 가격은 셀프 온보딩(직접 초기 설정) 기준입니다
+            </p>
+          </div>
+
+          {/* 희소성 안내 — 하드캡 조건 명시. 100개사는 '기업 수', 플랜의 50/100명은 '직원 수'로 별개 */}
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="flex items-start gap-3 rounded-xl bg-brand-accent/10 border border-brand-accent/30 px-5 py-4">
+              <svg className="w-5 h-5 text-brand-primary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+                <span className="font-bold text-brand-primary">선착순 100개사 한정 특별가입니다.</span>{' '}
+                1회 구매 조건은 100번째 도입 기업까지만 제공되며, 이후에는 구독제로 전환됩니다.
+              </p>
+            </div>
           </div>
 
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
@@ -704,6 +731,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* S10. FAQ */}
+      <FaqSection />
 
       {/* CTA */}
       <section className="py-24 bg-brand-primary">

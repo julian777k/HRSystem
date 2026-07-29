@@ -3,6 +3,7 @@ import { basePrismaClient } from '@/lib/prisma';
 import { verifySuperAdmin, requirePasswordChanged } from '@/lib/super-admin-auth';
 import { seedTenantData } from '@/lib/tenant-seed';
 import { containsFilter } from '@/lib/db-utils';
+import { calcLicenseExpiry } from '@/lib/license';
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
     const pwBlock2 = requirePasswordChanged(admin);
     if (pwBlock2) return pwBlock2;
 
-    const { name, subdomain, plan, ownerEmail, bizNumber, maxEmployees, adminPassword, adminName, status: initialStatus, trialExpiresAt } = await request.json();
+    const { name, subdomain, plan, ownerEmail, bizNumber, maxEmployees, adminPassword, adminName, status: initialStatus, trialExpiresAt, paidAt } = await request.json();
 
     if (!name || !subdomain || !ownerEmail || !adminPassword) {
       return NextResponse.json(
@@ -156,6 +157,14 @@ export async function POST(request: NextRequest) {
       tenantData.trialExpiresAt = trialExpiresAt
         ? new Date(trialExpiresAt).toISOString()
         : new Date(Date.now() + 7 * 86400000).toISOString(); // default 7 days
+    }
+
+    // 유료 테넌트는 결제일 기준으로 이용 종료일(결제일 + 10년)을 함께 확정한다.
+    // 결제일 미지정이면 개설 시점을 결제일로 본다.
+    if (initialStatus !== 'trial') {
+      const paid = paidAt ? new Date(paidAt) : new Date();
+      tenantData.paidAt = paid.toISOString();
+      tenantData.licenseExpiresAt = calcLicenseExpiry(paid).toISOString();
     }
 
     const tenant = await (basePrismaClient.tenant as any).create({

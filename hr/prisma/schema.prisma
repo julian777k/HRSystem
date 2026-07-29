@@ -22,6 +22,11 @@ model Tenant {
   status          String    @default("active")
   trialExpiresAt  DateTime?
   paidAt          DateTime?
+  licenseExpiresAt  DateTime?
+  licenseNotifiedAt DateTime?
+  billingMode           String    @default("onetime")
+  subscriptionStartedAt DateTime?
+  subscriptionFee       Int?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   @@index([subdomain])
@@ -268,6 +273,7 @@ model LeaveGrant {
   isExpired     Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  @@unique([tenantId, employeeId, leaveTypeCode, periodStart, periodEnd])
   @@index([tenantId])
   @@index([employeeId])
   @@index([periodEnd])

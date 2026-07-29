@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { basePrismaClient } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { calculateAnnualLeave, getYearsWorked } from '@/lib/leave-calculator';
-import { initAnnualWallet, getCompensationPolicy } from '@/lib/time-wallet';
+import { getCompensationPolicy } from '@/lib/time-wallet';
 import { getTenantId } from '@/lib/tenant-context';
+import { updateStmt, type BatchStatement } from '@/lib/d1-client';
 
 /** 기본 휴가 정책이 없는 기존 테넌트를 위한 자동 시드 */
 async function seedDefaultPolicies(tenantId: string) {
@@ -112,6 +113,25 @@ export async function POST(request: NextRequest) {
       grantMap.set(`${g.employeeId}:${g.leaveTypeCode}`, g);
     }
 
+    // [배치화] 직원 수에 비례해 쿼리가 늘면 Workers subrequest 한도에 걸린다.
+    // 조회는 위에서 전부 batch로 끝냈고, 여기서는 메모리에서 계산만 한 뒤
+    // 확정된 쓰기만 모아 청크 단위로 실행한다.
+    const existingBalances = await prisma.leaveBalance.findMany({
+      where: { employeeId: { in: employees.map((e) => e.id) }, year },
+    });
+    const balanceKeys = new Set(existingBalances.map((b) => `${b.employeeId}:${b.leaveTypeCode}`));
+
+    const existingWallets = await prisma.timeWallet.findMany({
+      where: { employeeId: { in: employees.map((e) => e.id) }, year, type: 'ANNUAL' },
+    });
+    const walletMap = new Map(existingWallets.map((w) => [w.employeeId, w]));
+
+    type NewGrant = { employeeId: string; leaveTypeCode: string; grantDays: number; remainDays: number; grantReason: string; periodStart: Date; periodEnd: Date };
+    const newGrants: NewGrant[] = [];
+    const newBalances: Array<Record<string, unknown>> = [];
+    const newWallets: Array<Record<string, unknown>> = [];
+    const updates: BatchStatement[] = [];
+
     let totalGranted = 0;
     let totalSkipped = 0;
     let totalSupplemented = 0;
@@ -122,183 +142,152 @@ export async function POST(request: NextRequest) {
       const yearsWorked = getYearsWorked(emp.hireDate, referenceDate);
 
       for (const [typeCode, typePolicies] of policyByType) {
-        try {
-          // [STEP 1] 정책 기반 부여일수 계산 (중복 체크 이전에 수행)
-          const matchingPolicies = typePolicies.filter(
-            (p) => yearsWorked >= p.yearFrom && (p.yearTo === null || yearsWorked < p.yearTo)
+        // [STEP 1] 정책 기반 부여일수 계산
+        const matchingPolicies = typePolicies.filter(
+          (p) => yearsWorked >= p.yearFrom && (p.yearTo === null || yearsWorked < p.yearTo)
+        );
+
+        if (matchingPolicies.length === 0) {
+          totalSkipped++;
+          continue;
+        }
+
+        let grantDays = Math.max(...matchingPolicies.map((p) => p.grantDays));
+
+        // ANNUAL 타입: 근로기준법 법정 최소일수 보장
+        if (typeCode === 'ANNUAL') {
+          const legalDays = calculateAnnualLeave(emp.hireDate, periodEnd);
+          grantDays = Math.max(grantDays, legalDays);
+        }
+
+        if (grantDays <= 0) {
+          totalSkipped++;
+          continue;
+        }
+
+        const leaveTypeName = typePolicies[0].leaveType.name;
+        const existingGrant = grantMap.get(`${emp.id}:${typeCode}`) || null;
+        const hasBalance = balanceKeys.has(`${emp.id}:${typeCode}`);
+
+        if (existingGrant) {
+          if (existingGrant.grantDays >= grantDays) {
+            totalSkipped++;
+            continue;
+          }
+
+          // [STEP 2] 부족분 보충 — 차액만큼만 증분
+          const diff = grantDays - existingGrant.grantDays;
+          updates.push(
+            updateStmt('leaveGrant', { id: existingGrant.id }, {
+              grantDays,
+              remainDays: { increment: diff },
+            })
           );
-
-          if (matchingPolicies.length === 0) {
-            totalSkipped++;
-            continue;
-          }
-
-          let grantDays = Math.max(...matchingPolicies.map((p) => p.grantDays));
-
-          // ANNUAL 타입: 근로기준법 법정 최소일수 보장
-          if (typeCode === 'ANNUAL') {
-            const legalDays = calculateAnnualLeave(emp.hireDate, periodEnd);
-            grantDays = Math.max(grantDays, legalDays);
-          }
-
-          if (grantDays <= 0) {
-            totalSkipped++;
-            continue;
-          }
-
-          const leaveTypeName = typePolicies[0].leaveType.name;
-
-          // [STEP 2] 기존 부여 확인 — 부족분 보충 지원 (batch에서 조회, N+1 해소)
-          const existingGrant = grantMap.get(`${emp.id}:${typeCode}`) || null;
-
-          if (existingGrant) {
-            if (existingGrant.grantDays >= grantDays) {
-              // 이미 충분히 부여됨 → 스킵
-              totalSkipped++;
-              continue;
-            }
-
-            // [FIX] 부족분 보충: 기존 부여가 계산값보다 적으면 차액만큼 보충
-            const diff = grantDays - existingGrant.grantDays;
-
-            await prisma.$transaction(async (tx) => {
-              // 기존 grant 업데이트
-              await tx.leaveGrant.update({
-                where: { id: existingGrant.id },
-                data: {
-                  grantDays,
-                  remainDays: { increment: diff },
-                },
-              });
-
-              // balance 보충
-              await tx.leaveBalance.upsert({
-                where: {
-                  tenantId_employeeId_year_leaveTypeCode: {
-                    tenantId,
-                    employeeId: emp.id,
-                    year,
-                    leaveTypeCode: typeCode,
-                  },
-                },
-                create: {
-                  employeeId: emp.id,
-                  year,
-                  leaveTypeCode: typeCode,
-                  totalGranted: grantDays,
-                  totalUsed: 0,
-                  totalRemain: grantDays,
-                },
-                update: {
-                  totalGranted: { increment: diff },
-                  totalRemain: { increment: diff },
-                },
-              });
+          if (hasBalance) {
+            updates.push(
+              updateStmt('leaveBalance', { tenantId, employeeId: emp.id, year, leaveTypeCode: typeCode }, {
+                totalGranted: { increment: diff },
+                totalRemain: { increment: diff },
+              })
+            );
+          } else {
+            newBalances.push({
+              employeeId: emp.id, year, leaveTypeCode: typeCode,
+              totalGranted: grantDays, totalUsed: 0, totalRemain: grantDays,
             });
-
-            if (typeCode === 'ANNUAL') {
-              await initAnnualWallet(emp.id, year, grantDays * compensationPolicy.dailyWorkHours);
-            }
-
-            totalSupplemented++;
-            grantedByType[typeCode] = (grantedByType[typeCode] || 0) + 1;
-            continue;
+            balanceKeys.add(`${emp.id}:${typeCode}`);
           }
-
-          // [STEP 3] 신규 부여 — 트랜잭션으로 grant + balance 원자적 처리
-          await prisma.$transaction(async (tx) => {
-            // 트랜잭션 내 이중 체크 (동시 요청 방어)
-            const doubleCheck = await tx.leaveGrant.findFirst({
-              where: {
-                employeeId: emp.id,
-                leaveTypeCode: typeCode,
-                periodStart,
-                periodEnd,
-                grantReason: { startsWith: `${year}년`, endsWith: '자동부여' },
-              },
-            });
-            if (doubleCheck) {
-              if (doubleCheck.grantDays >= grantDays) {
-                throw new Error('SKIP_DUPLICATE');
-              }
-              // 동시 요청으로 부족하게 생성된 경우 보충
-              const diff = grantDays - doubleCheck.grantDays;
-              await tx.leaveGrant.update({
-                where: { id: doubleCheck.id },
-                data: { grantDays, remainDays: { increment: diff } },
-              });
-              await tx.leaveBalance.upsert({
-                where: {
-                  tenantId_employeeId_year_leaveTypeCode: {
-                    tenantId, employeeId: emp.id, year, leaveTypeCode: typeCode,
-                  },
-                },
-                create: {
-                  employeeId: emp.id, year, leaveTypeCode: typeCode,
-                  totalGranted: grantDays, totalUsed: 0, totalRemain: grantDays,
-                },
-                update: {
-                  totalGranted: { increment: diff },
-                  totalRemain: { increment: diff },
-                },
-              });
-              return;
-            }
-
-            // Grant 생성
-            await tx.leaveGrant.create({
-              data: {
-                employeeId: emp.id,
-                leaveTypeCode: typeCode,
-                grantDays,
-                remainDays: grantDays,
-                grantReason: `${year}년 ${leaveTypeName} 자동부여`,
-                periodStart,
-                periodEnd,
-              },
-            });
-
-            // Balance upsert
-            await tx.leaveBalance.upsert({
-              where: {
-                tenantId_employeeId_year_leaveTypeCode: {
-                  tenantId,
-                  employeeId: emp.id,
-                  year,
-                  leaveTypeCode: typeCode,
-                },
-              },
-              create: {
-                employeeId: emp.id,
-                year,
-                leaveTypeCode: typeCode,
-                totalGranted: grantDays,
-                totalUsed: 0,
-                totalRemain: grantDays,
-              },
-              update: {
+          totalSupplemented++;
+        } else {
+          // [STEP 3] 신규 부여
+          // 중복은 leave_grants의 유니크 인덱스(0005)가 DB 레벨에서 막는다.
+          newGrants.push({
+            employeeId: emp.id,
+            leaveTypeCode: typeCode,
+            grantDays,
+            remainDays: grantDays,
+            grantReason: `${year}년 ${leaveTypeName} 자동부여`,
+            periodStart,
+            periodEnd,
+          });
+          if (hasBalance) {
+            updates.push(
+              updateStmt('leaveBalance', { tenantId, employeeId: emp.id, year, leaveTypeCode: typeCode }, {
                 totalGranted: { increment: grantDays },
                 totalRemain: { increment: grantDays },
-              },
+              })
+            );
+          } else {
+            newBalances.push({
+              employeeId: emp.id, year, leaveTypeCode: typeCode,
+              totalGranted: grantDays, totalUsed: 0, totalRemain: grantDays,
             });
-          });
-
-          // ANNUAL에만 TimeWallet 초기화
-          if (typeCode === 'ANNUAL') {
-            await initAnnualWallet(emp.id, year, grantDays * compensationPolicy.dailyWorkHours);
+            balanceKeys.add(`${emp.id}:${typeCode}`);
           }
-
           totalGranted++;
-          grantedByType[typeCode] = (grantedByType[typeCode] || 0) + 1;
-        } catch (err) {
-          if (err instanceof Error && err.message === 'SKIP_DUPLICATE') {
-            totalSkipped++;
-            continue;
-          }
-          errors.push(`${emp.name}(${emp.employeeNumber}) ${typeCode}: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
         }
+
+        // ANNUAL은 TimeWallet 동기화 — 이미 쓴 시간은 보존해야 한다.
+        if (typeCode === 'ANNUAL') {
+          const totalHours = grantDays * compensationPolicy.dailyWorkHours;
+          const wallet = walletMap.get(emp.id);
+          if (!wallet) {
+            newWallets.push({
+              employeeId: emp.id, year, type: 'ANNUAL',
+              totalEarned: totalHours, totalRemain: totalHours,
+            });
+            walletMap.set(emp.id, { employeeId: emp.id, totalEarned: totalHours, totalRemain: totalHours } as never);
+          } else {
+            const used = wallet.totalEarned - wallet.totalRemain;
+            updates.push(
+              updateStmt('timeWallet', { tenantId, employeeId: emp.id, year, type: 'ANNUAL' }, {
+                totalEarned: totalHours,
+                totalRemain: Math.max(0, totalHours - used),
+              })
+            );
+          }
+        }
+
+        grantedByType[typeCode] = (grantedByType[typeCode] || 0) + 1;
       }
     }
+
+    // [쓰기] 청크 단위 원자성 — 청크 하나가 실패해도 나머지는 진행하고 실패분만 보고한다.
+    // 자동부여는 재실행해도 안전(이미 있으면 스킵·보충)하므로 실패분만 다시 돌리면 복구된다.
+    const CHUNK = 50;
+
+    const runUpdates = async () => {
+      for (let i = 0; i < updates.length; i += CHUNK) {
+        const chunk = updates.slice(i, i + CHUNK);
+        try {
+          await (prisma as any).$batch(chunk);
+        } catch (err) {
+          errors.push(`갱신 ${i + 1}~${i + chunk.length}건 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+        }
+      }
+    };
+
+    const runCreates = async (
+      model: 'leaveGrant' | 'leaveBalance' | 'timeWallet',
+      rows: Array<Record<string, unknown>>,
+      label: string
+    ) => {
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const chunk = rows.slice(i, i + CHUNK);
+        try {
+          await (prisma as any)[model].createMany({ data: chunk });
+        } catch (err) {
+          errors.push(`${label} ${i + 1}~${i + chunk.length}건 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+        }
+      }
+    };
+
+    // grant → balance → wallet 순서. 부여 기록이 먼저 남아야 중간 실패 시에도
+    // 재실행에서 "이미 부여됨"으로 인식돼 이중 부여를 만들지 않는다.
+    await runCreates('leaveGrant', newGrants as unknown as Array<Record<string, unknown>>, '휴가 부여');
+    await runCreates('leaveBalance', newBalances, '잔여일수 생성');
+    await runCreates('timeWallet', newWallets, '연차 지갑 생성');
+    await runUpdates();
 
     // 유형별 결과 메시지 생성
     const typeDetails = Object.entries(grantedByType)

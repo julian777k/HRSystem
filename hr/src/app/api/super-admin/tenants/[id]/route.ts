@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { basePrismaClient } from '@/lib/prisma';
 import { verifySuperAdmin, requirePasswordChanged } from '@/lib/super-admin-auth';
+import { calcLicenseExpiry, getLicenseInfo } from '@/lib/license';
 
 export async function GET(
   request: NextRequest,
@@ -38,6 +39,7 @@ export async function GET(
         ...tenant,
         employeeCount,
         totalEmployeeCount,
+        license: getLicenseInfo(tenant as never),
       },
     });
   } catch (error) {
@@ -63,7 +65,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, maxEmployees, status, trialExpiresAt } = body;
+    const { name, maxEmployees, status, trialExpiresAt, paidAt, licenseExpiresAt, licenseNotified } = body;
 
     const existing = await basePrismaClient.tenant.findUnique({
       where: { id },
@@ -89,6 +91,23 @@ export async function PUT(
     // Clear trialExpiresAt when switching away from trial
     if (status && status !== 'trial') {
       updateData.trialExpiresAt = null;
+    }
+
+    // 결제일을 바꾸면 이용 종료일(결제일 + 10년)도 함께 옮긴다.
+    // 단, 종료일을 명시로 준 경우엔 그 값을 우선한다(연장·예외 처리용).
+    if (paidAt !== undefined) {
+      const paid = paidAt ? new Date(paidAt) : null;
+      updateData.paidAt = paid ? paid.toISOString() : null;
+      if (paid && licenseExpiresAt === undefined) {
+        updateData.licenseExpiresAt = calcLicenseExpiry(paid).toISOString();
+      }
+    }
+    if (licenseExpiresAt !== undefined) {
+      updateData.licenseExpiresAt = licenseExpiresAt ? new Date(licenseExpiresAt).toISOString() : null;
+    }
+    // 구독 전환 조건 고지 이행 기록 (약관 제13조 4항)
+    if (licenseNotified !== undefined) {
+      updateData.licenseNotifiedAt = licenseNotified ? new Date().toISOString() : null;
     }
 
     const tenant = await basePrismaClient.tenant.update({

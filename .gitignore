@@ -10,3 +10,5 @@
 !.claude/hooks/
 !.claude/hooks/**
 backup-*.sql
+backup*.sql
+*.d1-export.sql

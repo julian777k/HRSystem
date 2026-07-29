@@ -371,6 +371,14 @@ export function buildWhere(where: Record<string, unknown> | undefined, params: u
           // Empty IN always matches nothing
           conditions.push('0=1');
         } else {
+          // D1 파라미터 한도(100)를 넘길 위험이 있으면 원인을 알 수 있게 경고한다.
+          // 조건 조립 특성상 여기서 나눌 수 없으므로, 호출부에서 findInChunks로 나눠야 한다.
+          if (ops.in.length > 80) {
+            console.warn(
+              `[D1Client] "${key}" IN (${ops.in.length}건) — D1 파라미터 한도(100)에 근접합니다. ` +
+              `호출부에서 findInChunks로 나눠 조회하세요.`
+            );
+          }
           const placeholders = ops.in.map(() => '?').join(', ');
           params.push(...ops.in.map(toSqlValue));
           conditions.push(`"${key}" IN (${placeholders})`);
@@ -619,6 +627,21 @@ export function buildSetClause(data: Record<string, unknown>): SetResult {
   return { sql: parts.join(', '), params };
 }
 
+// ─── D1 바인딩 파라미터 한도 대응 ───
+// D1은 쿼리당 바인딩 파라미터를 100개로 제한한다.
+// IN 절에 넣는 값이 이 한도에 가까우면 tenantId·nestedWhere 같은 추가 조건이 붙는 순간
+// "too many SQL variables"로 쿼리 전체가 실패하므로, 여유를 둔 크기로 나눈다.
+const PARAM_CHUNK_SIZE = 50;
+
+function chunkParams<T>(items: T[], size: number = PARAM_CHUNK_SIZE): T[][] {
+  if (items.length <= size) return items.length === 0 ? [] : [items];
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(items.slice(i, i + size));
+  }
+  return out;
+}
+
 // ─── Relation resolver (include/select) ───
 
 async function resolveRelations(
@@ -660,12 +683,10 @@ async function resolveRelations(
         }
 
         // Batch count query: use IN clause with GROUP BY to get all counts at once
-        // Split into chunks of 100 to avoid overly large IN clauses
-        const CHUNK_SIZE = 100;
+        // D1 파라미터 한도(100)에 tenantId 등이 더해지면 넘치므로 여유를 둔 크기로 나눈다.
         const countMap = new Map<string, number>();
 
-        for (let i = 0; i < parentIds.length; i += CHUNK_SIZE) {
-          const chunk = parentIds.slice(i, i + CHUNK_SIZE);
+        for (const chunk of chunkParams(parentIds)) {
           const placeholders = chunk.map(() => '?').join(', ');
           let countSql = `SELECT "${countRelMeta.foreignKey}" as fk, COUNT(*) as cnt FROM "${countRelMeta.targetTable}" WHERE "${countRelMeta.foreignKey}" IN (${placeholders})`;
           const countParams: unknown[] = [...chunk];
@@ -727,29 +748,35 @@ async function resolveRelations(
         continue;
       }
 
-      const placeholders = fkValues.map(() => '?').join(', ');
       const cols = nestedSelect ? buildSelectColumns({ id: true, ...nestedSelect }) : '*';
-      let sql = `SELECT ${cols} FROM "${relMeta.targetTable}" WHERE "id" IN (${placeholders})`;
-      const bindParams: unknown[] = [...fkValues];
 
-      if (nestedWhere) {
-        const nwParams: unknown[] = [];
-        const nw = buildWhere(nestedWhere, nwParams);
-        if (nw.sql) {
-          sql = `SELECT ${cols} FROM "${relMeta.targetTable}" WHERE "id" IN (${placeholders}) AND ${nw.sql}`;
-          bindParams.push(...nwParams);
+      // D1은 쿼리당 바인딩 파라미터가 100개로 제한된다.
+      // 부모 행이 100건을 넘으면 IN 절이 한도를 넘겨 조회 자체가 실패하므로 나눠 조회한다.
+      const rawRelated: Record<string, unknown>[] = [];
+      for (const fkChunk of chunkParams(fkValues)) {
+        const placeholders = fkChunk.map(() => '?').join(', ');
+        let sql = `SELECT ${cols} FROM "${relMeta.targetTable}" WHERE "id" IN (${placeholders})`;
+        const bindParams: unknown[] = [...fkChunk];
+
+        if (nestedWhere) {
+          const nwParams: unknown[] = [];
+          const nw = buildWhere(nestedWhere, nwParams);
+          if (nw.sql) {
+            sql = `SELECT ${cols} FROM "${relMeta.targetTable}" WHERE "id" IN (${placeholders}) AND ${nw.sql}`;
+            bindParams.push(...nwParams);
+          }
         }
-      }
 
-      // Tenant scoping for relation subqueries
-      if (tenantId && !GLOBAL_TABLES.has(relMeta.targetTable)) {
-        sql += ` AND "tenantId" = ?`;
-        bindParams.push(tenantId);
-      }
+        // Tenant scoping for relation subqueries
+        if (tenantId && !GLOBAL_TABLES.has(relMeta.targetTable)) {
+          sql += ` AND "tenantId" = ?`;
+          bindParams.push(tenantId);
+        }
 
-      const stmt = db.prepare(sql);
-      const result = await stmt.bind(...bindParams).all();
-      let relatedRows = (result.results || []).map(r => fromSqlRow(r as Record<string, unknown>));
+        const result = await db.prepare(sql).bind(...bindParams).all();
+        rawRelated.push(...((result.results || []) as Record<string, unknown>[]));
+      }
+      let relatedRows = rawRelated.map(r => fromSqlRow(r));
 
       // Resolve nested includes (including relation selects extracted above)
       if (nestedInclude) {
@@ -764,34 +791,39 @@ async function resolveRelations(
       const parentIds = rows.map(r => r.id as string).filter(Boolean);
       if (parentIds.length === 0) continue;
 
-      const placeholders = parentIds.map(() => '?').join(', ');
       // Ensure FK column is always included for proper grouping
       const cols = nestedSelect ? buildSelectColumns({ [relMeta.foreignKey]: true, id: true, ...nestedSelect }) : '*';
-      const bindParams: unknown[] = [...parentIds];
-      let sql = `SELECT ${cols} FROM "${relMeta.targetTable}" WHERE "${relMeta.foreignKey}" IN (${placeholders})`;
 
-      // Tenant scoping for relation subqueries
-      if (tenantId && !GLOBAL_TABLES.has(relMeta.targetTable)) {
-        sql += ` AND "tenantId" = ?`;
-        bindParams.push(tenantId);
-      }
+      // D1 파라미터 한도(100) — 부모가 100건을 넘으면 IN 절을 나눠 조회한다.
+      const rawChildren: Record<string, unknown>[] = [];
+      for (const idChunk of chunkParams(parentIds)) {
+        const placeholders = idChunk.map(() => '?').join(', ');
+        const bindParams: unknown[] = [...idChunk];
+        let sql = `SELECT ${cols} FROM "${relMeta.targetTable}" WHERE "${relMeta.foreignKey}" IN (${placeholders})`;
 
-      // Apply nested where filter to hasMany children
-      if (nestedWhere) {
-        const nw = buildWhere(nestedWhere, bindParams);
-        if (nw.sql) {
-          sql += ` AND ${nw.sql}`;
+        // Tenant scoping for relation subqueries
+        if (tenantId && !GLOBAL_TABLES.has(relMeta.targetTable)) {
+          sql += ` AND "tenantId" = ?`;
+          bindParams.push(tenantId);
         }
-      }
 
-      // Apply nested orderBy to hasMany children
-      if (nestedOrderBy) {
-        sql += buildOrderBy(nestedOrderBy, relMeta.targetModel);
-      }
+        // Apply nested where filter to hasMany children
+        if (nestedWhere) {
+          const nw = buildWhere(nestedWhere, bindParams);
+          if (nw.sql) {
+            sql += ` AND ${nw.sql}`;
+          }
+        }
 
-      const stmt = db.prepare(sql);
-      const result = await stmt.bind(...bindParams).all();
-      let relatedRows = (result.results || []).map(r => fromSqlRow(r as Record<string, unknown>));
+        // Apply nested orderBy to hasMany children
+        if (nestedOrderBy) {
+          sql += buildOrderBy(nestedOrderBy, relMeta.targetModel);
+        }
+
+        const result = await db.prepare(sql).bind(...bindParams).all();
+        rawChildren.push(...((result.results || []) as Record<string, unknown>[]));
+      }
+      let relatedRows = rawChildren.map(r => fromSqlRow(r));
 
       // Resolve nested includes (including relation selects extracted above)
       if (nestedInclude) {

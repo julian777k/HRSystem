@@ -44,10 +44,17 @@ export default function TermsPage() {
           <li>직원 정보 관리 (인사 기본 정보, 조직 구조)</li>
           <li>근태 관리 (출퇴근 기록, 근무 시간 관리)</li>
           <li>연차 및 휴가 관리</li>
-          <li>급여 관리</li>
+          <li>전자결재 (휴가·복지 신청에 대한 승인 워크플로)</li>
+          <li>복지 관리 (복지 항목 설정, 신청 및 사용 내역 관리)</li>
+          <li>연장근무 및 보상휴가 관리</li>
           <li>조직도 및 부서 관리</li>
+          <li>근태·휴가·결재 현황 대시보드 및 데이터 내보내기</li>
+          <li>외부 메신저 알림 연동</li>
           <li>기타 회사가 추가 개발하여 제공하는 인사관리 관련 기능</li>
         </ul>
+        <p className="text-gray-700 leading-relaxed mt-3">
+          급여 계산 및 급여 이체 기능은 서비스 제공 범위에 포함되지 않습니다.
+        </p>
       </section>
 
       <section className="mb-8">
@@ -124,7 +131,36 @@ export default function TermsPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-3">제12조 (계약 해지 및 환불)</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">제12조 (이용 기간)</h2>
+        <ul className="list-decimal list-inside space-y-2 text-gray-700">
+          <li>본 서비스는 1회 구매 모델로 제공되며, 1회 구매한 이용권의 이용 기간은 <strong>결제일로부터 10년</strong>입니다.</li>
+          <li>이용 기간 중에는 월 구독료, 서버 이용료, 이용 인원수에 따른 추가 과금이 발생하지 않습니다.</li>
+          <li>이용 기간 중 회사가 제공하는 기능 개선 및 보안 업데이트는 추가 비용 없이 적용됩니다.</li>
+          <li>회사는 서비스 운영상 필요에 따라 개별 기능을 변경하거나 대체할 수 있으며, 이 경우 제10조를 따릅니다. 다만 회사는 이용 기간 중 서비스의 핵심 기능이 유지되도록 합니다.</li>
+        </ul>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">제13조 (구독 모델로의 전환)</h2>
+        <ul className="list-decimal list-inside space-y-2 text-gray-700">
+          <li>회사는 향후 서비스의 판매 방식을 월 구독 모델로 전환할 수 있습니다.</li>
+          <li>전환 이전에 1회 구매한 이용자는 <strong>전환 여부와 관계없이 결제일로부터 10년간 구매 당시의 조건을 그대로 유지</strong>합니다. 회사는 해당 기간 중 이용자에게 구독료를 청구하지 않습니다.</li>
+          <li>이용 기간이 만료된 이후에는 만료 시점의 구독 조건에 따라 서비스를 계속 이용할 수 있습니다.</li>
+          <li>회사는 이용 기간 만료 <strong>6개월 전까지</strong> 전환 조건(요금 및 이용 범위를 포함합니다)을 이용자에게 고지합니다.</li>
+          <li>이용자가 구독 전환에 동의하지 않는 경우 서비스 이용은 이용 기간 만료일에 종료되며, 이 경우 제15조 제3항에 따라 데이터 반출 기간이 부여됩니다.</li>
+        </ul>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">제14조 (데이터의 반출)</h2>
+        <ul className="list-decimal list-inside space-y-2 text-gray-700">
+          <li>이용자는 이용 기간 중 언제든지 서비스 내 기능을 통해 보유 데이터를 CSV 형식으로 내보낼 수 있습니다.</li>
+          <li>회사는 이용자의 데이터 반출을 제한하거나 이를 조건으로 추가 비용을 요구하지 않습니다.</li>
+        </ul>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">제15조 (계약 해지 및 환불)</h2>
         <ul className="list-decimal list-inside space-y-2 text-gray-700">
           <li>이용자는 언제든지 서비스 내 설정 또는 고객 지원을 통해 이용 계약의 해지를 신청할 수 있으며, 회사는 관련 법령에 따라 즉시 처리합니다.</li>
           <li>본 서비스는 1회 구매 모델로 제공되며, 구매 후 환불 정책은 다음과 같습니다:
@@ -133,13 +169,14 @@ export default function TermsPage() {
               <li>구매 후 7일 이내 서비스를 이용한 경우: 환불 불가</li>
               <li>구매 후 7일 경과: 환불 불가</li>
             </ul>
+            다만 외부 판매 채널을 통해 구매한 경우에는 해당 채널의 환불 정책이 우선하여 적용됩니다.
           </li>
-          <li>계약 해지 시 이용자의 데이터는 관련 법령에 따라 일정 기간 보관 후 파기됩니다.</li>
+          <li>이용 계약이 해지되거나 이용 기간이 만료된 경우, 회사는 데이터 파기 전 30일 이상의 데이터 반출 기간을 부여합니다. 해당 기간 경과 후 이용자의 데이터는 관련 법령에 따라 일정 기간 보관된 후 파기됩니다.</li>
         </ul>
       </section>
 
       <section className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-3">제13조 (분쟁 해결)</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">제16조 (분쟁 해결)</h2>
         <ul className="list-decimal list-inside space-y-2 text-gray-700">
           <li>본 약관과 서비스 이용에 관한 분쟁은 대한민국 법률을 준거법으로 합니다.</li>
           <li>서비스 이용과 관련하여 회사와 이용자 간에 발생한 분쟁에 대하여는 민사소송법상의 관할 법원에 소를 제기합니다.</li>
@@ -148,9 +185,12 @@ export default function TermsPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-3">제14조 (시행일)</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">제17조 (시행일)</h2>
         <p className="text-gray-700 leading-relaxed">
-          본 약관은 2026년 3월 11일부터 시행합니다.
+          본 약관은 2026년 7월 29일부터 시행합니다.
+        </p>
+        <p className="text-gray-500 text-sm mt-2">
+          (2026년 3월 11일 제정 / 2026년 7월 29일 개정 — 이용 기간·구독 전환·데이터 반출 조항 신설)
         </p>
       </section>
     </main>

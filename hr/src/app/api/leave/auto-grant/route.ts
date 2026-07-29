@@ -99,15 +99,37 @@ export async function POST(request: NextRequest) {
     // [FIX] getCompensationPolicy를 루프 밖에서 1회만 호출 (N+1 해소)
     const compensationPolicy = await getCompensationPolicy();
 
+    // D1은 쿼리당 바인딩 파라미터가 100개로 제한된다.
+    // employeeId IN (...)에 전 직원을 넣으면 100명 규모에서 한도를 넘겨 쿼리가 실패하므로
+    // ID 목록을 나눠 조회하고 결과를 합친다. (50개씩 = 다른 조건까지 합쳐도 여유)
+    const ID_CHUNK = 50;
+    const employeeIds = employees.map((e) => e.id);
+    const idChunks: string[][] = [];
+    for (let i = 0; i < employeeIds.length; i += ID_CHUNK) {
+      idChunks.push(employeeIds.slice(i, i + ID_CHUNK));
+    }
+
+    async function findByEmployeeChunks<T>(
+      run: (ids: string[]) => Promise<T[]>
+    ): Promise<T[]> {
+      const out: T[] = [];
+      for (const ids of idChunks) {
+        out.push(...(await run(ids)));
+      }
+      return out;
+    }
+
     // Batch load all existing grants for the year (N+1 해소)
-    const allExistingGrants = await prisma.leaveGrant.findMany({
-      where: {
-        employeeId: { in: employees.map(e => e.id) },
-        periodStart,
-        periodEnd,
-        grantReason: { endsWith: '자동부여' },
-      },
-    });
+    const allExistingGrants = await findByEmployeeChunks((ids) =>
+      prisma.leaveGrant.findMany({
+        where: {
+          employeeId: { in: ids },
+          periodStart,
+          periodEnd,
+          grantReason: { endsWith: '자동부여' },
+        },
+      })
+    );
     const grantMap = new Map<string, typeof allExistingGrants[0]>();
     for (const g of allExistingGrants) {
       grantMap.set(`${g.employeeId}:${g.leaveTypeCode}`, g);
@@ -116,14 +138,14 @@ export async function POST(request: NextRequest) {
     // [배치화] 직원 수에 비례해 쿼리가 늘면 Workers subrequest 한도에 걸린다.
     // 조회는 위에서 전부 batch로 끝냈고, 여기서는 메모리에서 계산만 한 뒤
     // 확정된 쓰기만 모아 청크 단위로 실행한다.
-    const existingBalances = await prisma.leaveBalance.findMany({
-      where: { employeeId: { in: employees.map((e) => e.id) }, year },
-    });
+    const existingBalances = await findByEmployeeChunks((ids) =>
+      prisma.leaveBalance.findMany({ where: { employeeId: { in: ids }, year } })
+    );
     const balanceKeys = new Set(existingBalances.map((b) => `${b.employeeId}:${b.leaveTypeCode}`));
 
-    const existingWallets = await prisma.timeWallet.findMany({
-      where: { employeeId: { in: employees.map((e) => e.id) }, year, type: 'ANNUAL' },
-    });
+    const existingWallets = await findByEmployeeChunks((ids) =>
+      prisma.timeWallet.findMany({ where: { employeeId: { in: ids }, year, type: 'ANNUAL' } })
+    );
     const walletMap = new Map(existingWallets.map((w) => [w.employeeId, w]));
 
     type NewGrant = { employeeId: string; leaveTypeCode: string; grantDays: number; remainDays: number; grantReason: string; periodStart: Date; periodEnd: Date };

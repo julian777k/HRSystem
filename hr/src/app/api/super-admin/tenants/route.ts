@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    // D1 파라미터 한도(100) — 아래 groupBy가 tenantId IN (조회 결과)를 쓰므로 상한을 건다.
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 50);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const plan = searchParams.get('plan') || '';

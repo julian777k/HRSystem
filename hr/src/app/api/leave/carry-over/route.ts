@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { getTenantId } from '@/lib/tenant-context';
+import { findInChunks } from '@/lib/db-utils';
+import { updateStmt, type BatchStatement } from '@/lib/d1-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,102 +64,121 @@ export async function POST(request: NextRequest) {
     });
 
     // Batch load existing carry-overs (N+1 해소)
-    const existingCarryOvers = await prisma.leaveGrant.findMany({
-      where: {
-        employeeId: { in: balances.map(b => b.employeeId) },
-        leaveTypeCode: 'ANNUAL',
-        grantReason: { contains: `${fromYear}년 이월` },
-        periodStart: { gte: new Date(toYear, 0, 1) },
-      },
-    });
+    // D1 파라미터 한도(100) 때문에 ID 목록은 나눠 조회한다.
+    const balanceEmployeeIds = balances.map((b) => b.employeeId);
+    const existingCarryOvers = await findInChunks(balanceEmployeeIds, (ids) =>
+      prisma.leaveGrant.findMany({
+        where: {
+          employeeId: { in: ids },
+          leaveTypeCode: 'ANNUAL',
+          grantReason: { contains: `${fromYear}년 이월` },
+          periodStart: { gte: new Date(toYear, 0, 1) },
+        },
+      })
+    );
     const carryOverSet = new Set(existingCarryOvers.map(g => g.employeeId));
+
+    // 이월 대상의 기존 잔여일수도 미리 모아둔다 (upsert 판정용)
+    const existingToYearBalances = await findInChunks(balanceEmployeeIds, (ids) =>
+      prisma.leaveBalance.findMany({
+        where: { employeeId: { in: ids }, year: toYear, leaveTypeCode: 'ANNUAL' },
+      })
+    );
+    const toYearBalanceSet = new Set(existingToYearBalances.map((b) => b.employeeId));
 
     let carryOverCount = 0;
     let skippedCount = 0;
     const errors: string[] = [];
 
+    // [배치화] 직원마다 트랜잭션을 돌리면 100명 규모에서 subrequest 한도에 걸린다.
+    // 판정은 메모리에서 끝내고, 확정된 쓰기만 모아 청크로 실행한다.
+    const newGrants: Array<Record<string, unknown>> = [];
+    const newBalances: Array<Record<string, unknown>> = [];
+    const balanceUpdates: BatchStatement[] = [];
+
+    const periodStart = new Date(toYear, 0, 1);
+    const periodEnd = new Date(toYear, expiryMonths - 1, 28); // End of expiry month
+    // Adjust to actual last day of month
+    periodEnd.setDate(new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, 0).getDate());
+
     for (const balance of balances) {
-      try {
-        // Check if already carried over (batch에서 조회, N+1 해소)
-        if (carryOverSet.has(balance.employeeId)) {
-          skippedCount++;
-          continue;
-        }
+      // Check if already carried over (batch에서 조회, N+1 해소)
+      if (carryOverSet.has(balance.employeeId)) {
+        skippedCount++;
+        continue;
+      }
 
-        // Calculate carry-over days (min of remaining and max allowed)
-        const carryDays = Math.min(balance.totalRemain, maxDays);
+      // Calculate carry-over days (min of remaining and max allowed)
+      const carryDays = Math.min(balance.totalRemain, maxDays);
 
-        if (carryDays <= 0) {
-          skippedCount++;
-          continue;
-        }
+      if (carryDays <= 0) {
+        skippedCount++;
+        continue;
+      }
 
-        // Calculate expiry date
-        const periodStart = new Date(toYear, 0, 1);
-        const periodEnd = new Date(toYear, expiryMonths - 1, 28); // End of expiry month
-        // Adjust to actual last day of month
-        periodEnd.setDate(new Date(periodEnd.getFullYear(), periodEnd.getMonth() + 1, 0).getDate());
+      newGrants.push({
+        employeeId: balance.employeeId,
+        leaveTypeCode: 'ANNUAL',
+        grantDays: carryDays,
+        remainDays: carryDays,
+        grantReason: `${fromYear}년 이월`,
+        periodStart,
+        periodEnd,
+      });
 
-        // Transaction: grant + balance atomic (prevents double carry-over)
-        await prisma.$transaction(async (tx) => {
-          // Double-check inside transaction to prevent concurrent duplicates
-          const existing = await tx.leaveGrant.findFirst({
-            where: {
-              employeeId: balance.employeeId,
-              leaveTypeCode: 'ANNUAL',
-              grantReason: { contains: `${fromYear}년 이월` },
-              periodStart: { gte: new Date(toYear, 0, 1) },
-            },
-          });
-          if (existing) {
-            throw new Error('SKIP_DUPLICATE');
-          }
-
-          await tx.leaveGrant.create({
-            data: {
-              employeeId: balance.employeeId,
-              leaveTypeCode: 'ANNUAL',
-              grantDays: carryDays,
-              remainDays: carryDays,
-              grantReason: `${fromYear}년 이월`,
-              periodStart,
-              periodEnd,
-            },
-          });
-
-          await tx.leaveBalance.upsert({
-            where: {
-              tenantId_employeeId_year_leaveTypeCode: {
-                tenantId,
-                employeeId: balance.employeeId,
-                year: toYear,
-                leaveTypeCode: 'ANNUAL',
-              },
-            },
-            create: {
-              employeeId: balance.employeeId,
-              year: toYear,
-              leaveTypeCode: 'ANNUAL',
-              totalGranted: carryDays,
-              totalUsed: 0,
-              totalRemain: carryDays,
-            },
-            update: {
-              totalGranted: { increment: carryDays },
-              totalRemain: { increment: carryDays },
-            },
-          });
-        });
-
-        carryOverCount++;
-      } catch (err) {
-        if (err instanceof Error && err.message === 'SKIP_DUPLICATE') {
-          skippedCount++;
-          continue;
-        }
-        errors.push(
-          `${balance.employee.name}(${balance.employee.employeeNumber}): ${err instanceof Error ? err.message : '알 수 없는 오류'}`
+      if (toYearBalanceSet.has(balance.employeeId)) {
+        balanceUpdates.push(
+          updateStmt('leaveBalance', {
+            tenantId,
+            employeeId: balance.employeeId,
+            year: toYear,
+            leaveTypeCode: 'ANNUAL',
+          }, {
+            totalGranted: { increment: carryDays },
+            totalRemain: { increment: carryDays },
+          })
         );
+      } else {
+        newBalances.push({
+          employeeId: balance.employeeId,
+          year: toYear,
+          leaveTypeCode: 'ANNUAL',
+          totalGranted: carryDays,
+          totalUsed: 0,
+          totalRemain: carryDays,
+        });
+        toYearBalanceSet.add(balance.employeeId);
+      }
+
+      carryOverCount++;
+    }
+
+    // [쓰기] 청크 단위 원자성 — 실패한 청크만 보고하고 나머지는 진행한다.
+    // 이월은 재실행해도 이미 이월된 직원을 건너뛰므로 실패분만 다시 돌리면 복구된다.
+    const CHUNK = 50;
+
+    for (let i = 0; i < newGrants.length; i += CHUNK) {
+      const part = newGrants.slice(i, i + CHUNK);
+      try {
+        await (prisma as any).leaveGrant.createMany({ data: part });
+      } catch (err) {
+        errors.push(`이월 부여 ${i + 1}~${i + part.length}건 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+      }
+    }
+    for (let i = 0; i < newBalances.length; i += CHUNK) {
+      const part = newBalances.slice(i, i + CHUNK);
+      try {
+        await (prisma as any).leaveBalance.createMany({ data: part });
+      } catch (err) {
+        errors.push(`잔여일수 생성 ${i + 1}~${i + part.length}건 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+      }
+    }
+    for (let i = 0; i < balanceUpdates.length; i += CHUNK) {
+      const part = balanceUpdates.slice(i, i + CHUNK);
+      try {
+        await (prisma as any).$batch(part);
+      } catch (err) {
+        errors.push(`잔여일수 갱신 ${i + 1}~${i + part.length}건 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
       }
     }
 

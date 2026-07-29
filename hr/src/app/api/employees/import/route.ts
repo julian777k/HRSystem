@@ -22,8 +22,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '권한이 없습니다.' }, { status: 403 });
     }
 
-    // Rate limit: 3 imports per 15 minutes per user (expensive bulk operation)
-    const rl = await checkRateLimit(`import:${user.id}`, 3, 15 * 60 * 1000);
+    // Rate limit: 요청당 30건 상한이라 100명 명부는 4회로 나뉜다.
+    // 온보딩에서 여러 번 나눠 올리는 것이 정상 경로이므로 한도를 그에 맞춘다.
+    const rl = await checkRateLimit(`import:${user.id}`, 20, 15 * 60 * 1000);
     if (!rl.success) {
       return NextResponse.json(
         { message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
@@ -169,9 +170,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (rows.length > 1000) {
+    // 비밀번호 해싱(PBKDF2 10만 회)이 행마다 돌아 CPU를 크게 쓴다.
+    // 한 요청에서 너무 많이 처리하면 Worker CPU 한도를 넘겨 전량 실패하므로 상한을 둔다.
+    // 100명 명부는 파일을 나눠 올리거나, 화면의 분할 업로드를 사용한다.
+    const MAX_ROWS_PER_REQUEST = 30;
+    if (rows.length > MAX_ROWS_PER_REQUEST) {
       return NextResponse.json(
-        { message: `최대 1,000건까지 가져올 수 있습니다. (현재 ${rows.length}건)` },
+        {
+          message: `한 번에 ${MAX_ROWS_PER_REQUEST}건까지 등록할 수 있습니다. (현재 ${rows.length}건) 파일을 나눠 올려주세요.`,
+          maxRowsPerRequest: MAX_ROWS_PER_REQUEST,
+          rowCount: rows.length,
+        },
         { status: 400 }
       );
     }
@@ -184,6 +193,11 @@ export async function POST(request: NextRequest) {
 
     const results = { success: 0, failed: 0, errors: [] as string[] };
     const generatedPasswords: { employeeNumber: string; name: string; email: string; password: string }[] = [];
+    const pending: Array<{
+      rowNum: number;
+      data: Record<string, unknown>;
+      generated: { employeeNumber: string; name: string; email: string; password: string } | null;
+    }> = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -229,7 +243,8 @@ export async function POST(request: NextRequest) {
 
         const passwordHash = await hashPassword(password);
 
-        await prisma.employee.create({
+        pending.push({
+          rowNum,
           data: {
             employeeNumber,
             name,
@@ -241,19 +256,41 @@ export async function POST(request: NextRequest) {
             hireDate: new Date(hireDate),
             role: 'BASIC',
           },
+          generated: hasExplicitPassword ? null : { employeeNumber, name, email, password },
         });
-
-        if (!hasExplicitPassword) {
-          generatedPasswords.push({ employeeNumber, name, email, password });
-        }
-        results.success++;
       } catch (err) {
         results.failed++;
         const message = err instanceof Error ? err.message : '알 수 없는 오류';
-        if (message.toLowerCase().includes('unique constraint')) {
-          results.errors.push(`${rowNum}행: 중복된 사번 또는 이메일`);
-        } else {
-          results.errors.push(`${rowNum}행: ${message}`);
+        results.errors.push(`${rowNum}행: ${message}`);
+      }
+    }
+
+    // [배치화] 직원마다 create를 돌리면 subrequest가 인원수만큼 늘어난다.
+    // 검증을 통과한 행만 모아 한 번에 삽입하고, 배치가 실패하면 개별로 되돌아가
+    // 어느 행이 문제인지 정확히 보고한다.
+    if (pending.length > 0) {
+      try {
+        await (prisma as any).employee.createMany({ data: pending.map((p) => p.data) });
+        results.success += pending.length;
+        for (const p of pending) {
+          if (p.generated) generatedPasswords.push(p.generated);
+        }
+      } catch {
+        // 배치 실패 시 개별 삽입으로 성공분을 최대한 살리고 실패 행을 특정한다.
+        for (const p of pending) {
+          try {
+            await prisma.employee.create({ data: p.data as never });
+            results.success++;
+            if (p.generated) generatedPasswords.push(p.generated);
+          } catch (err) {
+            results.failed++;
+            const message = err instanceof Error ? err.message : '알 수 없는 오류';
+            if (message.toLowerCase().includes('unique constraint')) {
+              results.errors.push(`${p.rowNum}행: 중복된 사번 또는 이메일`);
+            } else {
+              results.errors.push(`${p.rowNum}행: ${message}`);
+            }
+          }
         }
       }
     }

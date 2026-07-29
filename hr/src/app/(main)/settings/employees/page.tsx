@@ -413,19 +413,50 @@ export default function EmployeesPage() {
     setImportResult("");
     setSubmitting(true);
 
+    // 서버는 한 요청당 30건까지 처리한다(비밀번호 해싱 CPU 한도).
+    // 큰 명부는 화면에서 나눠 순차 전송하고 결과를 합산한다.
+    const CHUNK_ROWS = 30;
+
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const text = await file.text();
+      const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter((l) => l.trim());
+      const header = lines[0];
+      const dataLines = lines.slice(1);
 
-      const res = await fetch("/api/employees/import", {
-        method: "POST",
-        body: formData,
-      });
+      const total = { success: 0, failed: 0, errors: [] as string[] };
+      const chunkCount = Math.max(1, Math.ceil(dataLines.length / CHUNK_ROWS));
 
-      const data = await res.json();
-      let result = data.message || '가져오기 완료';
-      if (data.errors?.length > 0) {
-        result += '\n' + data.errors.slice(0, 5).join('\n');
+      for (let i = 0; i < chunkCount; i++) {
+        const part = dataLines.slice(i * CHUNK_ROWS, (i + 1) * CHUNK_ROWS);
+        if (part.length === 0) continue;
+
+        if (chunkCount > 1) {
+          setImportResult(`등록 중... (${i + 1}/${chunkCount} 묶음, ${total.success}건 완료)`);
+        }
+
+        const blob = new Blob([[header, ...part].join("\n")], { type: "text/csv" });
+        const formData = new FormData();
+        formData.append("file", blob, file.name);
+
+        const res = await fetch("/api/employees/import", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          total.errors.push(data.message || `${i + 1}번째 묶음 처리 실패`);
+          break;
+        }
+        total.success += data.success || 0;
+        total.failed += data.failed || 0;
+        if (data.errors?.length) total.errors.push(...data.errors);
+      }
+
+      let result = `가져오기 완료: 성공 ${total.success}건, 실패 ${total.failed}건`;
+      if (total.errors.length > 0) {
+        result += "\n" + total.errors.slice(0, 5).join("\n");
+        if (total.errors.length > 5) result += `\n... 외 ${total.errors.length - 5}건`;
       }
       setImportResult(result);
       fetchEmployees();

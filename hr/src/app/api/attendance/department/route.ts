@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { isHoliday, isWeekday, getAttendanceMode } from '@/lib/attendance-utils';
+import { findInChunks } from '@/lib/db-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,12 +52,15 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' },
     });
 
-    const attendances = await prisma.attendance.findMany({
-      where: {
-        employeeId: { in: employees.map(e => e.id) },
-        date: dayStart,
-      },
-    });
+    // D1 파라미터 한도(100) — 대형 부서에서 IN 절이 넘치지 않도록 나눠 조회한다.
+    const attendances = await findInChunks(employees.map((e) => e.id), (ids) =>
+      prisma.attendance.findMany({
+        where: {
+          employeeId: { in: ids },
+          date: dayStart,
+        },
+      })
+    );
 
     const attendanceMap = new Map(
       attendances.map(a => [a.employeeId, a])

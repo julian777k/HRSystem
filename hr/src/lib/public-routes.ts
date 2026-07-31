@@ -20,3 +20,24 @@ export const PUBLIC_API_ROUTES = [
 export function isPublicApiRoute(pathname: string): boolean {
     return PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
 }
+
+// 인증 없이 볼 수 있어야 하는 페이지.
+// 비밀번호 재설정 화면이 빠져 있으면 메일 링크를 눌러도 로그인으로 튕긴다.
+export const PUBLIC_PAGES = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/privacy',
+    '/terms',
+];
+
+/** 인증 없이 접근 가능한 페이지인지 (셋업 흐름용 최소 집합은 minimal=true) */
+export function isPublicPage(pathname: string, minimal = false): boolean {
+    if (minimal) {
+        // 루트 도메인 셋업 흐름 등에서 쓰는 축소 집합.
+        // 비밀번호 복구는 어느 흐름에서도 막히면 안 되므로 항상 포함한다.
+        return ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
+    }
+    return PUBLIC_PAGES.includes(pathname);
+}

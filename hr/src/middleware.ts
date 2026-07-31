@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken, COOKIE_NAME } from '@/lib/auth';
 import { isSaaSMode, SAAS_BASE_DOMAIN } from '@/lib/deploy-config';
-import { isPublicApiRoute } from '@/lib/public-routes';
+import { isPublicApiRoute, isPublicPage } from '@/lib/public-routes';
 
 // ──────────────────────────────────────────────
 // Global API rate limiting (in-memory, per-isolate)
@@ -156,8 +156,8 @@ async function selfHostedMiddleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public pages: login, register, legal
-  if (['/login', '/register', '/privacy', '/terms'].includes(pathname)) {
+  // Public pages: login, register, 비밀번호 복구, legal
+  if (isPublicPage(pathname)) {
     if (user && pathname === '/login') {
       const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
       return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -232,8 +232,8 @@ async function saasMiddleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Allow auth pages (login, register) on root domain for setup flow
-    if (['/login', '/register'].includes(pathname)) {
+    // Allow auth pages (login, register, 비밀번호 복구) on root domain for setup flow
+    if (isPublicPage(pathname, true)) {
       return NextResponse.next();
     }
 
@@ -293,8 +293,8 @@ async function saasMiddleware(request: NextRequest) {
     });
   }
 
-  // Public pages: login, register
-  if (['/login', '/register'].includes(pathname)) {
+  // Public pages: login, register, 비밀번호 복구
+  if (isPublicPage(pathname, true)) {
     if (user && pathname === '/login') {
       const isAdmin = ['SYSTEM_ADMIN', 'COMPANY_ADMIN'].includes(user.role);
       return NextResponse.redirect(new URL('/dashboard', request.url));

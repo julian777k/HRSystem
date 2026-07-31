@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { isPublicApiRoute } from '@/lib/public-routes';
+import { isPublicApiRoute, isPublicPage } from '@/lib/public-routes';
 
 // 로그인할 수 없는 상태에서 쓰는 경로가 인증 뒤에 갇히면 기능이 통째로 죽는다.
 // 실제로 비밀번호 재설정 API가 PUBLIC_API_ROUTES에 없어 401로 막혔던 적이 있다(2026-07-31).
@@ -29,4 +29,31 @@ describe('인증 없이 열려 있어야 하는 API', () => {
         expect(isPublicApiRoute('/api/auth/login-history')).toBe(true); // 접두사 매칭 특성상 열림 — 존재 시 주의
         expect(isPublicApiRoute('/api/authorization')).toBe(false);
     });
+});
+
+// 메일로 받은 재설정 링크를 눌렀을 때 로그인으로 튕기면 복구 자체가 불가능하다.
+// 실제로 페이지가 공개 목록에서 빠져 이 증상이 났었다(2026-07-31).
+describe('인증 없이 볼 수 있어야 하는 페이지', () => {
+    it.each(['/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms'])(
+        '%s 는 공개 페이지여야 한다',
+        (path) => {
+            expect(isPublicPage(path)).toBe(true);
+        }
+    );
+
+    // 축소 집합(루트 도메인 셋업 흐름)에서도 비밀번호 복구는 반드시 열려 있어야 한다
+    it.each(['/login', '/register', '/forgot-password', '/reset-password'])(
+        '%s 는 축소 집합에서도 열려 있어야 한다',
+        (path) => {
+            expect(isPublicPage(path, true)).toBe(true);
+        }
+    );
+
+    it.each(['/dashboard', '/settings/employees', '/attendance'])(
+        '%s 는 보호되어야 한다',
+        (path) => {
+            expect(isPublicPage(path)).toBe(false);
+            expect(isPublicPage(path, true)).toBe(false);
+        }
+    );
 });

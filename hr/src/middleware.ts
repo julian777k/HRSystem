@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { verifyToken, COOKIE_NAME } from '@/lib/auth';
 import { isSaaSMode, SAAS_BASE_DOMAIN } from '@/lib/deploy-config';
 import { isPublicApiRoute, isPublicPage } from '@/lib/public-routes';
+import { DEMO_SUBDOMAIN, DEMO_BLOCKED_MESSAGE, isDemoWriteAllowed } from '@/lib/demo-guard';
 
 // ──────────────────────────────────────────────
 // Global API rate limiting (in-memory, per-isolate)
@@ -280,6 +281,12 @@ async function saasMiddleware(request: NextRequest) {
 
   // API routes: check auth (except public API routes)
   if (pathname.startsWith('/api')) {
+    // 데모는 인증 없이 SYSTEM_ADMIN 권한이 주어진다.
+    // 즉 "누구나 관리자"인 환경이므로, 인증 검사보다 먼저 허용 범위를 제한한다.
+    // 화이트리스트라 새 API가 추가돼도 기본은 차단이다.
+    if (subdomain === DEMO_SUBDOMAIN && !isDemoWriteAllowed(pathname, request.method)) {
+      return NextResponse.json({ message: DEMO_BLOCKED_MESSAGE }, { status: 403 });
+    }
     if (isPublicApiRoute(pathname)) {
       return NextResponse.next({
         request: { headers: requestHeaders },

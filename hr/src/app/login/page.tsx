@@ -197,7 +197,15 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">비밀번호</Label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline active:text-blue-900"
+                  >
+                    비밀번호를 잊으셨나요?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -233,7 +241,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
                 <p className="text-xs text-gray-400">
-                  비밀번호 분실 시 관리자에게 문의해주세요.
+                  비밀번호를 잊으셨다면 등록된 이메일로 재설정 링크를 받으실 수 있습니다.
                 </p>
                 <p className="text-xs text-gray-400">
                   <a href="/privacy" className="hover:text-gray-500 underline">개인정보처리방침</a>

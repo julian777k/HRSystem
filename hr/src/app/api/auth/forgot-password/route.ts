@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getTenantIdSafe } from '@/lib/tenant-context';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendEmail, passwordResetEmail } from '@/lib/email';
+import { checkResetEmailQuota } from '@/lib/email-quota';
 
 // 계정 열거 방지: 존재 여부와 무관하게 항상 동일 응답
 const GENERIC = { message: '등록된 이메일이면 비밀번호 재설정 링크를 보내드렸습니다.' };
@@ -43,17 +44,23 @@ export async function POST(request: NextRequest) {
 
     // 계정이 있을 때만 토큰 생성·발송. 응답은 항상 GENERIC.
     if (employee) {
-      const token = generateToken();
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-      await prisma.passwordReset.create({
-        data: { tenantId, email, token, expiresAt },
-      });
+      // 메일은 1건당 비용이 발생한다. IP 기반 제한은 isolate 메모리라
+      // Workers에서 우회가 쉬우므로, D1 기록으로 실제 발송량을 통제한다.
+      // 한도에 걸려도 응답은 동일하게 유지한다(계정 열거·상태 노출 방지).
+      const quota = await checkResetEmailQuota(email);
+      if (quota.allowed) {
+        const token = generateToken();
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+        await prisma.passwordReset.create({
+          data: { tenantId, email, token, expiresAt },
+        });
 
-      const host = request.headers.get('host') || 'keystonehr.app';
-      const resetUrl = `https://${host}/reset-password?token=${token}`;
-      const { subject, html, text } = passwordResetEmail(resetUrl);
-      // 키 미설정이면 sendEmail이 false를 반환하지만 응답은 동일(열거 방지)
-      await sendEmail({ to: email, subject, html, text });
+        const host = request.headers.get('host') || 'keystonehr.app';
+        const resetUrl = `https://${host}/reset-password?token=${token}`;
+        const { subject, html, text } = passwordResetEmail(resetUrl);
+        // 키 미설정이면 sendEmail이 false를 반환하지만 응답은 동일(열거 방지)
+        await sendEmail({ to: email, subject, html, text });
+      }
     }
 
     return NextResponse.json(GENERIC);

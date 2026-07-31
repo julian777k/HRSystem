@@ -4,6 +4,7 @@ import { getTenantIdSafe } from '@/lib/tenant-context';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendEmail, passwordResetEmail } from '@/lib/email';
 import { checkResetEmailQuota } from '@/lib/email-quota';
+import { isDemoRequest } from '@/lib/demo-guard';
 
 // 계정 열거 방지: 존재 여부와 무관하게 항상 동일 응답
 const GENERIC = { message: '등록된 이메일이면 비밀번호 재설정 링크를 보내드렸습니다.' };
@@ -42,8 +43,13 @@ export async function POST(request: NextRequest) {
       where: { email, tenantId },
     });
 
+    // 데모는 누구나 관리자 권한을 얻을 수 있어, 임의 주소로 직원을 만든 뒤
+    // 이 API로 메일을 보내는 스팸 발송기로 악용될 수 있다. 데모에서는 발송하지 않는다.
+    // (응답은 동일하게 유지 — 계정 열거·환경 판별 방지)
+    const demo = await isDemoRequest();
+
     // 계정이 있을 때만 토큰 생성·발송. 응답은 항상 GENERIC.
-    if (employee) {
+    if (employee && !demo) {
       // 메일은 1건당 비용이 발생한다. IP 기반 제한은 isolate 메모리라
       // Workers에서 우회가 쉬우므로, D1 기록으로 실제 발송량을 통제한다.
       // 한도에 걸려도 응답은 동일하게 유지한다(계정 열거·상태 노출 방지).

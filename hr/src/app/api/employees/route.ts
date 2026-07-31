@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { containsFilter } from '@/lib/db-utils';
 import { getTenantId } from '@/lib/tenant-context';
+import { checkEmployeeLimit, limitMessage } from '@/lib/employee-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -125,6 +126,13 @@ export async function POST(request: NextRequest) {
         { message: '유효하지 않은 부서 또는 직급입니다.' },
         { status: 400 }
       );
+    }
+
+    // 판매 상품의 인원 한도를 실제로 강제한다.
+    // 데모는 여기서 더 낮은 상한이 적용돼 무제한 생성을 막는다.
+    const limit = await checkEmployeeLimit(tenantId);
+    if (!limit.allowed) {
+      return NextResponse.json({ message: limitMessage(limit) }, { status: 403 });
     }
 
     const existingEmail = await prisma.employee.findFirst({ where: { email, tenantId } });

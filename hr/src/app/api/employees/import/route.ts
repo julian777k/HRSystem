@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
 import { writeAuditLog } from '@/lib/audit-log';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { getTenantId } from '@/lib/tenant-context';
+import { checkEmployeeLimit, limitMessage } from '@/lib/employee-limit';
 
 function generateRandomPassword(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
@@ -183,6 +185,14 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // 대량 등록 경로에도 인원 한도를 강제한다.
+    // 개별 등록만 막으면 임포트로 우회할 수 있다.
+    const tenantId = await getTenantId();
+    const limit = await checkEmployeeLimit(tenantId, rows.length);
+    if (!limit.allowed) {
+      return NextResponse.json({ message: limitMessage(limit) }, { status: 403 });
     }
 
     const departments = await prisma.department.findMany();

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken, COOKIE_NAME } from '@/lib/auth';
 import { isSaaSMode, SAAS_BASE_DOMAIN } from '@/lib/deploy-config';
+import { isPublicApiRoute } from '@/lib/public-routes';
 
 // ──────────────────────────────────────────────
 // Global API rate limiting (in-memory, per-isolate)
@@ -68,20 +69,7 @@ function checkApiRateLimit(request: NextRequest): Response | null {
   return null;
 }
 
-// API routes that don't require authentication
-const PUBLIC_API_ROUTES = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/register-company',
-  '/api/setup/',
-  '/api/super-admin/auth/login',
-  '/api/payments/',
-  '/api/demo/login', // 공개 데모 자동 로그인 (demo 서브도메인에서만 동작)
-];
-
-function isPublicApiRoute(pathname: string): boolean {
-  return PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
-}
+// 공개 API 경로 목록은 lib/public-routes.ts에 있다 (단독 테스트 가능하도록 분리).
 
 /**
  * Extract subdomain from the request host.

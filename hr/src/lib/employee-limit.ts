@@ -7,8 +7,10 @@
 import { basePrismaClient } from '@/lib/prisma';
 import { DEMO_SUBDOMAIN } from '@/lib/demo-guard';
 
-/** 데모 테넌트는 체험에 필요한 최소 규모만 허용한다 */
-export const DEMO_MAX_EMPLOYEES = 60;
+// 데모 상한. 시드 직원이 약 52명이므로 그보다 넉넉히 잡아
+// 방문자가 직원 등록 기능을 체험할 수 있게 하되, 무제한 생성은 막는다.
+// 매일 리셋되므로 누적되지 않는다.
+export const DEMO_MAX_EMPLOYEES = 75;
 
 export interface LimitCheck {
     allowed: boolean;

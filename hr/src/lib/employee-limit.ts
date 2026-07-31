@@ -42,9 +42,10 @@ export async function checkEmployeeLimit(tenantId: string, adding = 1): Promise<
 
 export function limitMessage(check: LimitCheck): string {
     if (check.isDemo) {
-        // 체험자에게는 "내가 뭘 잘못했나"가 아니라 "곧 풀린다"를 알려준다.
-        // 데모는 6시간마다 초기화된다.
-        return '체험 환경의 등록 한도에 도달했습니다. 데모 데이터는 주기적으로 초기화되니 잠시 후 다시 시도해 주세요.';
+        // 체험자는 "등록이 어떻게 되는지" 확인하려는 것뿐이므로 기다리게 할 이유가 없다.
+        // 직원을 삭제하거나 퇴직 처리하면 활성 인원이 줄어 곧바로 다시 등록할 수 있다.
+        // (삭제 기능까지 함께 체험하게 되는 이점도 있다)
+        return '체험 환경의 등록 한도에 도달했습니다. 등록해 보신 직원을 삭제하거나 퇴직 처리하시면 바로 다시 등록해 보실 수 있습니다.';
     }
     return `등록 가능한 직원 수를 초과했습니다. (현재 ${check.current}명 / 한도 ${check.max}명)`;
 }

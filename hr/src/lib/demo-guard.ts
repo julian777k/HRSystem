@@ -9,8 +9,19 @@
 export const DEMO_SUBDOMAIN = 'demo';
 
 /**
- * 현재 요청이 공개 데모 테넌트에서 온 것인지 (라우트 핸들러용).
- * 미들웨어는 next/headers를 쓸 수 없으므로 isDemoWriteAllowed를 직접 호출한다.
+ * 요청 객체에서 데모 여부를 직접 판정한다.
+ *
+ * next/headers의 headers()를 쓰는 방식은 Workers 런타임에서 실패해
+ * 조용히 false가 되고 보호가 통째로 무력화됐다(2026-07-31 실측).
+ * 미들웨어가 x-tenant-subdomain을 심어주므로 요청 헤더에서 바로 읽는 것이 확실하다.
+ */
+export function isDemoRequestFrom(request: { headers: { get(name: string): string | null } }): boolean {
+    return request.headers.get('x-tenant-subdomain') === DEMO_SUBDOMAIN;
+}
+
+/**
+ * 요청 객체를 넘길 수 없는 곳에서 쓰는 보조 경로 (라우트 핸들러 전용).
+ * 가능하면 isDemoRequestFrom을 쓸 것 — 이쪽은 런타임에 따라 실패할 수 있다.
  */
 export async function isDemoRequest(): Promise<boolean> {
     try {

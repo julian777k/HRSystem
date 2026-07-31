@@ -3,7 +3,7 @@ import { hashPassword, validatePasswordPolicy } from '@/lib/password';
 import { writeAuditLog } from '@/lib/audit-log';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-actions';
-import { isDemoRequest, isProtectedDemoAccount, DEMO_PROTECTED_ACCOUNT_MESSAGE } from '@/lib/demo-guard';
+import { isDemoRequestFrom, isProtectedDemoAccount, DEMO_PROTECTED_ACCOUNT_MESSAGE } from '@/lib/demo-guard';
 
 export async function GET(
   _request: NextRequest,
@@ -79,7 +79,7 @@ export async function PUT(
     // 데모에서 관리자 계정을 건드리면 자동 로그인·관리 기능 체험이 깨진다.
     // DELETE만 막으면 여기서 status를 RESIGNED로 바꾸거나 role을 강등한 뒤
     // 삭제하는 우회가 가능하므로 수정 경로도 함께 막는다.
-    if (isProtectedDemoAccount(existing.role) && (await isDemoRequest())) {
+    if (isProtectedDemoAccount(existing.role) && isDemoRequestFrom(request)) {
       return NextResponse.json(
         { message: DEMO_PROTECTED_ACCOUNT_MESSAGE },
         { status: 403 }
@@ -172,7 +172,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -196,7 +196,7 @@ export async function DELETE(
     }
 
     // 데모에서 관리자 계정을 퇴직 처리하면 자동 로그인이 깨져 데모 자체가 마비된다.
-    if (isProtectedDemoAccount(existing.role) && (await isDemoRequest())) {
+    if (isProtectedDemoAccount(existing.role) && isDemoRequestFrom(request)) {
       return NextResponse.json(
         { message: DEMO_PROTECTED_ACCOUNT_MESSAGE },
         { status: 403 }

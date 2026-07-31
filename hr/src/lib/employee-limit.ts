@@ -16,6 +16,7 @@ export interface LimitCheck {
     allowed: boolean;
     current: number;
     max: number;
+    isDemo: boolean;
 }
 
 /**
@@ -28,18 +29,22 @@ export async function checkEmployeeLimit(tenantId: string, adding = 1): Promise<
     })) as { maxEmployees?: number; subdomain?: string } | null;
 
     const configured = tenant?.maxEmployees && tenant.maxEmployees > 0 ? tenant.maxEmployees : 50;
+    const isDemo = tenant?.subdomain === DEMO_SUBDOMAIN;
     // 데모는 설정값과 무관하게 상한을 낮게 고정한다(무제한 생성 방지).
-    const max = tenant?.subdomain === DEMO_SUBDOMAIN
-        ? Math.min(configured, DEMO_MAX_EMPLOYEES)
-        : configured;
+    const max = isDemo ? Math.min(configured, DEMO_MAX_EMPLOYEES) : configured;
 
     const current = await basePrismaClient.employee.count({
         where: { tenantId, status: 'ACTIVE' },
     });
 
-    return { allowed: current + adding <= max, current, max };
+    return { allowed: current + adding <= max, current, max, isDemo };
 }
 
 export function limitMessage(check: LimitCheck): string {
+    if (check.isDemo) {
+        // 체험자에게는 "내가 뭘 잘못했나"가 아니라 "곧 풀린다"를 알려준다.
+        // 데모는 6시간마다 초기화된다.
+        return '체험 환경의 등록 한도에 도달했습니다. 데모 데이터는 주기적으로 초기화되니 잠시 후 다시 시도해 주세요.';
+    }
     return `등록 가능한 직원 수를 초과했습니다. (현재 ${check.current}명 / 한도 ${check.max}명)`;
 }

@@ -82,6 +82,24 @@ const DEMO_BLOCKED_EXACT = [
 const DEMO_BLOCKED_SUFFIXES = ['/anonymize'];
 
 /**
+ * 데모에서 건드리면 안 되는 계정인지.
+ *
+ * 데모 자동 로그인은 demo@keystonehr.app 계정을 찾아 세션을 발급한다.
+ * 방문자가 그 계정을 퇴직 처리하면 다음 방문자는 데모에 진입조차 못 하고,
+ * 다음 리셋(6시간)까지 데모가 죽는다.
+ * 다른 관리자 계정도 마찬가지로 관리 기능 체험을 불가능하게 만든다.
+ *
+ * 일반 직원(BASIC)은 자유롭게 지울 수 있어야 한다 —
+ * 인원 한도에 걸린 체험자가 스스로 정리하고 다시 등록해 보는 경로다.
+ */
+export function isProtectedDemoAccount(role: string | null | undefined): boolean {
+    return role === 'SYSTEM_ADMIN' || role === 'COMPANY_ADMIN';
+}
+
+export const DEMO_PROTECTED_ACCOUNT_MESSAGE =
+    '체험 환경에서는 관리자 계정을 변경하거나 삭제할 수 없습니다. 일반 직원 계정으로 시도해 주세요.';
+
+/**
  * 데모에서 이 요청을 허용할지 판정한다.
  * 조회는 모두 허용, 쓰기는 화이트리스트에 있고 개별 차단 목록에 없어야 한다.
  */

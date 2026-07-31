@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { isDemoWriteAllowed } from '@/lib/demo-guard';
+import { isDemoWriteAllowed, isProtectedDemoAccount } from '@/lib/demo-guard';
 
 // 데모는 인증 없이 SYSTEM_ADMIN 권한이 주어진다.
 // 블랙리스트로 "위험한 것만" 막으면 API가 추가될 때마다 누락되므로
@@ -65,5 +65,23 @@ describe('데모 쓰기 허용 판정', () => {
     it('접두사 부분일치로 다른 경로가 열리지 않는다', () => {
         // '/api/employees' 접두사가 '/api/employees-secret' 을 열면 안 된다
         expect(isDemoWriteAllowed('/api/employees-secret', 'POST')).toBe(false);
+    });
+});
+
+// 데모 자동 로그인은 demo@keystonehr.app(SYSTEM_ADMIN)로 세션을 발급한다.
+// 방문자가 그 계정을 퇴직 처리하면 다음 방문자는 데모에 진입조차 못 한다.
+describe('데모 관리자 계정 보호', () => {
+    it.each(['SYSTEM_ADMIN', 'COMPANY_ADMIN'])('%s 는 보호 대상이다', (role) => {
+        expect(isProtectedDemoAccount(role)).toBe(true);
+    });
+
+    it('일반 직원은 보호 대상이 아니다 — 체험자가 지우고 다시 등록할 수 있어야 한다', () => {
+        expect(isProtectedDemoAccount('BASIC')).toBe(false);
+        expect(isProtectedDemoAccount('MANAGER')).toBe(false);
+    });
+
+    it('role이 없어도 안전하게 처리한다', () => {
+        expect(isProtectedDemoAccount(null)).toBe(false);
+        expect(isProtectedDemoAccount(undefined)).toBe(false);
     });
 });

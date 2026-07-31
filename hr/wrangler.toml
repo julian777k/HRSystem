@@ -43,7 +43,10 @@ NODE_ENV = "production"
 DB_PROVIDER = "sqlite"
 NEXT_PUBLIC_DB_PROVIDER = "sqlite"
 NEXT_PUBLIC_DEPLOY_TARGET = "cloudflare"
+# 비밀번호 재설정 메일 발신 주소 (비밀 아님 — Resend에서 도메인 인증된 주소여야 한다)
+EMAIL_FROM = "KeystoneHR <noreply@keystonehr.app>"
 
 # Secrets (set via: npx wrangler secret put <NAME>)
 # JWT_SECRET
 # SUPER_ADMIN_JWT_SECRET
+# RESEND_API_KEY  — 비밀번호 재설정 메일 발송. 미설정이면 발송을 건너뛴다(무해)

@@ -9,20 +9,36 @@ interface SendEmailParams {
   text?: string;
 }
 
+const DEFAULT_FROM = 'KeystoneHR <noreply@keystonehr.app>';
+
+// OpenNext는 Workers의 시크릿과 vars를 process.env로 주입한다.
+// getCloudflareContext().env에는 D1·KV·R2 같은 **바인딩**만 들어오므로
+// 거기서 시크릿을 찾으면 undefined가 되고, 예외가 아니라 값이 없는 것이라
+// try/catch 폴백도 타지 않는다. (실제로 이 때문에 메일이 조용히 안 나갔다)
 async function getEmailConfig(): Promise<{ apiKey?: string; from: string }> {
-  try {
-    const { env } = await getCloudflareContext();
-    const e = env as unknown as Record<string, string | undefined>;
-    return {
-      apiKey: e.RESEND_API_KEY,
-      from: e.EMAIL_FROM || 'KeystoneHR <noreply@keystonehr.app>',
-    };
-  } catch {
-    return {
-      apiKey: process.env.RESEND_API_KEY,
-      from: process.env.EMAIL_FROM || 'KeystoneHR <noreply@keystonehr.app>',
-    };
+  let apiKey = process.env.RESEND_API_KEY;
+  let from = process.env.EMAIL_FROM;
+
+  if (!apiKey) {
+    // 런타임에 따라 바인딩 쪽에 실려 오는 경우를 대비한 보조 경로
+    try {
+      const { env } = await getCloudflareContext();
+      const e = env as unknown as Record<string, string | undefined>;
+      apiKey = apiKey || e.RESEND_API_KEY;
+      from = from || e.EMAIL_FROM;
+    } catch {
+      // 로컬 개발 등 Cloudflare 컨텍스트가 없는 환경 — process.env만 쓴다
+    }
   }
+
+  return { apiKey, from: from || DEFAULT_FROM };
+}
+
+/** 로그에 원문 주소를 남기지 않기 위한 마스킹 */
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 0) return '***';
+  return `${email[0]}***${email.slice(at)}`;
 }
 
 // 발송 성공 시 true. 키 미설정·실패 시 false(호출측은 열거 방지 위해 결과와 무관하게 동일 응답).
@@ -51,6 +67,9 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
       console.error('[email] Resend 발송 실패:', res.status, await res.text().catch(() => ''));
       return false;
     }
+    // 성공도 남긴다. 성공 시 무로그면 "발송됨"과 "호출 자체가 안 됨"을 구분할 수 없어
+    // 장애 진단이 늦어진다(2026-07-31 실제로 겪음).
+    console.log('[email] 발송 성공:', maskEmail(params.to), '|', params.subject);
     return true;
   } catch (e) {
     console.error('[email] Resend 요청 오류:', e);

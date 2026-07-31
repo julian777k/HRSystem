@@ -203,7 +203,7 @@ export default function LoginPage() {
                     href="/forgot-password"
                     className="text-sm text-blue-600 hover:text-blue-800 hover:underline active:text-blue-900"
                   >
-                    비밀번호를 잊으셨나요?
+                    비밀번호 찾기
                   </Link>
                 </div>
                 <Input
@@ -240,9 +240,6 @@ export default function LoginPage() {
                     회원가입
                   </Link>
                 </div>
-                <p className="text-xs text-gray-400">
-                  비밀번호를 잊으셨다면 등록된 이메일로 재설정 링크를 받으실 수 있습니다.
-                </p>
                 <p className="text-xs text-gray-400">
                   <a href="/privacy" className="hover:text-gray-500 underline">개인정보처리방침</a>
                   {' · '}

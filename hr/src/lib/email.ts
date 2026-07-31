@@ -31,6 +31,26 @@ async function getEmailConfig(): Promise<{ apiKey?: string; from: string }> {
     }
   }
 
+  // 키를 못 찾은 경우에만 진단 정보를 남긴다(값은 절대 찍지 않고 존재 여부·키 이름만).
+  // Workers에서 시크릿이 어디에 실려 오는지 런타임에서 확인하기 위한 것.
+  if (!apiKey) {
+    let cfKeys: string[] = [];
+    try {
+      const { env } = await getCloudflareContext();
+      cfKeys = Object.keys((env || {}) as Record<string, unknown>);
+    } catch (e) {
+      cfKeys = [`(context 예외: ${e instanceof Error ? e.message : 'unknown'})`];
+    }
+    const procKeys = Object.keys(process.env || {});
+    console.warn(
+      '[email][diag] RESEND_API_KEY 조회 실패 |',
+      'process.env 개수=', procKeys.length,
+      '| process.env에 RESEND 포함=', procKeys.filter((k) => k.includes('RESEND')),
+      '| process.env에 JWT 포함=', procKeys.filter((k) => k.includes('JWT')),
+      '| cloudflare env 키=', cfKeys.join(',')
+    );
+  }
+
   return { apiKey, from: from || DEFAULT_FROM };
 }
 
